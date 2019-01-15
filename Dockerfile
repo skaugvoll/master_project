@@ -1,9 +1,6 @@
 # Use the latest tf GPU image
 FROM tensorflow/tensorflow:latest-gpu
 
-# NOTE: if error, remove. Add files to docker image, handle that the image has the src code when pulled
-# ADD . /app
-
 # Set working directory to app
 WORKDIR /app
 
