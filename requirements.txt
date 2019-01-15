@@ -1,0 +1,10 @@
+numpy
+jupyter
+tensorflow-gpu
+keras
+pandas
+numpy
+pyyaml
+psutil
+matplotlib
+tables
