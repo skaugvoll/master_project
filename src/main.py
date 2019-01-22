@@ -10,11 +10,11 @@ _CWA_FORMAT = 'cwa_7z'
 _FORMATS = [_CSV_FORMAT, _CWA_FORMAT]
 
 job = {
-    'config':'./params/config.yml',
-    'source':'./data/input',
+    'config':'../params/config.yml',
+    'source':'../data/input',
     'name':'testSubject08.7z',
     'source_fmt': _CWA_FORMAT,
-    'output':'./data/output',
+    'output':'../data/output',
     'a':''
 }
 
