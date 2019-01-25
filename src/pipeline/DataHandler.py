@@ -1,5 +1,5 @@
 
-import os, sys
+import os
 import axivity
 import pandas as pd
 from utils import zip_utils
@@ -11,6 +11,8 @@ class DataHandler():
         self.data_input_folder = os.getcwd() + '../../data/input'
         self.data_output_folder = os.getcwd() + '../../data/output'
         self.data_temp_folder = os.getcwd() + '../../data/temp'
+        self.data_cleanup_path = None
+        self.data_synched_csv_path = None
 
     def _get_csv_file(self, args):
         '''
@@ -33,28 +35,22 @@ class DataHandler():
         try:
             # Make sure zipfile exists
             if not os.path.exists(filepath):
-                print(">>>>>>>>: ", 3.1)
+                # print(">>>>>>>>: ", 3.1)
                 raise RuntimeError('Provided zip file "%s" does not exist' % filepath)
                 # Make sure that a working directory for unzipping and time synching also exists
             if not temp_dir:
-                print(">>>>>>>>: ", 3.2)
+                # print(">>>>>>>>: ", 3.2)
                 raise RuntimeError('A working directory ("-w <directoy name.") must be specified when using --zip-file')
             if not os.path.exists(temp_dir):
-                print(">>>>>>>>: ", 3.3)
+                # print(">>>>>>>>: ", 3.3)
                 raise RuntimeError('Provided working directory "%s" does not exist' % temp_dir)
 
-            print(">>>>>>>>: ", 4)
+            # print(">>>>>>>>: ", 4)
 
             # Unzip contents of zipfile
             job_name = filepath.split('/')[-1].split('.')[0]
             unzip_to_path = os.path.join(temp_dir, os.path.basename(filepath))
-            print(">>>>>>>>: ", job_name, unzip_to_path)
-
-            # with zip_utils.zip_to_working_dir(filepath, unzip_to_path) as subject_dir:
-            #     # Apply omconvert and timesync to join thigh & back .cwa files into a single .csv
-            #     with axivity.timesynched_csv(subject_dir) as synched_csv:
-            #         return job_name, synched_csv
-
+            self.data_cleanup_path = unzip_to_path # store the path to the unzipped folder for easy cleanup
 
             unzipped_dir = zip_utils.unzip_subject_data(
                 subject_zip_path=filepath,
@@ -62,18 +58,14 @@ class DataHandler():
                 return_inner_dir=True
             )
 
-            print(">>>>>>: UNZIPPED_DIR: ", unzipped_dir)
+            # print(">>>>>>: UNZIPPED_DIR: ", unzipped_dir)
 
-            synched_csv = axivity.convert_cwas_to_csv(
+            self.data_synched_csv_path = axivity.convert_cwas_to_csv(
                 unzipped_dir,
                 out_dir=None
             )
 
-            print(">>>>>>: SYCNED_CSV FROM AX: ", synched_csv)
-
-            return job_name, synched_csv
-
-
+            return job_name, self.data_synched_csv_path
 
         except Exception as e:
             print("could not unzipp 7z arhcive and synch it", e)
@@ -82,12 +74,10 @@ class DataHandler():
     def load_dataframe_from_7z(self, input_arhcive_path, whole_days=False, chunk_size=20000, max_days=6):
         current_directory = os.getcwd()
 
-        print(">>>>>>>>: ", 1)
+        # print(">>>>>>>>: ", 1)
 
         name, synched_csv = self._get_cwa_files(filepath=input_arhcive_path, temp_dir=self.data_temp_folder)
-        print(">>>>>>>>>>>: ", synched_csv)
-
-        input("CTL + C or run")
+        # print(">>>>>>>>>>>: ", synched_csv)
 
         # Create output directory if it does not exist
         self.data_output_folder = os.path.join(self.data_output_folder, name)
@@ -102,17 +92,17 @@ class DataHandler():
 
         print('Got synched csv file:', synched_csv)
 
-        print(">>>>>>>>: ", 5)
+        # print(">>>>>>>>: ", 5)
 
         # Read csv files in chunks
         columns = ['timestamp', 'back_x', 'back_y', 'back_z', 'thigh_x', 'thigh_y', 'thigh_z']
         if whole_days:
             # Use custom loader that scans to first midnight if --whole-days is enabled
-            print(">>>>>>>>: ", 6)
+            # print(">>>>>>>>: ", 6)
             self.dataframe_iterator = csv_loader.csv_chunker(synched_csv, chunk_size, ts_index=0,
                                                         columns=columns, n_days=max_days)
         else:
-            print(">>>>>>>>: ", 7)
+            # print(">>>>>>>>: ", 7)
             # Otherwise, just load with pandas
             self.dataframe_iterator = pd.read_csv(synched_csv, header=None, chunksize=chunk_size,
                                              names=columns, parse_dates=[0])
@@ -120,6 +110,14 @@ class DataHandler():
 
     def get_dataframe_iterator(self):
         return self.dataframe_iterator
+
+    def cleanup_temp_folder(self):
+        print("Cleaning {}".format(self.data_cleanup_path))
+        try:
+            zip_utils.clean_up_working_dir(self.data_cleanup_path)
+            print("Cleanup SUCCESS")
+        except:
+            print("Cleanup FAILED")
 
 if __name__ == '__main__':
     pass

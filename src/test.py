@@ -9,5 +9,5 @@ dh.load_dataframe_from_7z(
     input_arhcive_path=os.path.join(os.getcwd(),'../data/input/testSubject08.7z'),
 )
 
-
-
+print("Starting cleanup....")
+dh.cleanup_temp_folder()
