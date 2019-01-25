@@ -10,6 +10,7 @@ class DataHandler():
     def __init__(self):
         self.data_input_folder = os.getcwd() + '../../data/input'
         self.data_output_folder = os.getcwd() + '../../data/output'
+        self.data_temp_folder = os.getcwd() + '../../data/temp'
 
     def _get_csv_file(self, args):
         '''
@@ -50,11 +51,30 @@ class DataHandler():
             print(">>>>>>>>: ", job_name, unzip_to_path)
 
             # with zip_utils.zip_to_working_dir(filepath, unzip_to_path) as subject_dir:
-            subject_dir = zip_utils.zip_to_working_dir(filepath, unzip_to_path)
-                # Apply omconvert and timesync to join thigh & back .cwa files into a single .csv
-                # with axivity.timesynched_csv(subject_dir) as synched_csv:
-            synched_csv = axivity.timesynched_csv(subject_dir)
+            #     # Apply omconvert and timesync to join thigh & back .cwa files into a single .csv
+            #     with axivity.timesynched_csv(subject_dir) as synched_csv:
+            #         return job_name, synched_csv
+
+
+            unzipped_dir = zip_utils.unzip_subject_data(
+                subject_zip_path=filepath,
+                unzip_to_path=unzip_to_path,
+                return_inner_dir=True
+            )
+
+            print(">>>>>>: UNZIPPED_DIR: ", unzipped_dir)
+
+            synched_csv = axivity.convert_cwas_to_csv(
+                unzipped_dir,
+                out_dir=None
+            )
+
+            print(">>>>>>: SYCNED_CSV FROM AX: ", synched_csv)
+
             return job_name, synched_csv
+
+
+
         except Exception as e:
             print("could not unzipp 7z arhcive and synch it", e)
 
@@ -62,19 +82,25 @@ class DataHandler():
     def load_dataframe_from_7z(self, input_arhcive_path, whole_days=False, chunk_size=20000, max_days=6):
         current_directory = os.getcwd()
 
-
-        # Create output directory if it does not exist
-        if not os.path.exists(self.data_output_folder + '/test'):
-            os.makedirs(self.data_output_folder + '/test' )
-
         print(">>>>>>>>: ", 1)
 
-        name, synched_csv = self._get_cwa_files(filepath=input_arhcive_path, temp_dir=current_directory)
+        name, synched_csv = self._get_cwa_files(filepath=input_arhcive_path, temp_dir=self.data_temp_folder)
+        print(">>>>>>>>>>>: ", synched_csv)
 
-        print(">>>>>>>>: ", 2, name, synched_csv)
+        input("CTL + C or run")
+
+        # Create output directory if it does not exist
+        self.data_output_folder = os.path.join(self.data_output_folder, name)
+        if not os.path.exists(self.data_output_folder):
+            os.makedirs(self.data_output_folder)
+
+
+        # print(">>>>>>>>: ", 2, name, synched_csv)
         # Return if no csv file was found
         if synched_csv is None:
-            return print('Got synched csv file:', synched_csv)
+            raise Exception("Synched_csv is none")
+
+        print('Got synched csv file:', synched_csv)
 
         print(">>>>>>>>: ", 5)
 

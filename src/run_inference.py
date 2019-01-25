@@ -132,6 +132,8 @@ def main( args ):
     # Return if no csv file was found
     if synched_csv is None: return
     print( 'Got synched csv file:', synched_csv )
+    # SYNCEHD_CSV IS NOT A OBJECT OR OPEN FILE, IT'S A PATH TO THE CSV FILE
+    input("STOP ME NOW.... ctrl + c")
     
     # Read csv files in chunks
     columns = [ 'timestamp', 'back_x', 'back_y', 'back_z', 'thigh_x', 'thigh_y', 'thigh_z' ]
@@ -171,6 +173,5 @@ def main( args ):
       print( 'Daily overview plot save to:', daily_overview_savepath )
 
 if __name__ == '__main__':
-  
   args,_ = parser.parse_known_args()
   main( args )
