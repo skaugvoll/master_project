@@ -13,6 +13,7 @@ class DataHandler():
         self.data_temp_folder = os.getcwd() + '../../data/temp'
         self.data_cleanup_path = None
         self.data_synched_csv_path = None
+        self.job_name = None
 
     def _get_csv_file(self, args):
         '''
@@ -48,7 +49,7 @@ class DataHandler():
             # print(">>>>>>>>: ", 4)
 
             # Unzip contents of zipfile
-            job_name = filepath.split('/')[-1].split('.')[0]
+            self.name = filepath.split('/')[-1].split('.')[0]
             unzip_to_path = os.path.join(temp_dir, os.path.basename(filepath))
             self.data_cleanup_path = unzip_to_path # store the path to the unzipped folder for easy cleanup
 
@@ -65,7 +66,6 @@ class DataHandler():
                 out_dir=None
             )
 
-            return job_name, self.data_synched_csv_path
 
         except Exception as e:
             print("could not unzipp 7z arhcive and synch it", e)
@@ -76,21 +76,22 @@ class DataHandler():
 
         # print(">>>>>>>>: ", 1)
 
-        name, synched_csv = self._get_cwa_files(filepath=input_arhcive_path, temp_dir=self.data_temp_folder)
+        # Unzipp and synch
+        self._get_cwa_files(filepath=input_arhcive_path, temp_dir=self.data_temp_folder)
         # print(">>>>>>>>>>>: ", synched_csv)
 
         # Create output directory if it does not exist
-        self.data_output_folder = os.path.join(self.data_output_folder, name)
+        self.data_output_folder = os.path.join(self.data_output_folder, self.name)
         if not os.path.exists(self.data_output_folder):
             os.makedirs(self.data_output_folder)
 
 
-        # print(">>>>>>>>: ", 2, name, synched_csv)
+        # print(">>>>>>>>: ", 2)
         # Return if no csv file was found
-        if synched_csv is None:
+        if self.data_synched_csv_path is None:
             raise Exception("Synched_csv is none")
 
-        print('Got synched csv file:', synched_csv)
+        print('Got synched csv file:', self.data_synched_csv_path)
 
         # print(">>>>>>>>: ", 5)
 
@@ -99,12 +100,12 @@ class DataHandler():
         if whole_days:
             # Use custom loader that scans to first midnight if --whole-days is enabled
             # print(">>>>>>>>: ", 6)
-            self.dataframe_iterator = csv_loader.csv_chunker(synched_csv, chunk_size, ts_index=0,
+            self.dataframe_iterator = csv_loader.csv_chunker(self.data_synched_csv_path, chunk_size, ts_index=0,
                                                         columns=columns, n_days=max_days)
         else:
             # print(">>>>>>>>: ", 7)
             # Otherwise, just load with pandas
-            self.dataframe_iterator = pd.read_csv(synched_csv, header=None, chunksize=chunk_size,
+            self.dataframe_iterator = pd.read_csv(self.data_synched_csv_path, header=None, chunksize=chunk_size,
                                              names=columns, parse_dates=[0])
 
 
