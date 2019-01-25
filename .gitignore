@@ -3,6 +3,3 @@
 DS_Store
 ._.DS_Store
 .idea/
-/data/output/
-/data/temp/*
-!/data/temp
