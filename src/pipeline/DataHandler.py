@@ -10,10 +10,10 @@ class DataHandler():
     def __init__(self):
         self.data_input_folder = os.getcwd() + '../../data/input'
         self.data_output_folder = os.getcwd() + '../../data/output'
-        self.data_temp_folder = os.getcwd() + '../../data/temp'
+        self.data_temp_folder = os.getcwd() + '/../data/temp'
         self.data_cleanup_path = None
         self.data_synched_csv_path = None
-        self.job_name = None
+
 
     def _get_csv_file(self, args):
         '''
@@ -46,7 +46,7 @@ class DataHandler():
                 # print(">>>>>>>>: ", 3.3)
                 raise RuntimeError('Provided working directory "%s" does not exist' % temp_dir)
 
-            # print(">>>>>>>>: ", 4)
+            print(">>>>>>>>: ", 4)
 
             # Unzip contents of zipfile
             self.name = filepath.split('/')[-1].split('.')[0]
@@ -59,7 +59,7 @@ class DataHandler():
                 return_inner_dir=True
             )
 
-            # print(">>>>>>: UNZIPPED_DIR: ", unzipped_dir)
+            print(">>>>>>: UNZIPPED_DIR: ", unzipped_dir)
 
             self.data_synched_csv_path = axivity.convert_cwas_to_csv(
                 unzipped_dir,
