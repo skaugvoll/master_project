@@ -99,7 +99,4 @@ def convert_cwas_to_csv_with_temp( subject_dir, out_dir=None, paralell=False ):
     print("Done converting with temperature")
     print("TIME: ", end - start)
 
-
-
-
     return out_file_path_back, out_file_path_thigh

@@ -9,11 +9,14 @@ from utils import csv_loader
 
 class DataHandler():
     def __init__(self):
+        self.name = None
+        self.dataframe_iterator = None
+        self.data_synched_csv_path = None
+        self.data_cleanup_path = None
         self.data_input_folder = os.getcwd() + '../../data/input'
         self.data_output_folder = os.getcwd() + '../../data/output'
         self.data_temp_folder = os.getcwd() + '/../data/temp'
-        self.data_cleanup_path = None
-        self.data_synched_csv_path = None
+
 
 
     def _check_paths(self, filepath, temp_dir):
@@ -41,7 +44,6 @@ class DataHandler():
         )
 
         self.data_cleanup_path = unzip_to_path  # store the path to the unzipped folder for easy cleanup
-        print(">>>>: ", self.data_cleanup_path)
         if cleanup:
             self.cleanup_temp_folder()
 
@@ -64,7 +66,6 @@ class DataHandler():
             print("Could not get the csv_file")
 
     def _get_cwa_files(self, filepath='filepath', temp_dir='working_dir'):
-        print(">>>>>>>>: ", 3, filepath, temp_dir)
         try:
             # # Make sure zipfile exists
             # if not os.path.exists(filepath):
@@ -80,8 +81,6 @@ class DataHandler():
 
             self._check_paths(filepath, temp_dir)
 
-            print(">>>>>>>>: ", 4)
-
             # Unzip contents of zipfile
             self.name = filepath.split('/')[-1].split('.')[0]
             unzip_to_path = os.path.join(temp_dir, os.path.basename(filepath))
@@ -94,7 +93,6 @@ class DataHandler():
             # )
             unzipped_dir = self.unzip_7z_archive(filepath, unzip_to_path)
 
-            print(">>>>>>: UNZIPPED_DIR: ", unzipped_dir)
 
             self.data_synched_csv_path = axivity.convert_cwas_to_csv(
                 unzipped_dir,
@@ -105,44 +103,33 @@ class DataHandler():
         except Exception as e:
             print("could not unzipp 7z arhcive and synch it", e)
 
-
     def load_dataframe_from_7z(self, input_arhcive_path, whole_days=False, chunk_size=20000, max_days=6):
-        current_directory = os.getcwd()
-
-        # print(">>>>>>>>: ", 1)
 
         # Unzipp and synch
         self._get_cwa_files(filepath=input_arhcive_path, temp_dir=self.data_temp_folder)
-        # print(">>>>>>>>>>>: ", synched_csv)
+
 
         # Create output directory if it does not exist
         self.data_output_folder = os.path.join(self.data_output_folder, self.name)
         if not os.path.exists(self.data_output_folder):
             os.makedirs(self.data_output_folder)
 
-
-        # print(">>>>>>>>: ", 2)
         # Return if no csv file was found
         if self.data_synched_csv_path is None:
             raise Exception("Synched_csv is none")
 
         print('Got synched csv file:', self.data_synched_csv_path)
 
-        # print(">>>>>>>>: ", 5)
-
         # Read csv files in chunks
         columns = ['timestamp', 'back_x', 'back_y', 'back_z', 'thigh_x', 'thigh_y', 'thigh_z']
         if whole_days:
             # Use custom loader that scans to first midnight if --whole-days is enabled
-            # print(">>>>>>>>: ", 6)
             self.dataframe_iterator = csv_loader.csv_chunker(self.data_synched_csv_path, chunk_size, ts_index=0,
                                                         columns=columns, n_days=max_days)
         else:
-            # print(">>>>>>>>: ", 7)
             # Otherwise, just load with pandas
             self.dataframe_iterator = pd.read_csv(self.data_synched_csv_path, header=None, chunksize=chunk_size,
                                              names=columns, parse_dates=[0])
-
 
     def get_dataframe_iterator(self):
         return self.dataframe_iterator
@@ -154,6 +141,105 @@ class DataHandler():
             print("Cleanup SUCCESS")
         except:
             print("Cleanup FAILED")
+
+    def merge_csvs_on_first_time_overlap(self, master_csv_path, slave_csv_path, out_path=None, rearrange_columns_to=None):
+        '''
+        Master_csv is the csv that the first recording is used as starting point
+
+        :param master_csv_path:
+        :param slave_csv_path:
+        :param out_path:
+        :param rearrange_columns_to:
+        :return: None
+        '''
+
+        print("READING MASTER CSV")
+        master_df = pd.read_csv(master_csv_path)
+        master_df.columns = ['time', 'bx', 'by', 'bz', 'btemp']
+
+        print("READING SLAVE CSV")
+        slave_df = pd.read_csv(slave_csv_path)
+        slave_df.columns = ['time', 'tx', 'ty', 'tz', 'ttemp']
+
+        # Merge the csvs
+        print("MERGING MASTER AND SLAVE CSV")
+        merged_df = master_df.merge(slave_df, on='time')
+
+        ## Rearrange the columns
+        if not rearrange_columns_to is None:
+            print("REARRANGING CSV COLUMNS")
+            merged_df = merged_df[rearrange_columns_to]
+
+        if out_path is None:
+            master_file_dir, master_filename_w_format = os.path.split(master_csv_path)
+            out_path = os.path.join(master_file_dir, master_filename_w_format.split('.')[0] + '_TEMP_SYNCHED_BT.csv')
+
+        else:
+            out_path_dir, out_path_filename= os.path.split(out_path)
+            if out_path_filename == '':
+                out_path_filename = os.path.basename(master_csv_path).split('.')[0] + '_TEMP_SYNCHED_BT.csv'
+
+            if not os.path.exists(out_path_dir):
+                print('Creating output directory... ', out_path_dir)
+                os.makedirs(out_path_dir)
+
+            out_path = os.path.join(out_path_dir, out_path_filename)
+
+
+        print("SAVING MERGED CSV")
+        merged_df.to_csv(out_path)
+        print("Saved synched and merged as csv to : ", os.path.abspath(out_path))
+
+        self.dataframe_iterator = merged_df
+
+        self.data_cleanup_path = os.path.abspath(out_path[:out_path.find('.7z/') + 4])
+        self.data_synched_csv_path = os.path.abspath(out_path)
+        self.name = os.path.basename(out_path)
+        self.data_temp_folder = os.path.abspath(os.path.split(out_path)[0])
+
+    def _adc_to_c(self, row, normalize=False):
+        temperature_celsius_b = (row['btemp'] * 300 / 1024) - 50
+        temperature_celsius_t = (row['btemp'] * 300 / 1024) - 50
+
+        if normalize:
+            print("NORAMLIZATION NOT IMPLEMENTED YET")
+            # TODO IMPLEMENT NORMALIZATION
+
+        row['btemp'] = temperature_celsius_b
+        row['ttemp'] = temperature_celsius_t
+
+        return row
+
+    def convert_ADC_temp_to_C(self, dataframe=None, dataframe_path=None, normalize=False):
+        df = None
+
+        # 10
+        if dataframe:
+            df = dataframe
+        # 01
+        elif dataframe is None and not dataframe_path is None:
+            try:
+                df = pd.read_csv(dataframe_path)
+            except Exception as e:
+                print("Did not give a valid csv_path")
+                raise e
+        # 00
+        elif dataframe_path is None and dataframe_path is None:
+            print("Need to pass either dataframe or csv_path")
+            raise Exception("Need to pass either dataframe or csv_path")
+        # 11 save memory and performance
+        elif dataframe and dataframe_path:
+            df = dataframe
+
+        print("STARTING converting adc to celcius...")
+        self.dataframe_iterator = df.apply(self._adc_to_c, axis=1, raw=False, normalize=normalize)
+        print("DONE, here is a sneak peak:\n", self.dataframe_iterator.head(5))
+
+
+
+
+
+
 
 if __name__ == '__main__':
     pass
