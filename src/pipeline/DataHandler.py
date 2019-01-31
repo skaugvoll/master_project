@@ -6,6 +6,7 @@ from utils import zip_utils
 from utils import csv_loader
 
 
+
 class DataHandler():
     def __init__(self):
         self.data_input_folder = os.getcwd() + '../../data/input'
@@ -14,6 +15,37 @@ class DataHandler():
         self.data_cleanup_path = None
         self.data_synched_csv_path = None
 
+
+    def _check_paths(self, filepath, temp_dir):
+        # Make sure zipfile exists
+        if not os.path.exists(filepath):
+            # print(">>>>>>>>: ", 3.1)
+            raise RuntimeError('Provided zip file "%s" does not exist' % filepath)
+            # Make sure that a working directory for unzipping and time synching also exists
+        if not temp_dir:
+            # print(">>>>>>>>: ", 3.2)
+            raise RuntimeError('A working directory ("-w <directoy name.") must be specified when using --zip-file')
+        if not os.path.exists(temp_dir):
+            # print(">>>>>>>>: ", 3.3)
+            raise RuntimeError('Provided working directory "%s" does not exist' % temp_dir)
+
+    def unzip_7z_archive(self, filepath, unzip_to_path='../data/temp', return_inner_dir=True, cleanup=True):
+        self._check_paths(filepath, unzip_to_path)
+        unzip_to_path = os.path.join(unzip_to_path, os.path.basename(filepath))
+        print("UNZIP to PATH inside y7a: ", unzip_to_path)
+
+        unzipped_dir_path = zip_utils.unzip_subject_data(
+            subject_zip_path=filepath,
+            unzip_to_path=unzip_to_path,
+            return_inner_dir=return_inner_dir
+        )
+
+        self.data_cleanup_path = unzip_to_path  # store the path to the unzipped folder for easy cleanup
+        print(">>>>: ", self.data_cleanup_path)
+        if cleanup:
+            self.cleanup_temp_folder()
+
+        return unzipped_dir_path
 
     def _get_csv_file(self, args):
         '''
@@ -34,17 +66,19 @@ class DataHandler():
     def _get_cwa_files(self, filepath='filepath', temp_dir='working_dir'):
         print(">>>>>>>>: ", 3, filepath, temp_dir)
         try:
-            # Make sure zipfile exists
-            if not os.path.exists(filepath):
-                # print(">>>>>>>>: ", 3.1)
-                raise RuntimeError('Provided zip file "%s" does not exist' % filepath)
-                # Make sure that a working directory for unzipping and time synching also exists
-            if not temp_dir:
-                # print(">>>>>>>>: ", 3.2)
-                raise RuntimeError('A working directory ("-w <directoy name.") must be specified when using --zip-file')
-            if not os.path.exists(temp_dir):
-                # print(">>>>>>>>: ", 3.3)
-                raise RuntimeError('Provided working directory "%s" does not exist' % temp_dir)
+            # # Make sure zipfile exists
+            # if not os.path.exists(filepath):
+            #     # print(">>>>>>>>: ", 3.1)
+            #     raise RuntimeError('Provided zip file "%s" does not exist' % filepath)
+            #     # Make sure that a working directory for unzipping and time synching also exists
+            # if not temp_dir:
+            #     # print(">>>>>>>>: ", 3.2)
+            #     raise RuntimeError('A working directory ("-w <directoy name.") must be specified when using --zip-file')
+            # if not os.path.exists(temp_dir):
+            #     # print(">>>>>>>>: ", 3.3)
+            #     raise RuntimeError('Provided working directory "%s" does not exist' % temp_dir)
+
+            self._check_paths(filepath, temp_dir)
 
             print(">>>>>>>>: ", 4)
 
@@ -53,11 +87,12 @@ class DataHandler():
             unzip_to_path = os.path.join(temp_dir, os.path.basename(filepath))
             self.data_cleanup_path = unzip_to_path # store the path to the unzipped folder for easy cleanup
 
-            unzipped_dir = zip_utils.unzip_subject_data(
-                subject_zip_path=filepath,
-                unzip_to_path=unzip_to_path,
-                return_inner_dir=True
-            )
+            # unzipped_dir = zip_utils.unzip_subject_data(
+            #     subject_zip_path=filepath,
+            #     unzip_to_path=unzip_to_path,
+            #     return_inner_dir=True
+            # )
+            unzipped_dir = self.unzip_7z_archive(filepath, unzip_to_path)
 
             print(">>>>>>: UNZIPPED_DIR: ", unzipped_dir)
 
