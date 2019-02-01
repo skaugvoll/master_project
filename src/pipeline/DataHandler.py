@@ -269,7 +269,7 @@ class DataHandler():
         print(self.dataframe_iterator.describe())
 
 
-    def add_labels_file_based_on_intervals(self, intervals={}):
+    def add_labels_file_based_on_intervals(self, intervals={}, label_mapping={}):
         '''
         intervals = {
             'Label' : [
@@ -288,14 +288,21 @@ class DataHandler():
             print("Faak off")
 
         for label in intervals:
-            date = intervals[label][0]
-            start = intervals[label][1]
-            end = intervals[label][2]
+            print("label", label)
+            for interval in intervals[label]:
+                print("INTERVAL", interval)
+                date = interval[0]
+                start = interval[1]
+                end = interval[2]
 
-            start_string = '{} {}'.format(date, start)
-            end_string = '{} {}'.format(date, end)
-            # get indexes to add label to
-            self.dataframe_iterator.loc[start_string:end_string, 'label'] = label
+                start_string = '{} {}'.format(date, start)
+                end_string = '{} {}'.format(date, end)
+                # get indexes to add label to
+                self.dataframe_iterator.loc[start_string:end_string, 'label'] = label
+
+        print(self.dataframe_iterator)
+
+
 
 
 
