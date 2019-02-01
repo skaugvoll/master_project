@@ -210,7 +210,7 @@ class DataHandler():
 
         return row
 
-    def convert_ADC_temp_to_C(self, dataframe=None, dataframe_path=None, normalize=False):
+    def convert_ADC_temp_to_C(self, dataframe=None, dataframe_path=None, normalize=False, save=False):
         df = None
 
         # 10
@@ -234,6 +234,31 @@ class DataHandler():
         print("STARTING converting adc to celcius...")
         self.dataframe_iterator = df.apply(self._adc_to_c, axis=1, raw=False, normalize=normalize)
         print("DONE, here is a sneak peak:\n", self.dataframe_iterator.head(5))
+
+        if (dataframe_path or self.data_synched_csv_path) and save:
+            path = dataframe_path or self.data_synched_csv_path
+            self.dataframe_iterator.to_csv(path)
+
+
+    def add_labels_file_based_on_intervals(self, dataframe=None, intervals={}):
+        '''
+        intervals = {
+            'Label' : [start, stop]
+        }
+
+        :param dataframe:
+        :param intervals:
+        :return:
+        '''
+
+        if dataframe is None or not intervals:
+            print("Faak off")
+
+        for label, interval in intervals:
+            print("L: {}\n I: {}".format(label, interval))
+            key = label
+            start = interval[0]
+            end = interval[1]
 
 
 

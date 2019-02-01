@@ -63,7 +63,9 @@ if __name__ == '__main__':
 
     dh.convert_ADC_temp_to_C(
         dataframe=None,
-        dataframe_path='/app/data/temp/testSNTAtle.7z/testSNTAtle/P1_atle_B_TEMP_SYNCHED_BT.csv'
+        dataframe_path='/app/data/temp/testSNTAtle.7z/testSNTAtle/P1_atle_B_TEMP_SYNCHED_BT.csv',
+        normalize=False,
+        save=True
     )
 
 
