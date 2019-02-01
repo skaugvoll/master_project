@@ -7,10 +7,12 @@ from pipeline.DataHandler import DataHandler
 
 
 if __name__ == '__main__':
+    print('CREATING datahandler')
     dh = DataHandler()
-    print('created datahandler')
+    print('CREATED datahandler')
 
-
+    ################################# RUNNING ################
+    #
     # # unzip cwas from 7z arhcive
     # unzipped_path = dh.unzip_7z_archive(
     #     filepath=os.path.join(os.getcwd(), '../data/input/testSNTAtle.7z'),
@@ -43,6 +45,15 @@ if __name__ == '__main__':
     #         'ttemp'
     #     ]
     # )
+    #
+    # dh.convert_ADC_temp_to_C(
+    #     dataframe=None,
+    #     dataframe_path='/app/data/temp/testSNTAtle.7z/testSNTAtle/P1_atle_B_TEMP_SYNCHED_BT.csv',
+    #     normalize=False,
+    #     save=True
+    # )
+
+######################################## TESTING #############
 
     # dh.merge_csvs_on_first_time_overlap(
     #     '../data/temp/testSNTAtle.7z/testSNTAtle/P1_atle_B.csv',
@@ -61,14 +72,35 @@ if __name__ == '__main__':
     #     # out_path='../data/thomas/test.csv'
     # )
 
-    dh.convert_ADC_temp_to_C(
-        dataframe=None,
-        dataframe_path='/app/data/temp/testSNTAtle.7z/testSNTAtle/P1_atle_B_TEMP_SYNCHED_BT.csv',
-        normalize=False,
-        save=True
+    # dh.convert_ADC_temp_to_C(
+    #     dataframe=None,
+    #     dataframe_path='/app/data/temp/testSNTAtle.7z/testSNTAtle/P1_atle_B_TEMP_SYNCHED_BT.csv',
+    #     normalize=False,
+    #     save=False
+    # )
+
+    dh.convert_column_from_str_to_datetime_test(
+        dataframe='/app/data/temp/testSNTAtle.7z/testSNTAtle/P1_atle_B_TEMP_SYNCHED_BT.csv',
     )
 
+    dh.set_column_as_index("time")
 
+    # dh.get_rows_based_on_timestamp(
+    #     start="2018-04-27 10:03:37",
+    #     end="2018-04-27 10:03:38"
+    # )
+
+    dh.add_new_column()
+
+    dh.add_labels_file_based_on_intervals(
+        intervals={
+            "B": [
+                '2018-04-27',
+                '10:03:37',
+                '10:03:38'
+            ]
+        }
+    )
 
     # CLEAN THE TEMPORARY (temp) FOLDER
     # dh.cleanup_temp_folder()

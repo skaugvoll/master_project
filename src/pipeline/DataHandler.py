@@ -2,6 +2,7 @@
 import os
 import axivity
 import pandas as pd
+import numpy as np
 from utils import zip_utils
 from utils import csv_loader
 
@@ -187,7 +188,7 @@ class DataHandler():
 
 
         print("SAVING MERGED CSV")
-        merged_df.to_csv(out_path)
+        merged_df.to_csv(out_path, index=False)
         print("Saved synched and merged as csv to : ", os.path.abspath(out_path))
 
         self.dataframe_iterator = merged_df
@@ -233,17 +234,64 @@ class DataHandler():
 
         print("STARTING converting adc to celcius...")
         self.dataframe_iterator = df.apply(self._adc_to_c, axis=1, raw=False, normalize=normalize)
+
+        print(self.dataframe_iterator.describe(), "\n")
+        print ()
+        print(self.dataframe_iterator.dtypes)
+        print()
         print("DONE, here is a sneak peak:\n", self.dataframe_iterator.head(5))
 
         if (dataframe_path or self.data_synched_csv_path) and save:
             path = dataframe_path or self.data_synched_csv_path
-            self.dataframe_iterator.to_csv(path)
+            self.dataframe_iterator.to_csv(path, index=False)
+
+    def convert_column_from_str_to_datetime_test(self, dataframe, column_name="time"):
+        if isinstance(dataframe, str):
+            self.dataframe_iterator = pd.read_csv(dataframe)
+            print(self.dataframe_iterator.head(5))
+            print()
+            self.dataframe_iterator.columns = ['time', 'bx', 'by', 'bz', 'tx', 'ty', 'tz', 'btemp', 'ttemp']
+
+        self.dataframe_iterator[column_name] = pd.to_datetime(self.dataframe_iterator[column_name])
+        print(self.dataframe_iterator.dtypes)
 
 
-    def add_labels_file_based_on_intervals(self, dataframe=None, intervals={}):
+    def convert_column_from_str_to_datetime(self, column_name="time"):
+        self.dataframe_iterator[column_name] = pd.to_datetime(self.dataframe_iterator[column_name])
+        print(self.dataframe_iterator.dtypes)
+
+
+
+    def set_column_as_index(self, column_name):
+        self.dataframe_iterator.set_index(column_name, inplace=True)
+        print("The dataframe index is now: ", self.dataframe_iterator.index.name)
+
+
+    def get_rows_based_on_timestamp(self, start, end):
+        '''
+        
+        :param start: YYYY-mm-dd HH:MM:SS
+        :param end: YYYY-mm-dd HH:MM:SS
+        :return: 
+        '''''
+        rows = self.dataframe_iterator.loc[start:end]
+        print(rows)
+
+        return rows
+
+    def add_new_column(self):
+        self.dataframe_iterator.insert(len(self.dataframe_iterator.columns), 'label', value = np.nan)
+        print(self.dataframe_iterator.describe())
+
+
+    def add_labels_file_based_on_intervals(self, intervals={}):
         '''
         intervals = {
-            'Label' : [start, stop]
+            'Label' : [
+                        date:YYYY-MM-DD
+                        start: HH:MM:SS
+                        stop: HH:MM:SS
+                    ]
         }
 
         :param dataframe:
@@ -251,16 +299,18 @@ class DataHandler():
         :return:
         '''
 
-        if dataframe is None or not intervals:
+        if not intervals:
             print("Faak off")
 
-        for label, interval in intervals:
-            print("L: {}\n I: {}".format(label, interval))
-            key = label
-            start = interval[0]
-            end = interval[1]
+        for label in intervals:
+            date = intervals[label][0]
+            start = intervals[label][1]
+            end = intervals[label][2]
 
-
+            start_string = '{} {}'.format(date, start)
+            end_string = '{} {}'.format(date, end)
+            # get indexes to add label to
+            self.dataframe_iterator.loc[start_string:end_string, 'label'] = label
 
 
 
