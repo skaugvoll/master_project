@@ -255,32 +255,17 @@ class DataHandler():
         self.dataframe_iterator[column_name] = pd.to_datetime(self.dataframe_iterator[column_name])
         print(self.dataframe_iterator.dtypes)
 
-
     def convert_column_from_str_to_datetime(self, column_name="time"):
         self.dataframe_iterator[column_name] = pd.to_datetime(self.dataframe_iterator[column_name])
         print(self.dataframe_iterator.dtypes)
-
-
 
     def set_column_as_index(self, column_name):
         self.dataframe_iterator.set_index(column_name, inplace=True)
         print("The dataframe index is now: ", self.dataframe_iterator.index.name)
 
 
-    def get_rows_based_on_timestamp(self, start, end):
-        '''
-        
-        :param start: YYYY-mm-dd HH:MM:SS
-        :param end: YYYY-mm-dd HH:MM:SS
-        :return: 
-        '''''
-        rows = self.dataframe_iterator.loc[start:end]
-        print(rows)
-
-        return rows
-
-    def add_new_column(self):
-        self.dataframe_iterator.insert(len(self.dataframe_iterator.columns), 'label', value = np.nan)
+    def add_new_column(self, name='label', default_value=np.nan):
+        self.dataframe_iterator.insert(len(self.dataframe_iterator.columns), name, value=default_value)
         print(self.dataframe_iterator.describe())
 
 
