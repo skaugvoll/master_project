@@ -308,19 +308,18 @@ class DataHandler():
 
         print(self.dataframe_iterator)
 
-    def read_and_return_multiple_csv_iterators(self, dir_path, filenames=['back', 'thigh', "labels"], header=None, asNumpyArray=True):
+    def read_and_return_multiple_csv_iterators(self, dir_path, filenames=['back', 'thigh', "labels"], format='csv', header=None, asNumpyArray=True):
         if not filenames:
             raise Exception('Filenames for csv to read cannot be empty')
 
         csvs = []
         error = []
-        re.IGNORECASE # make regex case insensitive
-        regex_base = "[A-Za-z_\-.]*{}[A-Za-z_\-.]*.csv"
+        regex_base = "[A-Za-z_\-.]*{}[A-Za-z_\-.]*.{}"
 
         for name in filenames:
             print("Trying to read file: ", name, " @ ", dir_path)
             try:
-                filename = [f for f in os.listdir(dir_path) if re.match(regex_base.format(name), f, re.IGNORECASE)][0]
+                filename = [f for f in os.listdir(dir_path) if re.match(regex_base.format(name, format), f, re.IGNORECASE)][0]
                 if filename:
                     if asNumpyArray:
                         csvs.append(pd.read_csv(os.path.join(dir_path, filename), header=header).to_numpy)
