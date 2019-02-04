@@ -1,5 +1,6 @@
 
 import os
+import re
 import axivity
 import pandas as pd
 import numpy as np
@@ -67,6 +68,13 @@ class DataHandler():
             print("Could not get the csv_file")
 
     def _get_cwa_files(self, filepath='filepath', temp_dir='working_dir'):
+        '''
+        #TODO rename to unzip, synch and return cwa files
+
+        :param filepath:
+        :param temp_dir:
+        :return:
+        '''
         try:
             # # Make sure zipfile exists
             # if not os.path.exists(filepath):
@@ -263,11 +271,9 @@ class DataHandler():
         self.dataframe_iterator.set_index(column_name, inplace=True)
         print("The dataframe index is now: ", self.dataframe_iterator.index.name)
 
-
     def add_new_column(self, name='label', default_value=np.nan):
         self.dataframe_iterator.insert(len(self.dataframe_iterator.columns), name, value=default_value)
         print(self.dataframe_iterator.describe())
-
 
     def add_labels_file_based_on_intervals(self, intervals={}, label_mapping={}):
         '''
@@ -301,6 +307,35 @@ class DataHandler():
                 self.dataframe_iterator.loc[start_string:end_string, 'label'] = label
 
         print(self.dataframe_iterator)
+
+    def read_and_return_multiple_csv_iterators(self, dir_path, filenames=['back', 'thigh', "labels"], header=None, asNumpyArray=True):
+        if not filenames:
+            raise Exception('Filenames for csv to read cannot be empty')
+
+        csvs = []
+        error = []
+        re.IGNORECASE # make regex case insensitive
+        regex_base = "[A-Za-z_\-.]*{}[A-Za-z_\-.]*.csv"
+
+        for name in filenames:
+            print("Trying to read file: ", name, " @ ", dir_path)
+            try:
+                filename = [f for f in os.listdir(dir_path) if re.match(regex_base.format(name), f, re.IGNORECASE)][0]
+                if filename:
+                    if asNumpyArray:
+                        csvs.append(pd.read_csv(os.path.join(dir_path, filename), header=header).to_numpy)
+                    else:
+                        csvs.append(pd.read_csv(os.path.join(dir_path, filename), header=header))
+            except Exception as e:
+                error.append( (name, e) )
+            finally:
+                for e, err in error:
+                    print("Could not find or read file: {} --> {}".format(e, err))
+                raise Exception("Something went wrong when reading csvs ")
+        print("DONE reading csv's!")
+        return csvs
+
+
 
 
 
