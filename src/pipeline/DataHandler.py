@@ -395,6 +395,7 @@ class DataHandler():
             raise Exception("No dataframe detected")
 
         df.dropna(subset=columns, inplace=True)
+        self.set_active_dataframe(df)
 
 
 

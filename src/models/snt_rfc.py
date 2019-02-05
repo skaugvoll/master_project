@@ -6,7 +6,8 @@ from sklearn.ensemble import RandomForestClassifier as RFC
 
 class HARRandomForrest():
     def __init__(self):
-        pass
+        self.RFC_classifier = None
+        self.predictions = None
 
     def max(self, array):
         '''
@@ -152,10 +153,30 @@ class HARRandomForrest():
             both_features = np.hstack((back_training_feat, thigh_training_feat))
 
             print("Hopefully this RFC will create and fit")
-            RFC_classifier = RFC(n_estimators=100,
+            self.RFC_classifier = RFC(n_estimators=100,
                                  class_weight="balanced",
                                  random_state=0,
                                  n_jobs=-1
                                  ).fit(both_features, labels)
             print("I kinda diiiid! ")
 
+    def test(self, back_test_feat, thigh_test_feat, labels, samples_pr_window, train_overlap):
+
+        print("RFC TEST BTF: ", back_test_feat)
+
+        back_test_feat = self.segment_acceleration_and_calculate_features(back_test_feat,
+                                                                          samples_pr_window=samples_pr_window,
+                                                                          overlap=train_overlap)
+
+        thigh_test_feat = self.segment_acceleration_and_calculate_features(thigh_test_feat,
+                                                                           samples_pr_window=samples_pr_window,
+                                                                           overlap=train_overlap)
+
+        labels = self.segment_labels(labels, samples_pr_window=samples_pr_window, overlap=train_overlap)
+
+        both_features = np.hstack((back_test_feat, thigh_test_feat))
+
+        print("Hopefully this RFC test and predict")
+        self.predictions = self.RFC_classifier.predict(both_features)
+        print("I kinda diiiid! ")
+        print("PREDICTIONS: \n{}".format(self.predictions))
