@@ -20,7 +20,6 @@ class DataHandler():
         self.data_temp_folder = os.getcwd() + '/../data/temp'
 
 
-
     def _check_paths(self, filepath, temp_dir):
         # Make sure zipfile exists
         if not os.path.exists(filepath):
@@ -220,10 +219,22 @@ class DataHandler():
         return row
 
     def convert_ADC_temp_to_C(self, dataframe=None, dataframe_path=None, normalize=False, save=False):
+        '''
+        IF passed in dataframe, sets dh objects dataframe to the converted, not inplace change on the parameter
+        The check of path and dataframe should be upgradet, but works for now.
+        Perhaps make the apply function be inplace
+
+        :param dataframe:
+        :param dataframe_path:
+        :param normalize:
+        :param save:
+        :return:
+        '''
+
         df = None
 
         # 10
-        if dataframe:
+        if not dataframe is None:
             df = dataframe
         # 01
         elif dataframe is None and not dataframe_path is None:
@@ -238,6 +249,7 @@ class DataHandler():
             raise Exception("Need to pass either dataframe or csv_path")
         # 11 save memory and performance
         elif dataframe and dataframe_path:
+            # Todo this will never happen, i think because of if
             df = dataframe
 
         print("STARTING converting adc to celcius...")
@@ -253,6 +265,8 @@ class DataHandler():
             path = dataframe_path or self.data_synched_csv_path
             self.dataframe_iterator.to_csv(path, index=False)
 
+        return self.get_dataframe_iterator()
+
     def convert_column_from_str_to_datetime_test(self, dataframe, column_name="time"):
         if isinstance(dataframe, str):
             self.dataframe_iterator = pd.read_csv(dataframe)
@@ -265,6 +279,10 @@ class DataHandler():
 
     def convert_column_from_str_to_datetime(self, column_name="time"):
         self.dataframe_iterator[column_name] = pd.to_datetime(self.dataframe_iterator[column_name])
+        print(self.dataframe_iterator.dtypes)
+
+    def convert_column_from_str_to_numeric(self, column_name="ttemp"):
+        self.dataframe_iterator[column_name] = pd.to_numeric(self.dataframe_iterator[column_name])
         print(self.dataframe_iterator.dtypes)
 
     def set_column_as_index(self, column_name):
@@ -291,7 +309,7 @@ class DataHandler():
         '''
 
         if not intervals:
-            print("Faak off")
+            print("Faak off, datahandler add_labels_file_based_on_intervals")
 
         for label in intervals:
             print("label", label)
@@ -333,6 +351,45 @@ class DataHandler():
                 raise Exception("Something went wrong when reading csvs ")
         print("DONE reading csv's!")
         return csvs
+
+    def get_rows_and_columns(self, dataframe=None, rows=None, columns=None):
+        '''
+        
+        :param dataframe: 
+        :param rows: 
+        :param columns: 
+        :return: 
+        '''
+
+        if dataframe is None:
+            print("Faak off, datahandler get_rows_and_columns")
+            # TODO fix exception
+
+        if rows is None and columns is None:
+            return dataframe
+        elif rows is None:
+            return dataframe.iloc[:, columns]
+        elif columns is None:
+            return dataframe.iloc[rows, :]
+        else:
+            return dataframe.iloc[rows, columns]
+
+    def show_dataframe(self):
+        print(self.dataframe_iterator)
+
+    def head_dataframe(self, n=5):
+        print(self.dataframe_iterator.head(n))
+
+    def set_active_dataframe(self, dataframe):
+        self.dataframe_iterator = dataframe
+
+    def save_dataframe_to_path(self, path, dataframe=None):
+        if dataframe is None:
+            dataframe = self.get_dataframe_iterator()
+
+        dataframe.to_csv(path)
+
+
 
 
 
