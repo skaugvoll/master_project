@@ -389,6 +389,13 @@ class DataHandler():
 
         dataframe.to_csv(path)
 
+    def remove_rows_where_columns_have_NaN(self, dataframe=None, columns=[]):
+        df = dataframe or self.get_dataframe_iterator()
+        if df is None:
+            raise Exception("No dataframe detected")
+
+        df.dropna(subset=columns, inplace=True)
+
 
 
 
