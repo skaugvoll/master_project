@@ -5,7 +5,7 @@ except: print("SAdsadsadhsa;hkldasjkd")
 from pipeline.DataHandler import DataHandler
 from src import models
 import cwa_converter
-from sklearn.metrics import accuracy_score, confusion_matrix
+
 
 
 
@@ -269,7 +269,9 @@ if __name__ == '__main__':
                 thigh_training_feat=thigh_feat_train,
                 labels=label_train,
                 samples_pr_window=samples_pr_window,
-                train_overlap=0.8)
+                train_overlap=0.8,
+                number_of_trees=100
+                )
 
 
     ##########################
@@ -287,11 +289,11 @@ if __name__ == '__main__':
     preds = model.predictions
     ground_truth = model.test_ground_truth_labels
     print("Calculating accuracy...")
-    acc = accuracy_score(ground_truth, preds)
+    acc = model.calculate_accuracy()
     print("Done, ACC: {:.4f}".format(acc))
 
     print("Creating confusion matrix")
-    conf_mat = confusion_matrix(ground_truth, preds)
+    conf_mat = model.calculate_confusion_matrix()
     print("DONE ")
     print(conf_mat)
 

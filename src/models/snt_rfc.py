@@ -1,6 +1,7 @@
 import numpy as np
 from collections import Counter
 from sklearn.ensemble import RandomForestClassifier as RFC
+from sklearn.metrics import accuracy_score, confusion_matrix
 
 
 
@@ -9,6 +10,8 @@ class HARRandomForrest():
         self.RFC_classifier = None
         self.predictions = None
         self.test_ground_truth_labels = None
+        self.accuracy = None
+        self.confusion_matrix = None
 
     def max(self, array):
         '''
@@ -136,7 +139,8 @@ class HARRandomForrest():
               thigh_training_feat,
               labels,
               samples_pr_window,
-              train_overlap
+              train_overlap,
+              number_of_trees=100
               ):
 
             print("RFC TRAIN BTF: ", back_training_feat)
@@ -154,7 +158,7 @@ class HARRandomForrest():
             both_features = np.hstack((back_training_feat, thigh_training_feat))
 
             print("Hopefully this RFC will create and fit")
-            self.RFC_classifier = RFC(n_estimators=100,
+            self.RFC_classifier = RFC(n_estimators=number_of_trees,
                                  class_weight="balanced",
                                  random_state=0,
                                  n_jobs=-1
@@ -181,3 +185,19 @@ class HARRandomForrest():
         self.predictions = self.RFC_classifier.predict(both_features)
         print("I kinda diiiid! ")
         print("PREDICTIONS: \n{}".format(self.predictions))
+
+    def calculate_accuracy(self):
+        # TODO check that object attributes are not None, raise exception
+        gt = self.test_ground_truth_labels
+        preds = self.predictions
+
+        self.accuracy = accuracy_score(gt, preds)
+        return self.accuracy
+
+    def calculate_confusion_matrix(self):
+        # TODO check that object attributes are not None, raise exception
+        gt = self.test_ground_truth_labels
+        preds = self.predictions
+
+        self.confusion_matrix = confusion_matrix(gt, preds)
+        return self.confusion_matrix
