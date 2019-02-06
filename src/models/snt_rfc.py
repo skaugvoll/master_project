@@ -8,6 +8,7 @@ class HARRandomForrest():
     def __init__(self):
         self.RFC_classifier = None
         self.predictions = None
+        self.test_ground_truth_labels = None
 
     def max(self, array):
         '''
@@ -172,7 +173,7 @@ class HARRandomForrest():
                                                                            samples_pr_window=samples_pr_window,
                                                                            overlap=train_overlap)
 
-        labels = self.segment_labels(labels, samples_pr_window=samples_pr_window, overlap=train_overlap)
+        self.test_ground_truth_labels = self.segment_labels(labels, samples_pr_window=samples_pr_window, overlap=train_overlap)
 
         both_features = np.hstack((back_test_feat, thigh_test_feat))
 

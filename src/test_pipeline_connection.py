@@ -5,6 +5,7 @@ except: print("SAdsadsadhsa;hkldasjkd")
 from pipeline.DataHandler import DataHandler
 from src import models
 import cwa_converter
+from sklearn.metrics import accuracy_score, confusion_matrix
 
 
 
@@ -65,7 +66,7 @@ def something_dataset(rel_filepath, label_interval, label_mapping):
 
     df = dh.get_dataframe_iterator()
     print(df.head(5))
-    input("looks ok ? \n")
+    # input("looks ok ? \n")
 
 
     ##########################
@@ -82,7 +83,7 @@ def something_dataset(rel_filepath, label_interval, label_mapping):
 
     df = dh.get_dataframe_iterator()
     print(df.head(5))
-    input("looks ok ? \n")
+    # input("looks ok ? \n")
 
     ##########################
     #
@@ -161,6 +162,7 @@ if __name__ == '__main__':
         print("Deleting temp folders")
         os.system("rm -rf ../data/temp/testSNTAtle.7z/")
         os.system("rm -rf ../data/temp/testVegar.7z/")
+        print("...DONE")
     except:
         print("hmm")
 
@@ -281,4 +283,16 @@ if __name__ == '__main__':
                labels=label_test,
                samples_pr_window=samples_pr_window,
                train_overlap=0.8)
+
+    preds = model.predictions
+    ground_truth = model.test_ground_truth_labels
+    print("Calculating accuracy...")
+    acc = accuracy_score(ground_truth, preds)
+    print("Done, ACC: {:.4f}".format(acc))
+
+    print("Creating confusion matrix")
+    conf_mat = confusion_matrix(ground_truth, preds)
+    print("DONE ")
+    print(conf_mat)
+
 
