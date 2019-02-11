@@ -207,7 +207,7 @@ class DataHandler():
 
     def _adc_to_c(self, row, normalize=False):
         temperature_celsius_b = (row['btemp'] * 300 / 1024) - 50
-        temperature_celsius_t = (row['btemp'] * 300 / 1024) - 50
+        temperature_celsius_t = (row['ttemp'] * 300 / 1024) - 50
 
         if normalize:
             print("NORAMLIZATION NOT IMPLEMENTED YET")
@@ -268,6 +268,7 @@ class DataHandler():
         return self.get_dataframe_iterator()
 
     def convert_column_from_str_to_datetime_test(self, dataframe, column_name="time"):
+        # TODO if dataframe is actually dataframe object, self.dataframe_iterator = dataframe
         if isinstance(dataframe, str):
             self.dataframe_iterator = pd.read_csv(dataframe)
             print(self.dataframe_iterator.head(5))
@@ -388,6 +389,14 @@ class DataHandler():
             dataframe = self.get_dataframe_iterator()
 
         dataframe.to_csv(path)
+
+    def remove_rows_where_columns_have_NaN(self, dataframe=None, columns=[]):
+        df = dataframe or self.get_dataframe_iterator()
+        if df is None:
+            raise Exception("No dataframe detected")
+
+        df.dropna(subset=columns, inplace=True)
+        self.set_active_dataframe(df)
 
 
 
