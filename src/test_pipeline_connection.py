@@ -246,7 +246,6 @@ if __name__ == '__main__':
     back_feat_train, thigh_feat_train, label_train = get_features_and_labels(df_train, dh_train)
     back_feat_test, thigh_feat_test, label_test = get_features_and_labels(df_train, dh_train)
 
-
     ##########################
     #
     #
@@ -297,4 +296,6 @@ if __name__ == '__main__':
     print("DONE ")
     print(conf_mat)
 
-
+    print("\nsamples_pr_window: {}\nsamples_pr_second: {}\nwindow_length: {}\n".format(samples_pr_window,
+                                                                                       samples_pr_second,
+                                                                                       window_length))
