@@ -71,26 +71,39 @@ class DataHandler():
             self.data_synched_csv_path = filepath
 
         except Exception:
-            print("Could not get the csv_file")
+            print("Could not get the csv_file. Check the INPUT DIRECTORY PATH and FILENAME")
 
-    def load_dataframe_from_csv(self, input_directory_path, filename,columns=['timestamp', 'back_x', 'back_y', 'back_z', 'thigh_x', 'thigh_y', 'thigh_z'], whole_days=False, chunk_size=20000, max_days=6):
-        # we do not need to unzip
-        ## sets self.name, self.data_cleanup_path, data_synced_csv_path
+    def load_dataframe_from_csv(self, input_directory_path,
+                                filename,
+                                header=None,
+                                columns=['timestamp', 'x', 'y', 'z'],
+                                whole_days=False,
+                                chunk_size=20000,
+                                max_days=6):
+
+
         filepath = os.path.join(input_directory_path, filename)
         self._get_csv_file(filepath)
+
+        print("NAME:", self.name)
+        print("DSCP: ", self.data_synched_csv_path)
 
         # Create output directory if it does not exist
         self.create_output_dir(self.data_output_folder, self.name)
 
-        # Read csv files in chunks
-        if whole_days:
-            # Use custom loader that scans to first midnight if --whole-days is enabled
-            self.dataframe_iterator = csv_loader.csv_chunker(self.data_synched_csv_path, chunk_size, ts_index=0,
-                                                             columns=columns, n_days=max_days)
-        else:
-            # Otherwise, just load with pandas
-            self.dataframe_iterator = pd.read_csv(self.data_synched_csv_path, header=None, chunksize=chunk_size,
-                                                  names=columns, parse_dates=[0])
+        self.dataframe_iterator = pd.read_csv(self.data_synched_csv_path, header=header, names=columns )
+
+        # # Read csv files in chunks
+        # if whole_days:
+        #     # Use custom loader that scans to first midnight if --whole-days is enabled
+        #     self.dataframe_iterator = csv_loader.csv_chunker(self.data_synched_csv_path, chunk_size, ts_index=0,
+        #                                                      columns=columns, n_days=max_days)
+        #     print("DATAFRAME ITERATOR SET 1")
+        # else:
+        #     # Otherwise, just load with pandas
+        #     self.dataframe_iterator = pd.read_csv(self.data_synched_csv_path, header=None, chunksize=chunk_size,
+        #                                           names=columns, parse_dates=[0])
+        #     print("DATAFRAME ITERATOR SET 2")
 
     def _get_cwa_files(self, filepath='filepath', temp_dir='working_dir'):
         '''
@@ -331,7 +344,11 @@ class DataHandler():
 
         print(self.dataframe_iterator)
 
-    def read_and_return_multiple_csv_iterators(self, dir_path, filenames=['back', 'thigh', "labels"], format='csv', header=None, asNumpyArray=True):
+    def read_and_return_multiple_csv_iterators(self, dir_path,
+                                               filenames=['back', 'thigh', "labels"],
+                                               format='csv',
+                                               header=None,
+                                               asNumpyArray=True):
         if not filenames:
             raise Exception('Filenames for csv to read cannot be empty')
 
@@ -403,13 +420,21 @@ class DataHandler():
         self.set_active_dataframe(df)
 
     def vertical_stack_dataframes(self, df1, df2, set_as_current_df=True):
+        # TODO : CHECK IF THER IS MORE PATHS THAT NEEDS TO BE SET, THERE ARE!
         union = pd.merge(df1, df2, how='outer')
         if set_as_current_df:
             self.set_active_dataframe(union)
 
         return union
 
-    def vertical_stack_csvs(self, csv_path_one, csv_path_two, column_names_df1=[], column_names_df2=[], rearranged_columns_after_merge=[], index_column_name=None):
+    def vertical_stack_csvs(self, csv_path_one,
+                            csv_path_two,
+                            column_names_df1=[],
+                            column_names_df2=[],
+                            rearranged_columns_after_merge=[],
+                            index_column_name=None):
+        # TODO : CHECK IF THER IS MORE PATHS THAT NEEDS TO BE SET, THERE ARE!
+
         df1 = pd.read_csv(csv_path_one)
         df2 = pd.read_csv(csv_path_two)
 
@@ -433,7 +458,8 @@ class DataHandler():
     def rearrange_columns(self, rearranged_columns):
         self.dataframe_iterator = self.dataframe_iterator[rearranged_columns]
 
-
+    def tail_dataframe(self, n=5):
+        print(self.dataframe_iterator.tail(n))
 
 
 
