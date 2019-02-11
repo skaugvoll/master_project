@@ -33,6 +33,12 @@ class DataHandler():
             # print(">>>>>>>>: ", 3.3)
             raise RuntimeError('Provided working directory "%s" does not exist' % temp_dir)
 
+    def create_output_dir(self, output_dir_path, name):
+        # Create output directory if it does not exist
+        self.data_output_folder = os.path.join(output_dir_path, name)
+        if not os.path.exists(self.data_output_folder):
+            os.makedirs(self.data_output_folder)
+
     def unzip_7z_archive(self, filepath, unzip_to_path='../data/temp', return_inner_dir=True, cleanup=True):
         self._check_paths(filepath, unzip_to_path)
         unzip_to_path = os.path.join(unzip_to_path, os.path.basename(filepath))
@@ -50,21 +56,41 @@ class DataHandler():
 
         return unzipped_dir_path
 
-    def _get_csv_file(self, args):
+    def _get_csv_file(self, filepath):
         '''
         Returns a context for getting csv file, either by a directly specified one
         or through unzipping a provided zip file and synching it with axivity's software
         '''
 
-        # If a precomputed, timesynched file is available -> use it
+        # TODO : Rewrite this to support the DataHandler class, and not the old style as below
+        # # If a precomputed, timesynched file is available -> use it
         try:
-            if not os.path.exists(args.file):
-                raise RuntimeError('Provided presynched file "%s" does not exist' % args.file)
-            job_name = args.name or os.path.splitext(os.path.basename(args.file))[0]
-            return job_name, args.file
+            if not os.path.exists(filepath):
+                raise RuntimeError('Provided presynched file "%s" does not exist' % filepath)
+            self.name = os.path.splitext(os.path.basename(filepath))[0]
+            self.data_synched_csv_path = filepath
 
         except Exception:
             print("Could not get the csv_file")
+
+    def load_dataframe_from_csv(self, input_directory_path, filename,columns=['timestamp', 'back_x', 'back_y', 'back_z', 'thigh_x', 'thigh_y', 'thigh_z'], whole_days=False, chunk_size=20000, max_days=6):
+        # we do not need to unzip
+        ## sets self.name, self.data_cleanup_path, data_synced_csv_path
+        filepath = os.path.join(input_directory_path, filename)
+        self._get_csv_file(filepath)
+
+        # Create output directory if it does not exist
+        self.create_output_dir(self.data_output_folder, self.name)
+
+        # Read csv files in chunks
+        if whole_days:
+            # Use custom loader that scans to first midnight if --whole-days is enabled
+            self.dataframe_iterator = csv_loader.csv_chunker(self.data_synched_csv_path, chunk_size, ts_index=0,
+                                                             columns=columns, n_days=max_days)
+        else:
+            # Otherwise, just load with pandas
+            self.dataframe_iterator = pd.read_csv(self.data_synched_csv_path, header=None, chunksize=chunk_size,
+                                                  names=columns, parse_dates=[0])
 
     def _get_cwa_files(self, filepath='filepath', temp_dir='working_dir'):
         '''
@@ -75,18 +101,6 @@ class DataHandler():
         :return:
         '''
         try:
-            # # Make sure zipfile exists
-            # if not os.path.exists(filepath):
-            #     # print(">>>>>>>>: ", 3.1)
-            #     raise RuntimeError('Provided zip file "%s" does not exist' % filepath)
-            #     # Make sure that a working directory for unzipping and time synching also exists
-            # if not temp_dir:
-            #     # print(">>>>>>>>: ", 3.2)
-            #     raise RuntimeError('A working directory ("-w <directoy name.") must be specified when using --zip-file')
-            # if not os.path.exists(temp_dir):
-            #     # print(">>>>>>>>: ", 3.3)
-            #     raise RuntimeError('Provided working directory "%s" does not exist' % temp_dir)
-
             self._check_paths(filepath, temp_dir)
 
             # Unzip contents of zipfile
@@ -94,19 +108,12 @@ class DataHandler():
             unzip_to_path = os.path.join(temp_dir, os.path.basename(filepath))
             self.data_cleanup_path = unzip_to_path # store the path to the unzipped folder for easy cleanup
 
-            # unzipped_dir = zip_utils.unzip_subject_data(
-            #     subject_zip_path=filepath,
-            #     unzip_to_path=unzip_to_path,
-            #     return_inner_dir=True
-            # )
             unzipped_dir = self.unzip_7z_archive(filepath, unzip_to_path)
-
 
             self.data_synched_csv_path = axivity.convert_cwas_to_csv(
                 unzipped_dir,
                 out_dir=None
             )
-
 
         except Exception as e:
             print("could not unzipp 7z arhcive and synch it", e)
@@ -116,11 +123,8 @@ class DataHandler():
         # Unzipp and synch
         self._get_cwa_files(filepath=input_arhcive_path, temp_dir=self.data_temp_folder)
 
-
         # Create output directory if it does not exist
-        self.data_output_folder = os.path.join(self.data_output_folder, self.name)
-        if not os.path.exists(self.data_output_folder):
-            os.makedirs(self.data_output_folder)
+        self.create_output_dir(self.data_output_folder, self.name)
 
         # Return if no csv file was found
         if self.data_synched_csv_path is None:
@@ -398,9 +402,36 @@ class DataHandler():
         df.dropna(subset=columns, inplace=True)
         self.set_active_dataframe(df)
 
+    def vertical_stack_dataframes(self, df1, df2, set_as_current_df=True):
+        union = pd.merge(df1, df2, how='outer')
+        if set_as_current_df:
+            self.set_active_dataframe(union)
+
+        return union
+
+    def vertical_stack_csvs(self, csv_path_one, csv_path_two, column_names_df1=[], column_names_df2=[], rearranged_columns_after_merge=[], index_column_name=None):
+        df1 = pd.read_csv(csv_path_one)
+        df2 = pd.read_csv(csv_path_two)
+
+        if column_names_df1:
+            df1.columns = column_names_df1
+        if column_names_df2:
+            df2.columns = column_names_df2
+
+        self.vertical_stack_dataframes(df1, df2)
+
+        if rearranged_columns_after_merge:
+            self.rearrange_columns(rearranged_columns_after_merge)
 
 
+        if index_column_name:
+            self.set_column_as_index(column_name=index_column_name)
 
+        return self.get_dataframe_iterator()
+
+
+    def rearrange_columns(self, rearranged_columns):
+        self.dataframe_iterator = self.dataframe_iterator[rearranged_columns]
 
 
 

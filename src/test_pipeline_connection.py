@@ -163,6 +163,9 @@ if __name__ == '__main__':
         os.system("rm -rf ../data/temp/testSNTAtle.7z/")
         os.system("rm -rf ../data/temp/testVegar.7z/")
         print("...DONE")
+        print("Deleting output folders")
+        os.system("rm -rf ../data/output/testSNTAtle/")
+        print("...DONE")
     except:
         print("hmm")
 
