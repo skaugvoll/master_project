@@ -16,9 +16,9 @@ Currently the images has to be buildt locally using docker-compose
 # RUN container locally (GPU bound)
 Since the code is hardcoded to use tensorflow-gpu (and image uses tensorflow-gpu)
 we need to install nvidia-docker.
-- `nvidia-docker run -d --name <container-name> <image_name | image_id>`
-  - E.g: `nvidia-docker run -d --name skaugvoll/har-master-app skaugvoll/har_master_app``
-
+- `nvidia-docker run -d -v <host_path>:/app --name <container-name> <image_name | image_id>`
+  - E.g: `nvidia-docker run -d -v /lhome/saskaugv/programming/master_project:/app --name skaugvoll-har-master-app skaugvoll/har_master_app``
+  - Thomas: `nvidia-docker run -d -v /lhome/thomawol/master_project:/app --name thomawol-har-master-app 19164bd2b8d3`
 
 # Building new image and pushing to hub
 1. build imag

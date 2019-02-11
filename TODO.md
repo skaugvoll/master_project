@@ -13,3 +13,9 @@ Create a new pipeline
 - Lag ny enkel model for aa teste paa daten (byttes ut med meta-classifier etter hvert som vi ser at data-import og gen funker)
 
 Hvordan organisere pipeline koden, module, package,osv ? for aa faa robust import statements osv...
+
+
+- Kan ikke kjøre samme input flere ganger, med mindre man cleaner up /data/temp/<subjectFolder>
+  - Lage en funksjon som bare while not
+  tar filnavne og legger på en _ også teller oppover til den får ett tall som gjør den unik.
+  lager temp mappen med det navnet.

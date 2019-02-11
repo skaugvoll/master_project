@@ -8,3 +8,5 @@ pyyaml
 psutil
 matplotlib
 tables
+scipy
+scikit-learn
