@@ -53,6 +53,13 @@ class DataHandler():
         self.data_cleanup_path = unzip_to_path  # store the path to the unzipped folder for easy cleanup
         if cleanup:
             self.cleanup_temp_folder()
+        else:
+            # TODO: change this to elif and pass in a parameter with default strict or something...
+            try:
+                os.system("chmod 755 {}".format(unzip_to_path))
+            except Exception as e:
+                print("Could not give easy access rights")
+
 
         return unzipped_dir_path
 
