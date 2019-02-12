@@ -148,11 +148,16 @@ class Pipeline:
         if dh is None:
             dh = DataHandler()
 
-        back_feat = dh.get_rows_and_columns(dataframe=df, columns=columns_back).values
+        back_feat, thigh_feat, labels = None, None, None
 
-        thigh_feat = dh.get_rows_and_columns(dataframe=df, columns=columns_thigh).values
+        print(columns_back, columns_thigh, column_label)
 
-        labels = dh.get_rows_and_columns(dataframe=df, columns=column_label).values
+        if columns_back:
+            back_feat = dh.get_rows_and_columns(dataframe=df, columns=columns_back).values
+        if columns_thigh:
+            thigh_feat = dh.get_rows_and_columns(dataframe=df, columns=columns_thigh).values
+        if column_label:
+            labels = dh.get_rows_and_columns(dataframe=df, columns=column_label).values
 
         return back_feat, thigh_feat, labels
 
