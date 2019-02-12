@@ -91,7 +91,7 @@ class DataHandler():
         # Create output directory if it does not exist
         self.create_output_dir(self.data_output_folder, self.name)
 
-        self.dataframe_iterator = pd.read_csv(self.data_synched_csv_path, header=header, names=columns )
+        self.dataframe_iterator = pd.read_csv(self.data_synched_csv_path, header=header, names=columns)
 
         # # Read csv files in chunks
         # if whole_days:
@@ -284,13 +284,15 @@ class DataHandler():
 
         return self.get_dataframe_iterator()
 
-    def convert_column_from_str_to_datetime_test(self, dataframe, column_name="time"):
+    def convert_column_from_str_to_datetime_test(self, dataframe=None, column_name="time"):
         # TODO if dataframe is actually dataframe object, self.dataframe_iterator = dataframe
         if isinstance(dataframe, str):
             self.dataframe_iterator = pd.read_csv(dataframe)
             print(self.dataframe_iterator.head(5))
             print()
             self.dataframe_iterator.columns = ['time', 'bx', 'by', 'bz', 'tx', 'ty', 'tz', 'btemp', 'ttemp']
+        else:
+            print("USING THE Datahandlers own dataframe-Instance")
 
         self.dataframe_iterator[column_name] = pd.to_datetime(self.dataframe_iterator[column_name])
         print(self.dataframe_iterator.dtypes)
