@@ -130,6 +130,11 @@ back_feat_train, thigh_feat_train, label_train = pipeObj.get_features_and_labels
 
 RFC = models.get("RFC", {})
 
+
+##############
+# MODEL ARGUMENTS 
+##############
+
 # Do some magic numbering
 sampling_frequency = 50
 window_length = 120
@@ -166,12 +171,7 @@ dh3.load_dataframe_from_csv(
 dh3.convert_column_from_str_to_datetime_test(column_name='timestamp')
 dh3.set_column_as_index("timestamp")
 
-
-print("TEST HEAD: \n", dh3.get_dataframe_iterator().head(10))
-input("LOOKS OK?")
 dh3.add_new_column()
-print("TEST HEAD: \n", dh3.get_dataframe_iterator().head(10))
-input("LOOKS OK?")
 dh3.add_labels_file_based_on_intervals(
     intervals={
         '1': [
@@ -232,15 +232,14 @@ dh3.add_labels_file_based_on_intervals(
 )
 
 dataframe_test = dh3.get_dataframe_iterator()
-
-print("TEST HEAD: \n", dataframe_test.head(10))
-input("LOOKS OK?")
 dataframe_test.dropna(subset=['label'], inplace=True)
 
 # EXTRACT FEATURES
 back_feat_test, thigh_feat_test, label_test = pipeObj.get_features_and_labels(dataframe_test)
 
-# CLASSIFY
+###############
+# CLASSIFY (run without labels)
+###############
 
 res = RFC.classify(
     back_test_feat=back_feat_test,
@@ -249,8 +248,10 @@ res = RFC.classify(
     train_overlap=0.8
 )
 
-print("RESULT: \nSHAPE: {}\n{}: ".format(res.shape, res))
+print("CLASSIFICATION RESULT: \nSHAPE: {}\n{}: \n".format(res.shape, res))
 
+##############
+# TEST (GET ACCURACY)
 ##############
 
 res = RFC.test(
