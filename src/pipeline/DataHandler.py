@@ -56,7 +56,7 @@ class DataHandler():
         else:
             # TODO: change this to elif and pass in a parameter with default strict or something...
             try:
-                os.system("chmod 755 {}".format(unzip_to_path))
+                os.system("chmod 755 -R {}".format(unzip_to_path))
             except Exception as e:
                 print("Could not give easy access rights")
 
@@ -184,6 +184,8 @@ class DataHandler():
         :param rearrange_columns_to:
         :return: None
         '''
+
+        # TODO: PASS IN MASTER AND SLAVE COLUMN NAMES
 
         print("READING MASTER CSV")
         master_df = pd.read_csv(master_csv_path)
