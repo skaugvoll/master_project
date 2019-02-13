@@ -132,7 +132,7 @@ RFC = models.get("RFC", {})
 
 
 ##############
-# MODEL ARGUMENTS 
+# MODEL ARGUMENTS
 ##############
 
 # Do some magic numbering
