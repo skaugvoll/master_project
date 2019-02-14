@@ -1,7 +1,9 @@
+import multiprocessing
 import numpy as np
 from collections import Counter
 from sklearn.ensemble import RandomForestClassifier as RFC
 from sklearn.metrics import accuracy_score, confusion_matrix
+
 
 
 
@@ -42,7 +44,7 @@ class HARRandomForrest():
         '''
         #max_temp = max(array)
         #min_temp = min(array)
-	
+
         max_temp = np.amax(array)
         min_temp = np.amin(array)
         return (max_temp - min_temp)
@@ -214,3 +216,38 @@ class HARRandomForrest():
 
         self.confusion_matrix = confusion_matrix(gt, preds)
         return self.confusion_matrix
+
+    def window_classification(self, window):
+        res = self.RFC_classifier.predict([window])
+        return res
+
+    # def classifyWindowByWindow(self, back_test_feat, thigh_test_feat, samples_pr_window, train_overlap):
+    #     back_test_feat = self.segment_acceleration_and_calculate_features(back_test_feat,
+    #                                                                       samples_pr_window=samples_pr_window,
+    #                                                                       overlap=train_overlap)
+    #
+    #     thigh_test_feat = self.segment_acceleration_and_calculate_features(thigh_test_feat,
+    #                                                                        samples_pr_window=samples_pr_window,
+    #                                                                        overlap=train_overlap)
+    #     both_features = np.hstack((back_test_feat, thigh_test_feat))
+    #
+    #     print("BOTH FEATURES: \n{}".format(both_features))
+    #
+    #     print("both_features [0] \n{}".format(both_features[0]))
+    #
+    #     print("Classifying 10 first windows\n")
+    #     i = 0
+    #     for i, w in enumerate(both_features):
+    #         res = self.RFC_classifier.predict([both_features[i]])
+    #         print(i, " :: ", w, " --> ", res)
+    #         i += 1
+    #         if i == 10:
+    #             break
+    #
+    #     # jobs = []
+    #     # num_processes = 10
+    #     # for i in range(num_processes):
+    #     #     process = multiprocessing.Process(target=self.window_classification,
+    #     #                                       args=(w))
+    #     #     jobs.append(process)
+    #

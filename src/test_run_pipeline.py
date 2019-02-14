@@ -5,6 +5,7 @@ except: print("SAdsadsadhsa;hkldasjkd")
 from pipeline.Pipeline import Pipeline
 from pipeline.DataHandler import DataHandler
 from src import models
+import pickle
 
 
 ################################ First we need to get the training data! #################################
@@ -153,12 +154,30 @@ RFC.train(
 )
 
 
-#########################################################
-##
-# TESTING
-##
-#########################################################
+# #### save the model so that the parallelized code can lode it for each new process
+# s = input("save? : ")
+# if s == 'y':
+#     pickle.dump(RFC, open("./trained_rfc.sav", 'wb'))
 
+
+
+# #########################################################
+# ##
+# # TESTING
+# ##
+# #########################################################
+
+
+
+#
+#
+#
+# #########################################################
+# ##
+# # TESTING
+# ##
+# #########################################################
+#
 # GET DATA
 dh3 = DataHandler()
 dh3.load_dataframe_from_csv(
@@ -234,41 +253,54 @@ dh3.add_labels_file_based_on_intervals(
 dataframe_test = dh3.get_dataframe_iterator()
 dataframe_test.dropna(subset=['label'], inplace=True)
 
+#### save the model so that the parallelized code can lode it for each new process
+s = input("save the trained RFC model? [y/n]: ")
+if s == 'y':
+    pickle.dump(RFC, open("./trained_rfc.sav", 'wb'))
+    print("MAX CPU CORES: ", os.cpu_count())
+    input("...")
+    p = Pipeline()
+    p.paralle_run(dataframe= dataframe_test, samples_pr_window=samples_pr_window, train_overlap=0.8)
+
+
+
 # EXTRACT FEATURES
-back_feat_test, thigh_feat_test, label_test = pipeObj.get_features_and_labels(dataframe_test)
+# back_feat_test, thigh_feat_test, label_test = pipeObj.get_features_and_labels(dataframe_test)
 
 ###############
 # CLASSIFY (run without labels)
 ###############
 
-res = RFC.classify(
-    back_test_feat=back_feat_test,
-    thigh_test_feat=thigh_feat_test,
-    samples_pr_window=samples_pr_window,
-    train_overlap=0.8
-)
+# res = RFC.classify(
+#     back_test_feat=back_feat_test,
+#     thigh_test_feat=thigh_feat_test,
+#     samples_pr_window=samples_pr_window,
+#     train_overlap=0.8
+# )
+#
+# print("CLASSIFICATION RESULT: \nSHAPE: {}\n{}: \n".format(res.shape, res))
+#
+# ##############
+# # TEST (GET ACCURACY)
+# ##############
+#
+# res = RFC.test(
+#     back_test_feat=back_feat_test,
+#     thigh_test_feat=thigh_feat_test,
+#     labels=label_test,
+#     samples_pr_window=samples_pr_window,
+#     train_overlap=0.8
+# )
+#
+# preds = RFC.predictions
+# ground_truth = RFC.test_ground_truth_labels
+# print("Calculating accuracy...")
+# acc = RFC.calculate_accuracy()
+# print("Done, ACC: {:.4f}".format(acc))
+#
+# print("Creating confusion matrix")
+# conf_mat = RFC.calculate_confusion_matrix()
+# print("DONE ")
+# print(conf_mat)
 
-print("CLASSIFICATION RESULT: \nSHAPE: {}\n{}: \n".format(res.shape, res))
 
-##############
-# TEST (GET ACCURACY)
-##############
-
-res = RFC.test(
-    back_test_feat=back_feat_test,
-    thigh_test_feat=thigh_feat_test,
-    labels=label_test,
-    samples_pr_window=samples_pr_window,
-    train_overlap=0.8
-)
-
-preds = RFC.predictions
-ground_truth = RFC.test_ground_truth_labels
-print("Calculating accuracy...")
-acc = RFC.calculate_accuracy()
-print("Done, ACC: {:.4f}".format(acc))
-
-print("Creating confusion matrix")
-conf_mat = RFC.calculate_confusion_matrix()
-print("DONE ")
-print(conf_mat)
