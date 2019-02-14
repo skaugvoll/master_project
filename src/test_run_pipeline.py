@@ -253,6 +253,17 @@ dh3.add_labels_file_based_on_intervals(
 dataframe_test = dh3.get_dataframe_iterator()
 dataframe_test.dropna(subset=['label'], inplace=True)
 
+
+
+
+
+
+
+
+
+
+
+
 ###############
 # RUN PIPELINE PARALLELL CODE building queues for model classification and activity classification
 ###############
@@ -270,12 +281,33 @@ if s == 'y':
 
 
 
-# EXTRACT FEATURES
-# back_feat_test, thigh_feat_test, label_test = pipeObj.get_features_and_labels(dataframe_test)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ###############
 # CLASSIFY (run without labels)
 ###############
+
+# EXTRACT FEATURES
+# back_feat_test, thigh_feat_test, label_test = pipeObj.get_features_and_labels(dataframe_test)
 
 # res = RFC.classify(
 #     back_test_feat=back_feat_test,
@@ -286,6 +318,15 @@ if s == 'y':
 #
 # print("CLASSIFICATION RESULT: \nSHAPE: {}\n{}: \n".format(res.shape, res))
 #
+
+
+
+
+
+
+
+
+
 # ##############
 # # TEST (GET ACCURACY)
 # ##############
