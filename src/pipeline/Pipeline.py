@@ -320,13 +320,14 @@ class Pipeline:
 
     # AKTIVITET Klassifisering
     def activity_classification_worker(self, input_q):
+        # todo implement this to do LSTM classifications!
         for window in iter(input_q.get, 'STOP'):
             model, w = window[0], window[1]
             # time.sleep(0.5 * random.random())
             print("MODEL: {}\nWINDOW: {}".format(model, w))
 
 
-    def paralle_run(self, dataframe, samples_pr_window, train_overlap):
+    def paralle_run(self, dataframe, model_path, samples_pr_window, train_overlap):
         NUMBER_OF_PROCESSES_models = 3
         NUMBER_OF_PROCESSES_class = 1
 
@@ -363,11 +364,9 @@ class Pipeline:
             process.start()
 
         # CREATE a worker processes on model klassifisering
-        print(os.getcwd() + "../trained_rfc.sav")
-        input("is loading path ok ? ")
-
         for i in range(NUMBER_OF_PROCESSES_models):
-            RFC = pickle.load(open("./trained_rfc.sav", 'rb'))
+            # todo fix the path here, to be a input parameter
+            RFC = pickle.load(open(model_path, 'rb'))
             processes_model.append(Process(target=self.model_classification_worker, args=(model_queue,
                                                                                           activity_queue,
                                                                                           RFC

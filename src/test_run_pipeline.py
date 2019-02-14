@@ -253,14 +253,20 @@ dh3.add_labels_file_based_on_intervals(
 dataframe_test = dh3.get_dataframe_iterator()
 dataframe_test.dropna(subset=['label'], inplace=True)
 
+###############
+# RUN PIPELINE PARALLELL CODE building queues for model classification and activity classification
+###############
+
 #### save the model so that the parallelized code can lode it for each new process
 s = input("save the trained RFC model? [y/n]: ")
 if s == 'y':
-    pickle.dump(RFC, open("./trained_rfc.sav", 'wb'))
+    # TODO: fix where the file is saved
+    model_path = "./trained_rfc.sav"
+    pickle.dump(RFC, open(model_path, 'wb'))
     print("MAX CPU CORES: ", os.cpu_count())
     input("...")
     p = Pipeline()
-    p.paralle_run(dataframe= dataframe_test, samples_pr_window=samples_pr_window, train_overlap=0.8)
+    p.paralle_run(dataframe= dataframe_test, model_path=model_path, samples_pr_window=samples_pr_window, train_overlap=0.8)
 
 
 
