@@ -174,7 +174,7 @@ class DataHandler():
         except:
             print("Cleanup FAILED")
 
-    def merge_csvs_on_first_time_overlap(self, master_csv_path, slave_csv_path, out_path=None, rearrange_columns_to=None):
+    def merge_csvs_on_first_time_overlap(self, master_csv_path, slave_csv_path, out_path=None, master_columns=['time', 'bx', 'by', 'bz', 'btemp'], slave_columns=['time', 'tx', 'ty', 'tz', 'ttemp'], rearrange_columns_to=None):
         '''
         Master_csv is the csv that the first recording is used as starting point
 
@@ -189,11 +189,11 @@ class DataHandler():
 
         print("READING MASTER CSV")
         master_df = pd.read_csv(master_csv_path)
-        master_df.columns = ['time', 'bx', 'by', 'bz', 'btemp']
+        master_df.columns = master_columns
 
         print("READING SLAVE CSV")
         slave_df = pd.read_csv(slave_csv_path)
-        slave_df.columns = ['time', 'tx', 'ty', 'tz', 'ttemp']
+        slave_df.columns = slave_columns
 
         # Merge the csvs
         print("MERGING MASTER AND SLAVE CSV")

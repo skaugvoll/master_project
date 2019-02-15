@@ -10,25 +10,18 @@ import cwa_converter
 class Pipeline:
     def __init__(self):
         print("HELLO FROM PIPELINE")
-
-
-    def unzip_extractNconvert_temp_merge_dataset(self, rel_filepath, label_interval, label_mapping):
         # Create a data handling object for importing and manipulating dataset ## PREPROCESSING
         print('CREATING datahandler')
-        dh = DataHandler()
+        self.dh = DataHandler()
         print('CREATED datahandler')
 
-        ##########################
-        #
-        #
-        ##########################
 
-
+    def unzip_extractNconvert_temp_merge_dataset(self, rel_filepath, label_interval, label_mapping, unzip_path='../data/temp', unzip_cleanup=False, cwa_paralell_convert=True):
         # unzip cwas from 7z arhcive
-        unzipped_path = dh.unzip_7z_archive(
+        unzipped_path = self.dh.unzip_7z_archive(
             filepath=os.path.join(os.getcwd(), rel_filepath),
-            unzip_to_path='../data/temp',
-            cleanup=False
+            unzip_to_path=unzip_path,
+            cleanup=unzip_cleanup
         )
 
         print('UNZIPPED PATH RETURNED', unzipped_path)
@@ -42,7 +35,7 @@ class Pipeline:
         back_csv, thigh_csv = cwa_converter.convert_cwas_to_csv_with_temp(
             subject_dir=unzipped_path,
             out_dir=unzipped_path,
-            paralell=True
+            paralell=cwa_paralell_convert
         )
 
         ##########################
@@ -50,8 +43,9 @@ class Pipeline:
         #
         ##########################
 
+
         # Timesynch and concate csvs
-        dh.merge_csvs_on_first_time_overlap(
+        self.dh.merge_csvs_on_first_time_overlap(
             master_csv_path=back_csv,
             slave_csv_path=thigh_csv,
             rearrange_columns_to=[
@@ -67,7 +61,7 @@ class Pipeline:
             ]
         )
 
-        df = dh.get_dataframe_iterator()
+        df = self.dh.get_dataframe_iterator()
         print(df.head(5))
         # input("looks ok ? \n")
 
@@ -77,14 +71,14 @@ class Pipeline:
         #
         ##########################
 
-        dh.convert_ADC_temp_to_C(
+        self.dh.convert_ADC_temp_to_C(
             dataframe=df,
             dataframe_path=None,
             normalize=False,
             save=True
         )
 
-        df = dh.get_dataframe_iterator()
+        df = self.dh.get_dataframe_iterator()
         print(df.head(5))
         # input("looks ok ? \n")
 
@@ -97,11 +91,11 @@ class Pipeline:
         print('SET INDEX TO TIMESTAMP')
         #test that this works with a dataframe and not only path to csv
         # thus pre-loaded and makes it run a little faster
-        dh.convert_column_from_str_to_datetime_test(
+        self.dh.convert_column_from_str_to_datetime_test(
                 dataframe=df,
         )
 
-        dh.set_column_as_index("time")
+        self.dh.set_column_as_index("time")
         print('DONE')
 
         ##########################
@@ -111,9 +105,9 @@ class Pipeline:
 
 
         print('MAKE NUMERIC')
-        dh.convert_column_from_str_to_numeric(column_name="btemp")
+        self.dh.convert_column_from_str_to_numeric(column_name="btemp")
 
-        dh.convert_column_from_str_to_numeric(column_name="ttemp")
+        self.dh.convert_column_from_str_to_numeric(column_name="ttemp")
         print('DONE')
 
         ##########################
@@ -123,10 +117,10 @@ class Pipeline:
 
 
         print('ADDING LABELS')
-        dh.add_new_column()
+        self.dh.add_new_column()
         print('DONE')
 
-        dh.add_labels_file_based_on_intervals(
+        self.dh.add_labels_file_based_on_intervals(
             intervals=label_interval,
             label_mapping=label_mapping
         )
@@ -138,9 +132,9 @@ class Pipeline:
         # ##########################
 
         # dh.show_dataframe()
-        df = dh.get_dataframe_iterator()
+        df = self.dh.get_dataframe_iterator()
 
-        return df, dh
+        return df, self.dh
 
     # TODO create method for unzip_extractNconvert_temp_stack_dataset() or adopt the above def..
 
