@@ -186,6 +186,19 @@ class HARRandomForrest():
         print("I kinda diiiid! ")
         print("PREDICTIONS: \n{}".format(self.predictions))
 
+    def classify(self, back_test_feat, thigh_test_feat, samples_pr_window, train_overlap):
+        back_test_feat = self.segment_acceleration_and_calculate_features(back_test_feat,
+                                                                          samples_pr_window=samples_pr_window,
+                                                                          overlap=train_overlap)
+
+        thigh_test_feat = self.segment_acceleration_and_calculate_features(thigh_test_feat,
+                                                                           samples_pr_window=samples_pr_window,
+                                                                           overlap=train_overlap)
+        both_features = np.hstack((back_test_feat, thigh_test_feat))
+        self.predictions = self.RFC_classifier.predict(both_features)
+        return self.predictions
+
+
     def calculate_accuracy(self):
         # TODO check that object attributes are not None, raise exception
         gt = self.test_ground_truth_labels
