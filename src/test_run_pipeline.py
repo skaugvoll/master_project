@@ -5,6 +5,7 @@ except: print("SAdsadsadhsa;hkldasjkd")
 from pipeline.Pipeline import Pipeline
 from pipeline.DataHandler import DataHandler
 from src import models
+import pickle
 
 
 ################################ First we need to get the training data! #################################
@@ -153,12 +154,30 @@ RFC.train(
 )
 
 
-#########################################################
-##
-# TESTING
-##
-#########################################################
+# #### save the model so that the parallelized code can lode it for each new process
+# s = input("save? : ")
+# if s == 'y':
+#     pickle.dump(RFC, open("./trained_rfc.sav", 'wb'))
 
+
+
+# #########################################################
+# ##
+# # TESTING
+# ##
+# #########################################################
+
+
+
+#
+#
+#
+# #########################################################
+# ##
+# # TESTING
+# ##
+# #########################################################
+#
 # GET DATA
 dh3 = DataHandler()
 dh3.load_dataframe_from_csv(
@@ -234,12 +253,61 @@ dh3.add_labels_file_based_on_intervals(
 dataframe_test = dh3.get_dataframe_iterator()
 dataframe_test.dropna(subset=['label'], inplace=True)
 
-# EXTRACT FEATURES
-back_feat_test, thigh_feat_test, label_test = pipeObj.get_features_and_labels(dataframe_test)
+
+
+
+
+
+
+
+
+
+
 
 ###############
-# CLASSIFY (run without labels)
+# RUN PIPELINE PARALLELL CODE building queues for model classification and activity classification
 ###############
+
+#### save the model so that the parallelized code can lode it for each new process
+# s = input("save the trained RFC model? [y/n]: ")
+# if s == 'y':
+#     # TODO: fix where the file is saved
+#     model_path = "./trained_rfc.sav"
+#     pickle.dump(RFC, open(model_path, 'wb'))
+#     print("MAX CPU CORES: ", os.cpu_count())
+#     input("...")
+#     p = Pipeline()
+#     p.parallel_pipeline_classification_run(dataframe=dataframe_test, model_path=model_path, samples_pr_window=samples_pr_window, train_overlap=0.8)
+#
+#
+#
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+##############
+# CLASSIFY (run without labels)
+##############
+
+# EXTRACT FEATURES
+back_feat_test, thigh_feat_test, label_test = pipeObj.get_features_and_labels(dataframe_test)
 
 res = RFC.classify(
     back_test_feat=back_feat_test,
@@ -249,6 +317,15 @@ res = RFC.classify(
 )
 
 print("CLASSIFICATION RESULT: \nSHAPE: {}\n{}: \n".format(res.shape, res))
+
+
+
+
+
+
+
+
+
 
 ##############
 # TEST (GET ACCURACY)
@@ -272,3 +349,5 @@ print("Creating confusion matrix")
 conf_mat = RFC.calculate_confusion_matrix()
 print("DONE ")
 print(conf_mat)
+
+
