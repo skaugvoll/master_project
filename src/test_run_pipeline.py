@@ -154,21 +154,6 @@ RFC.train(
 )
 
 
-# #### save the model so that the parallelized code can lode it for each new process
-# s = input("save? : ")
-# if s == 'y':
-#     pickle.dump(RFC, open("./trained_rfc.sav", 'wb'))
-
-
-
-# #########################################################
-# ##
-# # TESTING
-# ##
-# #########################################################
-
-
-
 #
 #
 #
