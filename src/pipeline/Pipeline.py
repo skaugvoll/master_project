@@ -20,6 +20,10 @@ class Pipeline:
         print('CREATING datahandler')
         self.dh = DataHandler()
         print('CREATED datahandler')
+        self.dataframe = None
+        self.back_columns = [0, 1, 2],
+        self.thigh_columns = [3, 4, 5],
+
 
 
     def unzip_extractNconvert_temp_merge_dataset(self, rel_filepath, label_interval, label_mapping, unzip_path='../data/temp', unzip_cleanup=False, cwa_paralell_convert=True):
@@ -168,26 +172,34 @@ class Pipeline:
 
     # MODEL Klassifisering
     def model_classification_worker(self, input_q, output, model):
-        for window in iter(input_q.get, 'STOP'):
+        for idx, window in iter(input_q.get, 'STOP'):
             print("model_classification_worker executing")
+
+            # print("MODLE CLASSIFICATION: ", idx, window)
 
             # Vil ha in ett ferdig window, aka windows maa lages utenfor her og addes til queue
             res = model.window_classification(window)
 
             # SUBMIT TASKS FOR ACTIVITY CLASSIFICATION
-            output.put((res, window))
+            output.put((idx, res))
             print("worker done")
 
     # AKTIVITET Klassifisering
     def activity_classification_worker(self, input_q):
         # todo implement this to do LSTM classifications!
+        '''
+        models: 1: both, 2:thigh, 3:back
+        :param input_q:
+        :return:
+        '''
         for window in iter(input_q.get, 'STOP'):
-            model, w = window[0], window[1]
+            window_idx, model = window[0], window[1]
             # time.sleep(0.5 * random.random())
-            print("MODEL: {}\nWINDOW: {}".format(model, w))
+            print("WINDOW IDEX TO DF: {} \t LSTM MODLE TO USE: {} \n DFR: {}".format(window_idx, model, self.dataframe.iloc[window_idx, [0,1,2,3,4,5]]))
 
 
     def parallel_pipeline_classification_run(self, dataframe, model_path, samples_pr_window, train_overlap):
+        self.dataframe = dataframe
         NUMBER_OF_PROCESSES_models = 3
         NUMBER_OF_PROCESSES_class = 1
 
@@ -195,8 +207,9 @@ class Pipeline:
         model_queue = Queue()
         activity_queue = Queue()
 
+
         # Submit tasks for model klassifisering
-        back_feat, thigh_feat, label = self.get_features_and_labels(dataframe) # returns numpy arrays
+        back_feat, thigh_feat, label = self.get_features_and_labels(self.dataframe) # returns numpy arrays
         back_feat = temp_feature_util.segment_acceleration_and_calculate_features(back_feat,
                                                                     samples_pr_window=samples_pr_window,
                                                                     overlap=train_overlap)
@@ -204,17 +217,21 @@ class Pipeline:
         thigh_feat = temp_feature_util.segment_acceleration_and_calculate_features(thigh_feat,
                                                                     samples_pr_window=samples_pr_window,
                                                                     overlap=train_overlap)
+
+        # concatinates example : [[1,2,3],[4,5,6]] og [[a,b,c], [d,e,f]] --> [[1,2,3,a,b,c], [4,5,6,d,e,f]]
+        # akas rebuild the dataframe shape
         both_features = np.hstack((back_feat, thigh_feat))
 
-        for window in both_features:
-            model_queue.put(window)
+
+        for idx, window in enumerate(both_features):
+            model_queue.put((idx, window))
 
         # Lists to maintain processes
         processes_model = []
         processes_class = []
 
         # CREATE a worker processes on model klassifisering
-        for i in range(NUMBER_OF_PROCESSES_class):
+        for _ in range(NUMBER_OF_PROCESSES_class):
             processes_class.append(Process(target=self.activity_classification_worker, args=(activity_queue,)
                                            )
                                    )
@@ -224,7 +241,7 @@ class Pipeline:
             process.start()
 
         # CREATE a worker processes on model klassifisering
-        for i in range(NUMBER_OF_PROCESSES_models):
+        for _ in range(NUMBER_OF_PROCESSES_models):
             # todo fix the path here, to be a input parameter
             RFC = pickle.load(open(model_path, 'rb'))
             processes_model.append(Process(target=self.model_classification_worker, args=(model_queue,
@@ -243,7 +260,7 @@ class Pipeline:
             pass
 
         # Tell child processes to stop waiting for more jobs
-        for i in range(NUMBER_OF_PROCESSES_models):
+        for _ in range(NUMBER_OF_PROCESSES_models):
             model_queue.put('STOP')
 
         # LET ALL PROCESSES ACTUALLY TERMINATE AKA FINISH THE JOB THEIR DOING
@@ -255,7 +272,7 @@ class Pipeline:
             pass
 
         # Tell child processes to stop waiting for more jobs
-        for i in range(NUMBER_OF_PROCESSES_class):
+        for _ in range(NUMBER_OF_PROCESSES_class):
             activity_queue.put('STOP')
 
         # LET ALL PROCESSES ACTUALLY TERMINATE AKA FINISH THE JOB THEIR DOING
@@ -278,7 +295,7 @@ class Pipeline:
         # ...
         # ...
         # ...
-
+ 
 
     ####################################################################################################################
     #                                   ^PARALLELL PIPELINE EXECUTE WINDOW BY WINDOW CODE^                             #
