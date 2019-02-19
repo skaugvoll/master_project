@@ -21,8 +21,6 @@ class Pipeline:
         self.dh = DataHandler()
         print('CREATED datahandler')
         self.dataframe = None
-        self.back_columns = [0, 1, 2],
-        self.thigh_columns = [3, 4, 5],
 
 
 
@@ -295,7 +293,7 @@ class Pipeline:
         # ...
         # ...
         # ...
- 
+
 
     ####################################################################################################################
     #                                   ^PARALLELL PIPELINE EXECUTE WINDOW BY WINDOW CODE^                             #
