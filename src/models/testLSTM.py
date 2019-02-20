@@ -43,10 +43,10 @@ def mnist_example():
 
     # BUILD THE MODEL
     model = Sequential()
-    model.add(CuDNNLSTM(20, input_shape=(input_shape), activation='relu', return_sequences=True))
+    model.add(LSTM(128, input_shape=(input_shape), activation='relu', return_sequences=True))
     model.add(Dropout(0.2))
 
-    model.add(CuDNNLSTM(20, activation='relu', return_sequences=False)) # do not want to return_sequence, because the next layer is dense
+    model.add(LSTM(128, activation='relu', return_sequences=False)) # do not want to return_sequence, because the next layer is dense
     model.add(Dropout(0.2))
 
     model.add(Dense(32, activation='relu'))
@@ -98,20 +98,27 @@ class LSTMTEST:
         # ...
         # ...
 
+        ## CREATE BATCHES
+        batches = tf.data.Dataset.batch(x_train, batch_size=512)
+
+        print("Created batches, not sure what to do with it")
+        ##
+
+
+
 
         input_shape = x_train.shape[1:]  # number of rows and features for each element to train on # mnist (28,28)
-        print("INPUT SHAPE: ", input_shape)
-        input("....")
+        # print("INPUT SHAPE: ", input_shape)
+
         # build the model
         model = Sequential()
-        model.add(LSTM(6, input_shape=(input_shape), activation='relu', return_sequences=True))
+        model.add(CuDNNLSTM(12, input_shape=(input_shape), return_sequences=True))
         model.add(Dropout(0.2))
 
-        model.add(LSTM(6, activation='relu',
-                       return_sequences=False))  # do not want to return_sequence, because the next layer is dense
+        model.add(CuDNNLSTM(12, return_sequences=False))  # do not want to return_sequence, because the next layer is dense
         model.add(Dropout(0.2))
 
-        model.add(Dense(3, activation='relu'))
+        model.add(Dense(10, activation='relu'))
 
         number_of_classes = 3
         model.add(Dense(number_of_classes, activation='softmax'))
