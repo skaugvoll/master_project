@@ -85,8 +85,10 @@ def get( name, model_args, make_growth_mode_session=True ):
 
 from .haakon_lstm import HaakonLSTM
 from .snt_rfc import HARRandomForrest
+from .testLSTM import LSTMTEST
 
 _MODELS = {
   'HAAKON_LSTM' : HaakonLSTM,
-  'RFC': HARRandomForrest
+  'RFC': HARRandomForrest,
+  'LSTMTEST': LSTMTEST
 }
