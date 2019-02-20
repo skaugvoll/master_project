@@ -2,7 +2,7 @@
 
 import tensorflow as tf
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Dropout, LSTM # if on GPU version, CuDNNLSTM
+from tensorflow.keras.layers import Dense, Dropout, LSTM, CuDNNLSTM # if on GPU version, CuDNNLSTM
 import math
 
 def mnist_example():
@@ -43,10 +43,10 @@ def mnist_example():
 
     # BUILD THE MODEL
     model = Sequential()
-    model.add(LSTM(128, input_shape=(input_shape), activation='relu', return_sequences=True))
+    model.add(CuDNNLSTM(20, input_shape=(input_shape), activation='relu', return_sequences=True))
     model.add(Dropout(0.2))
 
-    model.add(LSTM(128, activation='relu', return_sequences=False)) # do not want to return_sequence, because the next layer is dense
+    model.add(CuDNNLSTM(20, activation='relu', return_sequences=False)) # do not want to return_sequence, because the next layer is dense
     model.add(Dropout(0.2))
 
     model.add(Dense(32, activation='relu'))
@@ -104,19 +104,19 @@ class LSTMTEST:
         input("....")
         # build the model
         model = Sequential()
-        model.add(LSTM(128, input_shape=(input_shape), activation='relu', return_sequences=True))
+        model.add(LSTM(6, input_shape=(input_shape), activation='relu', return_sequences=True))
         model.add(Dropout(0.2))
 
-        model.add(LSTM(128, activation='relu',
+        model.add(LSTM(6, activation='relu',
                        return_sequences=False))  # do not want to return_sequence, because the next layer is dense
         model.add(Dropout(0.2))
 
-        model.add(Dense(32, activation='relu'))
+        model.add(Dense(3, activation='relu'))
 
         number_of_classes = 3
         model.add(Dense(number_of_classes, activation='softmax'))
 
-        opt = tf.keras.optimizers.Adam(lr=1e-3, decay=1e-5)  # decay is how much to lower the lr over time
+        opt = tf.keras.optimizers.Adam(lr=0.7, decay=1e-5)  # decay is how much to lower the lr over time
 
         model.compile(loss='sparse_categorical_crossentropy', optimizer=opt, metrics=['accuracy'])
 
