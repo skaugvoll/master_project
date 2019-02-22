@@ -69,7 +69,6 @@ class HaakonLSTM( HARModel ):
     train_x1 = self.get_features( train_data, back_cols, batch_size=batch_size, sequence_length=sequence_length )
     train_x2 = self.get_features( train_data, thigh_cols, batch_size=batch_size, sequence_length=sequence_length )
 
-    # TODO: FINN UT HVA SOM ER FEIL HER...
     train_y  = self.get_labels( train_data, label_col, batch_size=batch_size, sequence_length=sequence_length )
     # Get design matrix of validation data if provided
     if valid_data:
@@ -174,7 +173,6 @@ class HaakonLSTM( HARModel ):
       ]).reshape( -1, sequence_length )
 
     # Pick majority label in each sequence and One Hot encode
-    # TODO FIGURE OUT WHY THIS FAILS
     Y = self.encoder.one_hot_encode( np.array([ collections.Counter( targets_sequence ).most_common(1)[0][0] for targets_sequence in Y ]))
 
     if self.stateful:
