@@ -187,7 +187,16 @@ class HaakonLSTM( HARModel ):
   def build( self ):
     
     # Create input tensors; batch_size must be specified for stateful variant
+    '''
+    keras.layers.Input is used to instatntiate a Keras tensor,
+    Args:
+      shape: A shape tuple (integers), not including the batch size. For instance, shape=(32,) indicates that the expected input will be batches of 32-dimensional vectors.
+      batch_size: optional static batch size (integer)
+
+    :return:
+    '''
     if self.stateful:
+      # Create input with shape (batch_size, seq_length, features)
       ipt_back  = Input( batch_shape=[ self.batch_size, self.sequence_length, self.back_layers['inputs'] ])
       ipt_thigh = Input( batch_shape=[ self.batch_size, self.sequence_length, self.thigh_layers['inputs'] ])
     else:

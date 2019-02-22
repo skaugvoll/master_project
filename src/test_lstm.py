@@ -93,7 +93,7 @@ dataframe.dropna(subset=['label'], inplace=True)
 print("DTYPES0 : \n", dataframe.dtypes)
 dataframe['label'] = pd.to_numeric(dataframe['label']) #, downcast='integer')
 print("DTYPES1 : \n", dataframe.dtypes)
-input("...")
+
 
 # from src import models
 
@@ -173,6 +173,6 @@ print("DESCRIBE2 : \n", dataframe.describe())
 dataframe.drop(columns=['btemp', 'ttemp'], inplace=True)
 print(dataframe.describe())
 print(dataframe.head(2))
-input("...")
+
 
 model.train([dataframe])

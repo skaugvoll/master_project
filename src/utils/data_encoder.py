@@ -6,6 +6,19 @@ import numpy as np
 class DataEncoder:
 
   def __init__( self, classes ):
+    '''
+    classes = Array containing objects from the config.yml file defined under CLASSES
+    classes = [
+      {'value': 1, 'name': 'walking', 'plot': 'forestgreen:green:walking'},
+      {'value': 2, 'name': 'running', 'plot': 'red:red:running'},
+      ...
+      ...
+      ....
+    ]
+
+
+    :param classes: a list containing object with keys value, name and plot. each object corresponds to a unique class/target
+    '''
     # Make sure that the class configuration is valid
     self.validate_input( classes )
     # Store classes as provided
@@ -104,8 +117,30 @@ class DataEncoder:
   def get_one_hot_encoding_dict( self, active_classes, all_classes ):
     '''
     Get a dictionary that maps from each recognized class
+
+    :param active_classes: = list containing objects/ dictionaries of class definition
+                   = [
+                      {'value': 1, 'plot': 'forestgreen:green:walking', 'name': 'walking'},
+                      ...
+                      ...
+                   ]
+
+    :param all_classes: = list containing objects / dictionaries of class definitions
+                = [
+                    {'value': 1, 'plot': 'forestgreen:green:walking', 'name': 'walking'},
+                    ...
+                    ...
+                  ]
+
+
+    :return: one_hot_enc = { class_value: one_hot_value, class_value: one_hot_value }
+                         = { n: n-1, n: n-1 }, for each key n +=1
+                         = {1: 0, 2: 1, 3: 2, 4: 3, 5: 4, 6: 5, 7: 6, ... 15: 14, 16: n_class_value: n-1_class_value}
     '''
+
     # Initial encoding dict for non-replaced classes
+    # NB:: ZERO INDEXED VALUES :: the enumerate functions starts by default at 0, thus, giving the downshift in one hot vector mapping VALUES
+    # This will be in order { 1:0, 2:1, 3:2 }, ... because the active_classes is an array with the order class_value 1,2,3,4
     one_hot_enc = { cl['value']:i for i,cl in enumerate( active_classes )}
     # Make a temporary lookup; { name -> value }
     name_to_value = { cl['name']:cl['value'] for cl in active_classes }
@@ -121,6 +156,17 @@ class DataEncoder:
 
 
   def validate_input( self, classes ):
+    '''
+    classes = [
+      {'value': 1, 'name': 'walking', 'plot': 'forestgreen:green:walking'},
+      {'value': 2, 'name': 'running', 'plot': 'red:red:running'},
+      ...
+      ...
+      ....
+    ]
+    :param classes:
+    :return:
+    '''
 
     # Check that all class names are unique
     names = [ cl['name'] for cl in classes ]
@@ -134,7 +180,36 @@ class DataEncoder:
     if duplicate_values:
       raise ValueError( 'Duplicated class values provided; offenders: %s'%duplicate_values )
 
-    # Check that all replace_by fields refer to an existing class 
+    # Check that all replace_by fields refer to an existing class
+    '''
+    NB: this code just CHECKS that the replacement is valid, aka the replace values is defined, it does NOT do the actuall
+        changing / replacing, I repete, do not do the replacement, ONLY check that it's valid.
+    
+    First we get the unique names of classes (no duplications) that are given in the classes-definition in parameter classes array with objects
+    Then we check;
+      for each class object in classes parameter array, 
+      if the key replace_by is defined and its value (cl['replace_by']) is not mention in the set of unique classes values in the names set 
+        raise an errors, as it would not be possible to do the replacement, since the replace_by class is not defined.
+    
+    NAMES: 
+    { 
+      'shuffling', 
+      'stairs (descending)', 
+      'standing',  
+      'running',  
+      'walking', 
+      ...
+      ...
+    }
+    CLASSES: 
+    [
+      {'name': 'walking', 'plot': 'forestgreen:green:walking', 'value': 1}, 
+      {'name': 'running', 'plot': 'red:red:running', 'value': 2}, 
+      {'name': 'shuffling', 'plot': 6, 'value': 3, 'replace_by': 'walking'},
+      ...
+      ...
+    ]
+    '''
     names  = set( cl['name'] for cl in classes )
     missing = [ cl for cl in classes if 'replace_by' in cl and cl['replace_by'] not in names ]
     if missing:
