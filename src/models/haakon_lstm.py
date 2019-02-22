@@ -48,14 +48,16 @@ class HaakonLSTM( HARModel ):
       batch_size=None,
       sequence_length=None ):
 
-    back_cols  = ['back_x', 'back_y', 'back_z']
-    thigh_cols = ['thigh_x', 'thigh_y', 'thigh_z']
+    # back_cols  = ['back_x', 'back_y', 'back_z']
+    # thigh_cols = ['thigh_x', 'thigh_y', 'thigh_z']
+    back_cols = ['bx', 'by', 'bz']
+    thigh_cols = ['tx', 'ty', 'tz']
     label_col  = 'label'
 
     # Make batch_size and sequence_length default to architecture params
     batch_size = batch_size or self.batch_size
     sequence_length = sequence_length or self.sequence_length
-    
+
     # Compute mean and standard deviation over training data
     back_means, back_stds   = normalization.compute_means_and_stds( train_data, back_cols )
     thigh_means, thigh_stds = normalization.compute_means_and_stds( train_data, thigh_cols )
@@ -66,6 +68,8 @@ class HaakonLSTM( HARModel ):
     # Get design matrices of training data
     train_x1 = self.get_features( train_data, back_cols, batch_size=batch_size, sequence_length=sequence_length )
     train_x2 = self.get_features( train_data, thigh_cols, batch_size=batch_size, sequence_length=sequence_length )
+
+    # TODO: FINN UT HVA SOM ER FEIL HER...
     train_y  = self.get_labels( train_data, label_col, batch_size=batch_size, sequence_length=sequence_length )
     # Get design matrix of validation data if provided
     if valid_data:
@@ -170,10 +174,8 @@ class HaakonLSTM( HARModel ):
       ]).reshape( -1, sequence_length )
 
     # Pick majority label in each sequence and One Hot encode
-    Y = self.encoder.one_hot_encode( np.array([
-      collections.Counter( targets_sequence ).most_common(1)[0][0]
-      for targets_sequence in Y
-    ]))
+    # TODO FIGURE OUT WHY THIS FAILS
+    Y = self.encoder.one_hot_encode( np.array([ collections.Counter( targets_sequence ).most_common(1)[0][0] for targets_sequence in Y ]))
 
     if self.stateful:
       # No half-batches are allowed if using stateful
@@ -213,6 +215,7 @@ class HaakonLSTM( HARModel ):
     net = Activation( 'softmax' )( net )
     # Make model
     self.model = Model( inputs=[ipt_back, ipt_thigh], outputs=net )
+    print(">>>>>>> BUILD COMPLETE")
     # TODO: Compile here?
 
   def create_sub_net( self, net, layers ):

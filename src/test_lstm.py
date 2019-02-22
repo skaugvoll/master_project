@@ -2,6 +2,7 @@ import sys, os
 try: sys.path.append( os.path.abspath( os.path.join( os.path.dirname( __file__), '..')))
 except: pass
 
+import pandas as pd
 
 from pipeline.DataHandler import DataHandler
 
@@ -87,9 +88,91 @@ datahandler.add_labels_file_based_on_intervals(
 )
 
 dataframe = datahandler.get_dataframe_iterator()
+print("DESCRIBE0 : \n", dataframe.describe())
 dataframe.dropna(subset=['label'], inplace=True)
+print("DTYPES0 : \n", dataframe.dtypes)
+dataframe['label'] = pd.to_numeric(dataframe['label']) #, downcast='integer')
+print("DTYPES1 : \n", dataframe.dtypes)
+input("...")
 
+# from src import models
+
+# lstm = models.get('LSTMTEST', {})
+# #  lstm.train(dataframe, epochs=10, batch_size=512, sequence_lenght=250, split=0.8)
+# lstm.trainBatch(dataframe, epochs=10, batch_size=512, sequence_lenght=250, split=0.8)
+
+
+
+
+
+
+
+
+
+####
+# Trying to make the HaakonLSTM run
+####
 from src import models
+from src.config import Config
 
-lstm = models.get('LSTMTEST', {})
-lstm.train(dataframe, epochs=10, batch_size=512, sequence_lenght=250, split=0.8)
+model_arguments = None
+
+model_dir = '../data/outout/' # where the model should be stored
+
+input_dir =  '../data/temp/4000181.7z/4000181/' # Input, relevant for training
+
+
+WEIGHTS_PATH = '' # Where trained weights should be stored
+
+DATASET_PATH = '' # Where the training dataset can be found
+
+# read in configurations from yml config file
+config = Config.from_yaml( '../params/config.yml', override_variables={
+    'MODEL_DIR': model_dir,
+    'INPUT_DIR': input_dir
+})
+
+config.pretty_print()
+
+model_name = config.MODEL['name']
+model_args = dict( config.MODEL['args'].items(), **config.INFERENCE.get( 'extra_model_args', {} ))
+
+print()
+print(model_name)
+print(model_args)
+print()
+for k, v in model_args.items():
+    print(k, v)
+
+print()
+model = models.get(model_name, model_args)
+# model.summary() # for some reason does not work
+
+print()
+# print("TRYING TO TRAIN")
+'''
+__init__.py states:
+    Train the model. Usually, we like to split the data into training and validation
+    by producing a dichotomy over the subjects. This means that 
+
+    Inputs:
+      - train_data: list<pd.DataFrame>
+        A list of dataframes, intended to be used for model fitting. It's columns are:
+          <back_x, back_y, back_z, thigh_x, thigh_y, thigh_z, label> 
+        Where the first 6 corresponds to sensor data as floats and the last one is an 
+        integer corresponding to the annotated class
+      - valid_data: list<pd.DataFrame>
+        Same as train_data, execpt usually a much shorter list.
+      - **kwargs:
+        Extra arguments found in the model's config
+    
+
+'''
+
+print("DESCRIBE2 : \n", dataframe.describe())
+dataframe.drop(columns=['btemp', 'ttemp'], inplace=True)
+print(dataframe.describe())
+print(dataframe.head(2))
+input("...")
+
+model.train([dataframe])

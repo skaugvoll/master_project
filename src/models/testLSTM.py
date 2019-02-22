@@ -102,6 +102,7 @@ class LSTMTEST:
         batches = tf.data.Dataset.batch(x_train, batch_size=512)
 
         print("Created batches, not sure what to do with it")
+        # Creating an iterator to access data in batch
         ##
 
 
@@ -128,6 +129,25 @@ class LSTMTEST:
         model.compile(loss='sparse_categorical_crossentropy', optimizer=opt, metrics=['accuracy'])
 
         model.fit(x_train, y_train, epochs=3, validation_data=(x_test, y_test))
+
+
+
+    def trainBatch(self, training_data, epochs, batch_size, sequence_lenght, split):
+        # print(training_data.shape)
+
+        labels = training_data.iloc[:, [-1]].values
+        # print(labels)
+
+        # print(training_data.head(5))
+
+        # remove unwanted columns / features
+        training_data.drop(columns=['btemp', 'ttemp', 'label'], inplace=True)
+
+        # We need to reshape the data from (rows, features) to (observations/row, rows pr observation, features )
+        training_data = training_data.values
+        training_data = training_data.reshape(training_data.shape[0], 1, training_data.shape[1])
+        # print(training_data.shape)
+
 
 
 
