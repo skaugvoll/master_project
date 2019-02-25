@@ -17,7 +17,7 @@ from ..utils import csv_loader
 from ..callbacks import get_callback
 
 
-class HaakonLSTM( HARModel ):
+class TwoSensorLSTM( HARModel ):
 
   def __init__( self, **params ):
 

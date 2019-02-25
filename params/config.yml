@@ -36,7 +36,7 @@ UNCERTAIN_COLOR: black
 
 # Arguments defining model architecture
 MODEL:
-  name: HAAKON_LSTM
+  name: TWO_SENSOR_LSTM
   args:
     gpu: True
     stateful: False
