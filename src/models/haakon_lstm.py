@@ -74,6 +74,7 @@ class HaakonLSTM( HARModel ):
     train_x2 = self.get_features( train_data, thigh_cols, batch_size=batch_size, sequence_length=sequence_length )
 
     train_y  = self.get_labels( train_data, label_col, batch_size=batch_size, sequence_length=sequence_length )
+
     # Get design matrix of validation data if provided
     if valid_data:
       validation_data = (
@@ -85,9 +86,12 @@ class HaakonLSTM( HARModel ):
       validation_data = None
 
     # Get callbacks for training
+    # this uses the same logic as importing and running models, we export the available callbacks trough the __init__.py
+    # from the root/src/callbacks module, which must be imported, thus in order to use this, the user must know what
+    #   callbacks are avilable in the callback module
     callbacks = [ get_callback( cb['name'], **cb['args'] ) for cb in callbacks ]
 
-    # Compile model
+    # Compile model AKA Configures the model for training.
     self.model.compile( loss='categorical_crossentropy', optimizer='adagrad', metrics=['accuracy'] )
 
 
@@ -251,10 +255,34 @@ class HaakonLSTM( HARModel ):
 
     sequence_length = sequence_length or self.sequence_length
 
+    # Same as get_features(...) --> X.concatenate
+    # except reshape is >> (2395, 250, 1)
     Y = np.concatenate([
         dataframe[column].values[ : len(dataframe) - len(dataframe)%sequence_length ]
         for dataframe in dataframes
       ]).reshape( -1, sequence_length )
+
+    # print("Y shape:\n", Y.shape)
+    # >> (2395, 250)
+
+
+    # encoder.one_hot_encode() is a self made class
+    #   takes in an array where each element is the most common target, for that input sequence
+    #   The the array is:  [ s1, s2, s3, ... , sN], where s1,...sN is the most common target
+    #   The function then returns a one hot 2D array with the one hot encoding for the array
+    #   lets for instance say we only have 4 sequences with possible targets [1,2,3,4]
+    #    the returned one hot vector is then for the imaginary array [1,1,3,1];
+    #      [1,1,3,1] -> [
+    #                     [1,0,0,0], ## sequence 1 one hot vector
+    #                     [1,0,0,0], ## sequence 2 one hot vector
+    #                     [0,0,1,0], ## sequence 3 one hot vector
+    #                     [1,0,0,0]  ## sequence 4 one hot vector
+    #                    ]
+    #
+    # .most_common(..) is from the Collections.Counter class
+    #   List the n most common elements and their counts from the most
+    #     common to the least.  If n is None, then list all element counts.
+    #
 
     # Pick majority label in each sequence and One Hot encode
     Y = self.encoder.one_hot_encode( np.array([ collections.Counter( targets_sequence ).most_common(1)[0][0] for targets_sequence in Y ]))
