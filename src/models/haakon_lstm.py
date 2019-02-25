@@ -324,19 +324,55 @@ class HaakonLSTM( HARModel ):
     self.norm_back  = Normalize()
     self.norm_thigh = Normalize()
 
-    # Create separate networks for back sensor channels and thigh sensor channels
+    # Create separate networks (LAYERS) for back sensor channels and thigh sensor channels
     back_net  = self.create_sub_net( self.norm_back( ipt_back ), self.back_layers['layers'] )
     thigh_net = self.create_sub_net( self.norm_thigh( ipt_thigh ), self.thigh_layers['layers'] )
 
-    # Then combine them into one
+    # print("back net: \n", back_net)
+    # >> Tensor("bidirectional_1/add:0", shape=(512, 250, 32), dtype=float32)
+    # What are back_net and thigh_net, they are instances of either;
+    #    Bidirectional Layer or LSTM layer from Keras, or also known as Tensors
+    # What are the layers axis ? thus, what is axis 2 ?
+    # since the back_net is a tensor, it axis is its shape, aka;
+    #   axis 0 = batch_size = 512
+    #   axis 1 = sequence_lenght = 250
+    #   axis 2 = features = 32
+    #  Question : Why has it 32 features ???
+    #   Answer: because we have specified in the config, that the (net / LSTM layer) should have 32 units!
+    #           Keras.layers.LSTM :: units: Positive integer, dimensionality of the output space.
+
+
+    # keras.layers.Concatenate(axis=-1)
+    # Layer that concatenates a list of inputs.
+    # It takes as input a list of tensors, all of the same shape except for the concatenation axis,
+    # and returns a single tensor, the concatenation of all inputs.
+
+    # Then combine the back_net tensor and thigh_net tensor into one tensor, on the second axis which is ?features?
+    # we do this because we want to have a tensor where the input is (batch_size, seq_lenght, back_featrs + thigh_featrs)
     net = Concatenate(axis=2)([ back_net, thigh_net ])
+
+    # print("NET: \n", net.shape, "\n", net)
+    # >> (512, 250, 64)
+    # Tensor("concatenate_1/concat:0", shape=(512, 250, 64), dtype=float32)
+
     # Apply dropout
+    # Dropout consists in randomly setting a fraction rate of input units to 0 at each update during training time,
+    # which helps prevent overfitting.
     net = Dropout( self.output_dropout )( net )
-    # Add final LSTM
+
+    # Add final LSTM LAYER
+    # Here we pass in the expected number of outputs aka number of targets!
+    # NOTE: basically DOWNSCALING the RNN to the final DENSE layers, so that it knows how many targets there are
+
     net = self.lstm_layer( units=self.num_outputs, return_sequences=False, 
                            stateful=self.stateful, gpu=self.gpu )( net )
+
     # Add softmax activation in the end
+    # Keras.layers.Activation : Applies an activation function to an output.
+    #     output shape :: Same shape as input.
+    # TODO: is this the same as adding a DENSE layer?
     net = Activation( 'softmax' )( net )
+
     # Make model
     self.model = Model( inputs=[ipt_back, ipt_thigh], outputs=net )
     print(">>>>>>> BUILD COMPLETE")
