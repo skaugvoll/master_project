@@ -104,11 +104,6 @@ print("DTYPES1 : \n", dataframe.dtypes)
 
 
 
-
-
-
-
-
 ####
 # Trying to make the HaakonLSTM run
 ####
@@ -175,4 +170,9 @@ print(dataframe.describe())
 print(dataframe.head(2))
 
 
-model.train([dataframe])
+model.train(
+    train_data=[dataframe],
+    back_cols = ['bx', 'by', 'bz'],
+    thigh_cols = ['tx', 'ty', 'tz'],
+    label_col  = 'label'
+)

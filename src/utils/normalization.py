@@ -31,8 +31,6 @@ def compute_means_and_stds( dataframes, columns=None ):
     means.append( np.mean( combined ))
     stds.append( np.std( combined ))
 
-  print("Means: ", means, '\n', "STDS: ", stds)
-  input("....")
   return means, stds 
 
 

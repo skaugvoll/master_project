@@ -41,18 +41,22 @@ class HaakonLSTM( HARModel ):
 
 
 
-  def train( self, train_data, 
+  def train( self,
+      train_data,
       valid_data=None,
       callbacks=[],
       epochs=10,
       batch_size=None,
-      sequence_length=None ):
+      sequence_length=None,
+      back_cols=['back_x', 'back_y', 'back_z'],
+      thigh_cols=['thigh_x', 'thigh_y', 'thigh_z'],
+      label_col='label'
 
-    # back_cols  = ['back_x', 'back_y', 'back_z']
-    # thigh_cols = ['thigh_x', 'thigh_y', 'thigh_z']
-    back_cols = ['bx', 'by', 'bz']
-    thigh_cols = ['tx', 'ty', 'tz']
-    label_col  = 'label'
+      ):
+
+    # back_cols = ['bx', 'by', 'bz']
+    # thigh_cols = ['tx', 'ty', 'tz']
+    # label_col  = 'label'
 
     # Make batch_size and sequence_length default to architecture params
     batch_size = batch_size or self.batch_size
@@ -86,6 +90,11 @@ class HaakonLSTM( HARModel ):
     # Compile model
     self.model.compile( loss='categorical_crossentropy', optimizer='adagrad', metrics=['accuracy'] )
 
+
+    # I think the fit method extracts batches of specifiec (512) length automatically
+    #  since it's build with the Input assumption,
+    # and if there is some examples left that does not fill the full batch size, if NOT statefull, it runs the smaller batch
+    #     if STATEFUL it ignores the examples that does not fill the batch
     # Begin training and return history once done
     return self.model.fit( 
       x=[train_x1, train_x2], y=train_y,
@@ -148,13 +157,88 @@ class HaakonLSTM( HARModel ):
 
 
   def get_features( self, dataframes, columns, batch_size=None, sequence_length=None ):
+    '''
+    NOTE: The code was documented using the 4000181.7z
+          after adding labels 1,2,3 for which model to use,
+          and removing the rows where LABEL was not set
+
+    This is a exciting and interesting function,
+    this actually creates the batches and sequence length and all the good stuff I need to understand.
+
+    :param dataframes: [df1, df2,..., dfn]
+    :param columns: ["colName",..., "colName"]
+    :param batch_size: Integer
+    :param sequence_length: Integer
+    :return:
+    '''
 
     sequence_length = sequence_length or self.sequence_length
 
+    # print("Batch size :: sequence length\n", batch_size, sequence_length)
+    # >> 512, 250
+    # print("Len dataframes: ", len(dataframes))
+    # >> 1
+    # print("Dataframes[0].head(2)")
+    # >>
+    #                               bx        by        bz       tx        ty        tz  label
+    # timestamp
+    # 2017-09-19 18:31:09.354 -0.046875 -0.078125  0.953125 -0.28125 -0.109375 -0.984375      1
+    # 2017-09-19 18:31:09.374 -0.046875 -0.078125  0.953125 -0.28125 -0.109375 -0.984375      1
+
+    # print("LEN dataframes[0] :: len dataframes[0] % seq_lenght", "\n", \
+    #  len(dataframes[0]), len(dataframes[0]) % sequence_length)
+    # >> 598807 57
+
+    # NB THE len(dataframe) - len(dataframe) % sequence_length) is what assures that the reshape is valid and can be done!
     X = np.concatenate([
-        dataframe[columns].values[ : (len(dataframe) - len(dataframe)%sequence_length) ]
-        for dataframe in dataframes
-      ]).reshape( -1, sequence_length, len(columns) )
+        dataframe[columns].values[ : (len(dataframe) - len(dataframe) % sequence_length) ] for dataframe in dataframes
+      ]) #.reshape( -1, sequence_length, len(columns) )
+
+    print("X after concat:\n ", X.shape, "\n", X)
+    # >> (598750, 3)
+    #
+    # [
+    #   [-0.046875 - 0.078125  0.953125]
+    #   [-0.046875 - 0.078125  0.953125]
+    #   [-0.046875 - 0.078125  0.953125]
+    #   ...
+    #   [-0.8125 - 0.484375    0.6875]
+    #   [-0.921875 - 0.25      0.25]
+    #   [-0.90625 - 0.359375   0.421875]
+    # ]
+
+    X = X.reshape( -1, sequence_length, len(columns) )
+    # print("X after reshape:\n", X.shape, "\n", X)
+    # >> (2395, 250, 3)
+    #
+    # [
+    #   [
+    #     [-0.046875 - 0.078125  0.953125]
+    #     [-0.046875 - 0.078125  0.953125]
+    #     [-0.046875 - 0.078125  0.953125]
+    #     ...
+    #     [-0.046875 - 0.09375   0.953125]
+    #     [-0.046875 - 0.078125  0.953125]
+    #     [-0.046875 - 0.078125  0.9375]
+    #   ]
+    #   [
+    #     [-0.046875 - 0.078125  0.953125]
+    #     [-0.046875 - 0.078125  0.953125]
+    #     [-0.046875 - 0.078125  0.953125]
+    #     ...
+    #     [-1. - 0.046875 - 0.0625]
+    #     [-1. - 0.046875 - 0.046875]
+    #     [-1. - 0.046875 - 0.046875]
+    #   ]
+    #   ...
+    #   ...
+    # ]
+
+    # Here I'm guessing we have an array with 512 arrays, actually got 2395
+    # where each of the 512 arrays, contain 250 arrays | actually got 250
+    # where each of the 250 arrays contains x features | actually got 3
+    # NB THE len(dataframe) - len(dataframe) % sequence_length) is what assures that the reshape is valid and can be done!
+
 
     if self.stateful:
       # No half-batches are allowed if using stateful. TODO: This should probably be done very differently
@@ -188,10 +272,15 @@ class HaakonLSTM( HARModel ):
     
     # Create input tensors; batch_size must be specified for stateful variant
     '''
-    keras.layers.Input is used to instatntiate a Keras tensor,
+    keras.layers.Input is used to instantiate a Keras tensor,
+
+    Note! this does not create batches, only makes the input EXPECT a certain shape!
+
     Args:
       shape: A shape tuple (integers), not including the batch size. For instance, shape=(32,) indicates that the expected input will be batches of 32-dimensional vectors.
       batch_size: optional static batch size (integer)
+      batch_shape: Shape, including the batch size. For instance, shape = c(10,32) indicates that the expected input will be batches of 10 32-dimensional vectors.
+                  alt. batch_shape=list(Null, 32) indicates batches of an arbitrary number of 32-dimensional vectors.
 
     :return:
     '''
