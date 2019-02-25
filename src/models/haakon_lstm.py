@@ -371,6 +371,7 @@ class HaakonLSTM( HARModel ):
     # Keras.layers.Activation : Applies an activation function to an output.
     #     output shape :: Same shape as input.
     # TODO: is this the same as adding a DENSE layer?
+    #   read some documentation, it kinda seems like it
     net = Activation( 'softmax' )( net )
 
     # Make model
