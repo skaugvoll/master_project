@@ -318,19 +318,26 @@ class OneSensorLSTM( HARModel ):
 
     # Hack for differantiating the input layer and the network
     # add a dropout that doesent do anything
-    net = Dropout(0.0)(ipt)
-    
+    # net = Dropout(0.0)(ipt)
+
     # Create separate networks (LAYERS) for back sensor channels and thigh sensor channels
-    for layer in self.layers['layers']:
-      print("LAYER: ", layer)
-      prev_layer = net
+    for idx, layer in enumerate(self.layers['layers']):
+      # Check if its the first layer, or intermidiate layer, and decide input to the new we're going to add
+      if idx == 0:
+        prev_layer = ipt
+        layer_input = ipt
+      else:
+        prev_layer = net
+        layer_input = net
+
+
       net = Bidirectional(
         LSTM(units=layer['units'],
             return_sequences=True,
             stateful=self.stateful,
             gpu=self.gpu
             ),
-        merge_mode='sum')(net)
+        merge_mode='sum')(layer_input)
 
       if layer.get( 'dropout', False ):
         net = Dropout( layer['dropout'] )( net )
