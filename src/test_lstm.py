@@ -122,7 +122,13 @@ WEIGHTS_PATH = '' # Where trained weights should be stored
 DATASET_PATH = '' # Where the training dataset can be found
 
 # read in configurations from yml config file
-config = Config.from_yaml( '../params/config.yml', override_variables={
+# config = Config.from_yaml( '../params/config.yml', override_variables={
+#     'MODEL_DIR': model_dir,
+#     'INPUT_DIR': input_dir
+# })
+
+
+config = Config.from_yaml( '../params/one_sensor_config.yml', override_variables={
     'MODEL_DIR': model_dir,
     'INPUT_DIR': input_dir
 })
@@ -164,15 +170,14 @@ __init__.py states:
 
 '''
 
-print("DESCRIBE2 : \n", dataframe.describe())
-dataframe.drop(columns=['btemp', 'ttemp'], inplace=True)
-print(dataframe.describe())
-print(dataframe.head(2))
+# print("DESCRIBE2 : \n", dataframe.describe())
+# dataframe.drop(columns=['btemp', 'ttemp'], inplace=True)
+# print(dataframe.describe())
+# print(dataframe.head(2))
 
 
 model.train(
     train_data=[dataframe],
-    back_cols = ['bx', 'by', 'bz'],
-    thigh_cols = ['tx', 'ty', 'tz'],
-    label_col  = 'label'
+    cols=['bx', 'by', 'bz'],
+    label_col='label'
 )
