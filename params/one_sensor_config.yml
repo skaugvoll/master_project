@@ -39,7 +39,7 @@ MODEL:
   name: ONE_SENSOR_LSTM
   args:
     gpu: True
-    stateful: False
+    stateful: True
     bidirectional: True
     output_dropout: 0.9
     batch_norm: True

@@ -36,3 +36,18 @@ CDE -> F
 
 
 ### Features
+
+
+
+# Keras 
+[Keras Sequential Model](https://keras.io/models/sequential/)
+
+[Keras Multi IPT and Multi OUT](https://keras.io/getting-started/functional-api-guide/#multi-input-and-multi-output-models)
+
+There are two ways of building keras models
+- the Model.Add(...)
+- the x = KerasLayerThingy(..)(input_to_KerasLayerThingy)
+
+The first one is the most common one and allows you to just define one input and output, 
+but if you want MULTIPLE inputs and or outputs
+then you MUST use the later one. 

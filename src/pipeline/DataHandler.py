@@ -174,14 +174,29 @@ class DataHandler():
         except:
             print("Cleanup FAILED")
 
-    def merge_csvs_on_first_time_overlap(self, master_csv_path, slave_csv_path, out_path=None, master_columns=['time', 'bx', 'by', 'bz', 'btemp'], slave_columns=['time', 'tx', 'ty', 'tz', 'ttemp'], rearrange_columns_to=None):
+    def merge_csvs_on_first_time_overlap(self,
+                                         master_csv_path,
+                                         slave_csv_path,
+                                         out_path=None,
+                                         merge_column="time",
+                                         master_columns=['time', 'bx', 'by', 'bz', 'btemp'],
+                                         slave_columns=['time', 'tx', 'ty', 'tz', 'ttemp'],
+                                         rearrange_columns_to=None,
+                                         save=True,
+                                         **kwargs
+                                         ):
         '''
         Master_csv is the csv that the first recording is used as starting point
 
         :param master_csv_path:
         :param slave_csv_path:
         :param out_path:
+        :param merge_column: the column name or default Time || can be None
+        :param master_columns: the name to give each column in master csv
+        :param slave_columns: the name to give each column in master csv
         :param rearrange_columns_to:
+        :param save: default True
+        :param **kwargs: additional keyword=value arguments, that can be used with the pandas.merge() function
         :return: None
         '''
 
@@ -197,7 +212,9 @@ class DataHandler():
 
         # Merge the csvs
         print("MERGING MASTER AND SLAVE CSV")
-        merged_df = master_df.merge(slave_df, on='time')
+        merged_df = master_df.merge(slave_df, on=merge_column, **kwargs)
+
+        # print("MASTER SHAPE: {} \n SLAVE SHAPE: {} \n MERGED SHAPE: {}".format(master_df.shape, slave_df.shape, merged_df.shape))
 
         ## Rearrange the columns
         if not rearrange_columns_to is None:
@@ -219,10 +236,10 @@ class DataHandler():
 
             out_path = os.path.join(out_path_dir, out_path_filename)
 
-
-        print("SAVING MERGED CSV")
-        merged_df.to_csv(out_path, index=False)
-        print("Saved synched and merged as csv to : ", os.path.abspath(out_path))
+        if save:
+            print("SAVING MERGED CSV")
+            merged_df.to_csv(out_path, index=False)
+            print("Saved synched and merged as csv to : ", os.path.abspath(out_path))
 
         self.dataframe_iterator = merged_df
 
@@ -230,6 +247,7 @@ class DataHandler():
         self.data_synched_csv_path = os.path.abspath(out_path)
         self.name = os.path.basename(out_path)
         self.data_temp_folder = os.path.abspath(os.path.split(out_path)[0])
+        return self.get_dataframe_iterator()
 
     def _adc_to_c(self, row, normalize=False):
         temperature_celsius_b = (row['btemp'] * 300 / 1024) - 50
@@ -321,6 +339,15 @@ class DataHandler():
     def add_new_column(self, name='label', default_value=np.nan):
         self.dataframe_iterator.insert(len(self.dataframe_iterator.columns), name, value=default_value)
         print(self.dataframe_iterator.describe())
+
+    def add_columns_based_on_csv(self, path, columns_name=['label'], join_type='outer', **kwargs_read_csv):
+        df_label = pd.read_csv(path, **kwargs_read_csv)
+        df_label.columns = columns_name
+
+        self.dataframe_iterator = pd.concat(objs=[self.dataframe_iterator, df_label], join=join_type, axis=1, sort=False)
+
+
+
 
     def add_labels_file_based_on_intervals(self, intervals={}, label_mapping={}):
         '''
