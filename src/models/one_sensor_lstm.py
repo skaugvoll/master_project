@@ -67,7 +67,7 @@ class OneSensorLSTM( HARModel ):
     train_y = self.get_labels( train_data, label_col, batch_size=batch_size, sequence_length=sequence_length )
 
     # Get design matrix of validation data if provided
-    if valid_data:
+    if valid_data is not None:
       validation_data = (
         [
           self.get_features( valid_data, cols, batch_size=batch_size, sequence_length=sequence_length ),

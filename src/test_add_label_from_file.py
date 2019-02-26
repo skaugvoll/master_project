@@ -82,4 +82,7 @@ for idx, root_dir in enumerate(subjects):
 
     print("shape merged df: ", merged_df.shape, "should be ", dh.get_dataframe_iterator().shape, "  more than old  ", merged_old_shape)
 
+print("Final merge form: ", merged_df.shape)
+
+
 
