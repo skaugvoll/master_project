@@ -39,7 +39,7 @@ MODEL:
   name: TWO_SENSOR_LSTM
   args:
     gpu: True
-    stateful: False
+    stateful: True
     bidirectional: True
     output_dropout: 0.9
     batch_norm: True
@@ -59,7 +59,7 @@ MODEL:
 # Arguments to use when doing training
 TRAINING:
   args:
-    epochs: 10
+    epochs: 50
     batch_size: 512
     sequence_length: 250
     callbacks:

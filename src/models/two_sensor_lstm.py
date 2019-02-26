@@ -35,6 +35,7 @@ class TwoSensorLSTM( HARModel ):
     self.encoder = data_encoder.DataEncoder( self.classes )
     self.num_outputs = self.encoder.num_active_classes
 
+
     # Build network
     self.build()
 
@@ -51,7 +52,6 @@ class TwoSensorLSTM( HARModel ):
       back_cols=['back_x', 'back_y', 'back_z'],
       thigh_cols=['thigh_x', 'thigh_y', 'thigh_z'],
       label_col='label'
-
       ):
 
     # back_cols = ['bx', 'by', 'bz']
@@ -198,7 +198,7 @@ class TwoSensorLSTM( HARModel ):
         dataframe[columns].values[ : (len(dataframe) - len(dataframe) % sequence_length) ] for dataframe in dataframes
       ]) #.reshape( -1, sequence_length, len(columns) )
 
-    print("X after concat:\n ", X.shape, "\n", X)
+    # print("X after concat:\n ", X.shape, "\n", X)
     # >> (598750, 3)
     #
     # [

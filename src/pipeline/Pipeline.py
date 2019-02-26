@@ -312,10 +312,7 @@ class Pipeline:
                                                                 save=False,
                                                                 added_columns_name=["new_col"]
                                                                 ):
-        # list_with_subjects = [
-        #     '../data/input/006',
-        #     '../data/input/008'
-        # ]
+
 
 
         subjects = {}
@@ -325,7 +322,7 @@ class Pipeline:
 
             files = {}
             for sub_files_and_dirs in os.listdir(subject):
-                print(sub_files_and_dirs)
+                # print(sub_files_and_dirs)
                 words = re.split("[_ .]", sub_files_and_dirs)
                 words = list(map(lambda x: x.lower(), words))
 
@@ -350,7 +347,7 @@ class Pipeline:
         dh_stacker = DataHandler()
         for idx, root_dir in enumerate(subjects):
             subject = subjects[root_dir]
-            print("SUBJECT: \n", subject)
+            # print("SUBJECT: \n", subject)
 
             master = os.path.join(root_dir, subject['backCSV'])
             slave = os.path.join(root_dir, subject['thighCSV'])
@@ -381,11 +378,11 @@ class Pipeline:
             merged_df = dh_stacker.vertical_stack_dataframes(merged_df, dh.get_dataframe_iterator(),
                                                              set_as_current_df=False)
 
-            print(
-            "shape merged df: ", merged_df.shape, "should be ", dh.get_dataframe_iterator().shape, "  more than old  ",
-            merged_old_shape)
-
-        print("Final merge form: ", merged_df.shape)
+        #     print(
+        #     "shape merged df: ", merged_df.shape, "should be ", dh.get_dataframe_iterator().shape, "  more than old  ",
+        #     merged_old_shape)
+        #
+        # print("Final merge form: ", merged_df.shape)
         return merged_df
 
 

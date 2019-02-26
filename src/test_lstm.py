@@ -135,6 +135,15 @@ dataframe = p.create_large_dafatframe_from_multiple_input_directories(
     added_columns_name=["label"]
 )
 
+# randomize aka shuffle the dataframe
+# The frac keyword argument specifies the fraction of rows to return in the random sample,
+# so frac=1 means return all rows (in random order).
+
+print("SHUFFLEROO")
+dataframe = dataframe.sample(frac=1)
+print(dataframe.head(10))
+input("shuffeled")
+
 
 how_much_is_training_data = 0.8
 training_data = int(dataframe.shape[0] * how_much_is_training_data)
@@ -169,28 +178,31 @@ DATASET_PATH = '' # Where the training dataset can be found
 # })
 
 
-config = Config.from_yaml( '../params/one_sensor_config.yml', override_variables={
+# config = Config.from_yaml( '../params/one_sensor_config.yml', override_variables={
+config = Config.from_yaml( '../params/config.yml', override_variables={
+
     'MODEL_DIR': model_dir,
     'INPUT_DIR': input_dir
 })
 
-config.pretty_print()
+# config.pretty_print()
 
 model_name = config.MODEL['name']
 model_args = dict( config.MODEL['args'].items(), **config.INFERENCE.get( 'extra_model_args', {} ))
 
-print()
-print(model_name)
-print(model_args)
-print()
-for k, v in model_args.items():
-    print(k, v)
-
-print()
+# print()
+# print(model_name)
+# print(model_args)
+# print()
+# for k, v in model_args.items():
+#     print(k, v)
+#     print()
+#     input("///")
+# print()
 model = models.get(model_name, model_args)
 # model.summary() # for some reason does not work
 
-print()
+# print()
 # print("TRYING TO TRAIN")
 '''
 __init__.py states:
@@ -211,15 +223,22 @@ __init__.py states:
 
 '''
 
-# print("DESCRIBE2 : \n", dataframe.describe())
-# dataframe.drop(columns=['btemp', 'ttemp'], inplace=True)
-# print(dataframe.describe())
-# print(dataframe.head(2))
+########################### single_sensor_lstm
+# model.train(
+#     train_data=[training_dataframe],
+#     cols=['bx', 'by', 'bz'],
+#     label_col='label',
+#     valid_data=[validation_dataframe]
+# )
+#############
 
-# single_sensor_lstm
+
+########################### dual_sensor_lstm
 model.train(
-    train_data=[dataframe],
-    cols=['bx', 'by', 'bz'],
+    train_data=[training_dataframe],
+    valid_data=[validation_dataframe],
+    back_cols=['bx', 'by', 'bz'],
+    thigh_cols=['tx', 'ty', 'tz'],
     label_col='label',
-    valid_data=[validation_dataframe]
+    epochs=config.TRAINING['args']['epochs']
 )
