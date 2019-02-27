@@ -140,7 +140,7 @@ class TwoSensorLSTM( HARModel ):
     )
 
 
-  def predict_on_one_window( self ):
+  def predict_on_one_window( self, window ):
 
     # todo: the params from self object includes the actual layer objects etc,
     # thus we might have to pass in the original config object and its values, as when we instntiate the model
@@ -149,14 +149,30 @@ class TwoSensorLSTM( HARModel ):
     # The idea here is that we want to predict on only one window aka (1, seq_length, features)
     # Thus we should create another two_sensor_lstm object
     # instansiate the new object with the same values as this, AND only change the batch_size property
+
+    print(window, "\n", window.shape)
+
+
+
+
     params = self.__dict__
+    params['batch_size'] = 1
+    params['sequence_length'] = 1
+
 
     # for k,v in params.items():
     #   print(k, v)
 
-    print(params['batch_size'])
-    input("...")
-    # predict_model = TwoSensorLSTM()
+    predict_model = TwoSensorLSTM(**params)
+    predict_model.model.set_weights(self.model.get_weights())
+    print(predict_model.model.summary())
+
+    x1 = predict_model.get_features([window], ['bx', 'by', 'bz'], batch_size=1, sequence_length=1)
+    x2 = predict_model.get_features([window], ['tx', 'ty', 'tz'], batch_size=1, sequence_length=1)
+
+    # print("X1: \n", x1, "\n", x1.shape)
+
+    return predict_model.model.predict([x1, x2], batch_size=1)
 
 
   def inference( self, dataframe_iterator,

@@ -281,8 +281,18 @@ eval_df = p.create_large_dafatframe_from_multiple_input_directories(
 #################
 # Predict on one window
 #################
+print("PREDICTION ON ONE WINDOW! in this case, one row of the dataset "\
+      "so the shape is now (1, 1, 3) for each input "\
+      "should change to (1, seq_lenght, 3)")
 
-model.predict_on_one_window()
+
+res = model.predict_on_one_window(eval_df.iloc[0])
+res = res[0] # there will always be an array with one element
+print("RES: ", res)
+print("")
+indx_of_most_conf = res.argmax(axis=0)
+print("CLASS", " --> ", "CONFIDENCE")
+print(indx_of_most_conf, " --> ", res[indx_of_most_conf])
 
 
 
