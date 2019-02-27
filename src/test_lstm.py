@@ -268,14 +268,21 @@ eval_df = p.create_large_dafatframe_from_multiple_input_directories(
 
 # eval_df = eval_df.sample(frac=1)
 
-res = model.evaluate(
-    dataframes=[eval_df],
-    back_cols=['bx', 'by', 'bz'],
-    thigh_cols=['tx', 'ty', 'tz'],
-    label_col='label',
-)
+# res = model.evaluate(
+#     dataframes=[eval_df],
+#     back_cols=['bx', 'by', 'bz'],
+#     thigh_cols=['tx', 'ty', 'tz'],
+#     label_col='label',
+# )
+#
+# print(model.model.metrics_names, "\n", res)
 
-print(model.model.metrics_names, "\n", res)
+
+#################
+# Predict on one window
+#################
+
+model.predict_on_one_window()
 
 
 
