@@ -119,10 +119,6 @@ class TwoSensorLSTM( HARModel ):
       label_col='label'
       ):
 
-    # back_cols = ['bx', 'by', 'bz']
-    # thigh_cols = ['tx', 'ty', 'tz']
-    # label_col  = 'label'
-
     # Make batch_size and sequence_length default to architecture params
     batch_size = batch_size or self.batch_size
     sequence_length = sequence_length or self.sequence_length
@@ -150,14 +146,13 @@ class TwoSensorLSTM( HARModel ):
     # Thus we should create another two_sensor_lstm object
     # instansiate the new object with the same values as this, AND only change the batch_size property
 
+    # TODO find out shape of windows used and reshape the window ?
     print(window, "\n", window.shape)
-
-
 
 
     params = self.__dict__
     params['batch_size'] = 1
-    params['sequence_length'] = 1
+    params['sequence_length'] = 1 # TODO change to be seq_length of window!
 
 
     # for k,v in params.items():
