@@ -110,6 +110,36 @@ class TwoSensorLSTM( HARModel ):
     )
 
 
+  def evaluate( self,
+      dataframes,
+      batch_size=None,
+      sequence_length=None,
+      back_cols=['back_x', 'back_y', 'back_z'],
+      thigh_cols=['thigh_x', 'thigh_y', 'thigh_z'],
+      label_col='label'
+      ):
+
+    # back_cols = ['bx', 'by', 'bz']
+    # thigh_cols = ['tx', 'ty', 'tz']
+    # label_col  = 'label'
+
+    # Make batch_size and sequence_length default to architecture params
+    batch_size = batch_size or self.batch_size
+    sequence_length = sequence_length or self.sequence_length
+
+    # Get design matrices of training data
+    x1 = self.get_features( dataframes, back_cols, batch_size=batch_size, sequence_length=sequence_length )
+    x2 = self.get_features( dataframes, thigh_cols, batch_size=batch_size, sequence_length=sequence_length )
+
+    y = self.get_labels( dataframes, label_col, batch_size=batch_size, sequence_length=sequence_length )
+
+    return self.model.evaluate(
+      x=[x1, x2],
+      y=y,
+      batch_size=batch_size,
+    )
+
+
   def inference( self, dataframe_iterator,
       batch_size=None,
       sequence_length=None,

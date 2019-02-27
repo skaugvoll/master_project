@@ -141,8 +141,8 @@ dataframe = p.create_large_dafatframe_from_multiple_input_directories(
 
 # Burde kansje ikke shuffle dataframen her, da vi blander subject sensor readings.
 # TODO: flytte shuffle til get features i selve modelen
-print("SHUFFLEROO")
-dataframe = dataframe.sample(frac=1)
+# print("SHUFFLEROO")
+# dataframe = dataframe.sample(frac=1)
 
 
 how_much_is_training_data = 0.8
@@ -234,35 +234,77 @@ model.train(
 # model.model.save_weights(config.WEIGHTS_PATH)
 
 
+#################
+# EVALUATE MODEL
+#################
+
+eval_df = p.create_large_dafatframe_from_multiple_input_directories(
+    ["../data/input/009"],
+    back_keywords=['B'],
+    thigh_keywords = ['T'],
+    label_keywords = ['GoPro', "Labels"],
+    out_path=None,
+    merge_column = None,
+    master_columns = ['bx', 'by', 'bz'],
+    slave_columns = ['tx', 'ty', 'tz'],
+    rearrange_columns_to = None,
+    save=False,
+    added_columns_name=["label"]
+)
+
+#
+# targets = eval_df.loc[:, 'label']
+# eval_df = eval_df.drop('label', axis=1)
+#
+# print(targets.head(2))
+#
+# bfeat = eval_df.drop(['tx', "ty", 'tz'], axis=1)
+#
+# print(bfeat.head(2))
+#
+# tfeat = eval_df.drop(['bx', "by", 'bz'], axis=1)
+#
+# print(tfeat.head(2))
+
+# eval_df = eval_df.sample(frac=1)
+
+res = model.evaluate(
+    dataframes=[eval_df],
+    back_cols=['bx', 'by', 'bz'],
+    thigh_cols=['tx', 'ty', 'tz'],
+    label_col='label',
+)
+
+print(model.model.metrics_names, "\n", res)
+
+
 
 #################
 # CLASSIFY W/ MODEL
 #################
 
-datahandler = DataHandler()
+# datahandler = DataHandler()
+#
+# # csv has column names as first row
+# datahandler.load_dataframe_from_csv('../data/temp/4000181.7z/4000181/',
+#                                 '4000181-34566_2017-09-19_B_TEMP_SYNCHED_BT.csv',
+#                                 whole_days=True,
+#                                 chunk_size=20000,
+#                                 max_days=6)
+#
+#
+# #cols =  time,bx,by,bz,tx,ty,tz,btemp,ttemp
+#
+# predictions = model.inference(
+#     dataframe_iterator=datahandler.get_dataframe_iterator(),
+#     batch_size=512,
+#     sequence_length=250,
+#     weights_path=config.WEIGHTS_PATH,
+#     timestamp_col="time",
+#     back_cols=['bx', 'by', 'bz'],
+#     thigh_cols=['tx', 'ty', 'tz']
+# )
 
-# csv has column names as first row
-datahandler.load_dataframe_from_csv('../data/temp/4000181.7z/4000181/',
-                                '4000181-34566_2017-09-19_B_TEMP_SYNCHED_BT.csv',
-                                whole_days=True,
-                                chunk_size=20000,
-                                max_days=6)
-
-# datahandler.convert_column_from_str_to_datetime(column_name='timestamp')
-# datahandler.set_column_as_index('timestamp')
-
-#cols =  time,bx,by,bz,tx,ty,tz,btemp,ttemp
-
-predictions = model.inference(
-    dataframe_iterator=datahandler.get_dataframe_iterator(),
-    batch_size=512,
-    sequence_length=250,
-    weights_path=config.WEIGHTS_PATH,
-    timestamp_col="time",
-    back_cols=['bx', 'by', 'bz'],
-    thigh_cols=['tx', 'ty', 'tz']
 
 
-)
 
-print(predictions)
