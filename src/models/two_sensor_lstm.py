@@ -63,7 +63,7 @@ class TwoSensorLSTM( HARModel ):
     sequence_length = sequence_length or self.sequence_length
 
     # Compute mean and standard deviation over training data
-    back_means, back_stds   = normalization.compute_means_and_stds( train_data, back_cols )
+    back_means, back_stds = normalization.compute_means_and_stds( train_data, back_cols )
     thigh_means, thigh_stds = normalization.compute_means_and_stds( train_data, thigh_cols )
     # Update normalize layers in model with means and stds. This will bake normalization into the model weights
     self.norm_back.set_params( back_means, back_stds )
@@ -76,7 +76,7 @@ class TwoSensorLSTM( HARModel ):
     train_y  = self.get_labels( train_data, label_col, batch_size=batch_size, sequence_length=sequence_length )
 
     # Get design matrix of validation data if provided
-    if valid_data:
+    if valid_data is not None:
       validation_data = (
         [ self.get_features( valid_data, back_cols, batch_size=batch_size, sequence_length=sequence_length ),
           self.get_features( valid_data, thigh_cols, batch_size=batch_size, sequence_length=sequence_length ) ],
@@ -95,7 +95,7 @@ class TwoSensorLSTM( HARModel ):
     self.model.compile( loss='categorical_crossentropy', optimizer='adagrad', metrics=['accuracy'] )
 
 
-    # I think the fit method extracts batches of specifiec (512) length automatically
+    # I think the fit method extracts batches of specific (512) length automatically
     #  since it's build with the Input assumption,
     # and if there is some examples left that does not fill the full batch size, if NOT statefull, it runs the smaller batch
     #     if STATEFUL it ignores the examples that does not fill the batch
@@ -113,7 +113,10 @@ class TwoSensorLSTM( HARModel ):
   def inference( self, dataframe_iterator,
       batch_size=None,
       sequence_length=None,
-      weights_path=None ):
+      weights_path=None,
+      timestamp_col='timestamp',
+      back_cols=['back_x', 'back_y', 'back_z'],
+      thigh_cols=['thigh_x', 'thigh_y', 'thigh_z']):
 
     # Make sure that valid weights are provided
     if not weights_path:
@@ -124,9 +127,9 @@ class TwoSensorLSTM( HARModel ):
     print( 'Loading weights from "%s"'%weights_path )
     self.model.load_weights( weights_path )
 
-    timestamp_col = 'timestamp'
-    back_cols  = ['back_x', 'back_y', 'back_z']
-    thigh_cols = ['thigh_x', 'thigh_y', 'thigh_z']
+    # timestamp_col = 'timestamp'
+    # back_cols  = ['back_x', 'back_y', 'back_z']
+    # thigh_cols = ['thigh_x', 'thigh_y', 'thigh_z']
 
     batch_size = batch_size or self.batch_size
     sequence_length = sequence_length or self.sequence_length
@@ -140,15 +143,20 @@ class TwoSensorLSTM( HARModel ):
 
     # Begin processing batches
     for batch in batch_iterator:
+
       # Extract back and thigh sensor data
       batch_x1 = batch[ back_cols ].values.reshape( -1, sequence_length, len( back_cols ))
       batch_x2 = batch[ thigh_cols ].values .reshape( -1, sequence_length, len( thigh_cols ))
+
       # Predict on data
       raw_predictions = self.model.predict_on_batch( [batch_x1, batch_x2] )
+
       # Store the highest confidence
       confidences.append( raw_predictions.max( axis=1 ))
+
       # Decode argmaxes
       predictions.append( self.encoder.one_hot_decode( raw_predictions ))
+
       # Use the last timestamp in each sequence
       timestamps.append( batch[ timestamp_col ].values[ sequence_length-1::sequence_length ] )
 

@@ -139,24 +139,22 @@ dataframe = p.create_large_dafatframe_from_multiple_input_directories(
 # The frac keyword argument specifies the fraction of rows to return in the random sample,
 # so frac=1 means return all rows (in random order).
 
+# Burde kansje ikke shuffle dataframen her, da vi blander subject sensor readings.
+# TODO: flytte shuffle til get features i selve modelen
 print("SHUFFLEROO")
 dataframe = dataframe.sample(frac=1)
-print(dataframe.head(10))
-input("shuffeled")
 
 
 how_much_is_training_data = 0.8
 training_data = int(dataframe.shape[0] * how_much_is_training_data)
-
 training_dataframe = dataframe.iloc[: training_data]
-validation_dataframe = dataframe.iloc[training_data:]
+validation_dataframe = dataframe.iloc[training_data:] # 20 % of data
+
+
 
 print('Training data: {}\nValidation data: {}'.format(training_dataframe.shape, validation_dataframe.shape))
 
 
-####
-# Trying to make the HaakonLSTM run
-####
 from src import models
 from src.config import Config
 
@@ -164,46 +162,30 @@ model_arguments = None
 
 model_dir = '../data/outout/' # where the model should be stored
 
-input_dir =  '../data/temp/4000181.7z/4000181/' # Input, relevant for training
+input_dir =  '../data/input/006/' # Input, relevant for training
 
 
-WEIGHTS_PATH = '' # Where trained weights should be stored
+WEIGHTS_PATH = '../params/two_sensor_weights.h5' # Where trained weights should be stored
 
 DATASET_PATH = '' # Where the training dataset can be found
-
-# read in configurations from yml config file
-# config = Config.from_yaml( '../params/config.yml', override_variables={
-#     'MODEL_DIR': model_dir,
-#     'INPUT_DIR': input_dir
-# })
 
 
 # config = Config.from_yaml( '../params/one_sensor_config.yml', override_variables={
 config = Config.from_yaml( '../params/config.yml', override_variables={
 
     'MODEL_DIR': model_dir,
-    'INPUT_DIR': input_dir
+    'INPUT_DIR': input_dir,
+    'WEIGHTS_PATH': WEIGHTS_PATH
 })
 
 # config.pretty_print()
 
+
 model_name = config.MODEL['name']
 model_args = dict( config.MODEL['args'].items(), **config.INFERENCE.get( 'extra_model_args', {} ))
 
-# print()
-# print(model_name)
-# print(model_args)
-# print()
-# for k, v in model_args.items():
-#     print(k, v)
-#     print()
-#     input("///")
-# print()
 model = models.get(model_name, model_args)
-# model.summary() # for some reason does not work
 
-# print()
-# print("TRYING TO TRAIN")
 '''
 __init__.py states:
     Train the model. Usually, we like to split the data into training and validation
@@ -242,3 +224,45 @@ model.train(
     label_col='label',
     epochs=config.TRAINING['args']['epochs']
 )
+
+
+#####
+# Save the weights
+#####
+
+
+# model.model.save_weights(config.WEIGHTS_PATH)
+
+
+
+#################
+# CLASSIFY W/ MODEL
+#################
+
+datahandler = DataHandler()
+
+# csv has column names as first row
+datahandler.load_dataframe_from_csv('../data/temp/4000181.7z/4000181/',
+                                '4000181-34566_2017-09-19_B_TEMP_SYNCHED_BT.csv',
+                                whole_days=True,
+                                chunk_size=20000,
+                                max_days=6)
+
+# datahandler.convert_column_from_str_to_datetime(column_name='timestamp')
+# datahandler.set_column_as_index('timestamp')
+
+#cols =  time,bx,by,bz,tx,ty,tz,btemp,ttemp
+
+predictions = model.inference(
+    dataframe_iterator=datahandler.get_dataframe_iterator(),
+    batch_size=512,
+    sequence_length=250,
+    weights_path=config.WEIGHTS_PATH,
+    timestamp_col="time",
+    back_cols=['bx', 'by', 'bz'],
+    thigh_cols=['tx', 'ty', 'tz']
+
+
+)
+
+print(predictions)

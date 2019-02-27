@@ -10,6 +10,8 @@ from utils import csv_loader
 
 
 class DataHandler():
+    # TODO: change all places pd.read_csv is called to self.load_dataframe_from_csv(...)
+
     def __init__(self):
         self.name = None
         self.dataframe_iterator = None
@@ -98,19 +100,25 @@ class DataHandler():
         # Create output directory if it does not exist
         self.create_output_dir(self.data_output_folder, self.name)
 
-        self.dataframe_iterator = pd.read_csv(self.data_synched_csv_path, header=header, names=columns)
+        # self.dataframe_iterator = pd.read_csv(self.data_synched_csv_path, header=header, names=columns)
 
         # # Read csv files in chunks
-        # if whole_days:
-        #     # Use custom loader that scans to first midnight if --whole-days is enabled
-        #     self.dataframe_iterator = csv_loader.csv_chunker(self.data_synched_csv_path, chunk_size, ts_index=0,
-        #                                                      columns=columns, n_days=max_days)
-        #     print("DATAFRAME ITERATOR SET 1")
-        # else:
-        #     # Otherwise, just load with pandas
-        #     self.dataframe_iterator = pd.read_csv(self.data_synched_csv_path, header=None, chunksize=chunk_size,
-        #                                           names=columns, parse_dates=[0])
-        #     print("DATAFRAME ITERATOR SET 2")
+        if whole_days:
+            # Use custom loader that scans to first midnight if --whole-days is enabled
+            '''
+            if columns is None, the column names must be the first row in the csv!
+            else if columns is specifiec, the pd.read_csv will set header param to None, meaning use the first row as data row
+            '''
+            self.dataframe_iterator = csv_loader.csv_chunker(self.data_synched_csv_path, chunk_size, ts_index=0,
+                                                             columns=None, n_days=max_days)
+
+        else:
+            # TODO : read up on what the chunksize and parse_dates parameter does
+            # Otherwise, just load with pandas
+            # self.dataframe_iterator = pd.read_csv(self.data_synched_csv_path, header=None, chunksize=chunk_size,
+            #                                       names=columns, parse_dates=[0])
+            self.dataframe_iterator = pd.read_csv(self.data_synched_csv_path, header=header, names=columns)
+
 
     def _get_cwa_files(self, filepath='filepath', temp_dir='working_dir'):
         '''
@@ -201,6 +209,7 @@ class DataHandler():
         '''
 
         # TODO: PASS IN MASTER AND SLAVE COLUMN NAMES
+        # TODO change all the pd.read_csv s to use datahandlers own load_from_csv function
 
         print("READING MASTER CSV")
         master_df = pd.read_csv(master_csv_path)
