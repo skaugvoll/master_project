@@ -172,14 +172,17 @@ class Pipeline:
     def model_classification_worker(self, input_q, output, model):
         for idx, window in iter(input_q.get, 'STOP'):
             print("model_classification_worker executing")
-
-            # print("MODLE CLASSIFICATION: ", idx, window)
+            # print("MODLE CLASSIFICATION: \n", "IDX: ", idx, "\n","WINDOW: \n", window, "\n", "SHAPE: ", window.shape, "\n", "DIMS: ", window.ndim)
 
             # Vil ha in ett ferdig window, aka windows maa lages utenfor her og addes til queue
-            res = model.window_classification(window)
+            # TODO: enten velge ut x antall av window, predikere de og ta avg result som LSTM (den med flest forekomster)
+            # TODO: eller bare ett random row in window og predikerer den og bruker res som LSTM
+            res = model.window_classification(window[0])
+            # print("RESSS: >>>>>> :: ", res)
 
             # SUBMIT TASKS FOR ACTIVITY CLASSIFICATION
-            output.put((idx, res))
+            # output.put((idx, res))
+            output.put((window, res))
             print("worker done")
 
     # AKTIVITET Klassifisering
@@ -191,15 +194,18 @@ class Pipeline:
         :return:
         '''
         for window in iter(input_q.get, 'STOP'):
-            window_idx, model = window[0], window[1]
+            # window_idx, model = window[0], window[1]
+            window, model = window[0], window[1]
             # time.sleep(0.5 * random.random())
-            print("WINDOW IDEX TO DF: {} \t LSTM MODLE TO USE: {} \n DFR: {}".format(window_idx, model, self.dataframe.iloc[window_idx, [0,1,2,3,4,5]]))
+            # print("WINDOW IDEX TO DF: {} \t LSTM MODLE TO USE: {} \n DFR: {}".format(window_idx, model, self.dataframe.iloc[window_idx, [0,1,2,3,4,5]]))
+            # print("WINDOW IDEX TO DF: {} \t LSTM MODLE TO USE: {} \n WINDOW: {}".format(window_idx, model, window))
+            print("WINDOW IDEX TO DF: {} \t LSTM MODLE TO USE: {}".format(window, model))
 
 
-    def parallel_pipeline_classification_run(self, dataframe, model_path, samples_pr_window, train_overlap):
+    def parallel_pipeline_classification_run(self, dataframe, model_path, samples_pr_window, train_overlap, num_proc_mod=3, num_proc_clas=2, seq_lenght=None):
         self.dataframe = dataframe
-        NUMBER_OF_PROCESSES_models = 3
-        NUMBER_OF_PROCESSES_class = 1
+        NUMBER_OF_PROCESSES_models = num_proc_mod
+        NUMBER_OF_PROCESSES_class = num_proc_clas
 
         # Create queues
         model_queue = Queue()
@@ -220,6 +226,26 @@ class Pipeline:
         # akas rebuild the dataframe shape
         both_features = np.hstack((back_feat, thigh_feat))
 
+        ########### NEW START #############
+        print("BOTH FEATURES SHAPE : ", both_features.shape)
+
+        num_rows_in_window = 1
+        if seq_lenght:
+            num_rows = both_features.shape[0]
+            num_rows_in_window = int( num_rows / seq_lenght)
+
+
+        feature_windows = []
+        last_index = 0
+
+        for _ in range(num_rows_in_window):
+            feature_windows.append(both_features[last_index:last_index + seq_lenght])
+            last_index = last_index + seq_lenght
+
+        both_features = np.array(feature_windows)
+        print(both_features.shape)
+
+        ########### NEW END #############
 
         for idx, window in enumerate(both_features):
             model_queue.put((idx, window))
@@ -234,9 +260,9 @@ class Pipeline:
                                            )
                                    )
 
-        # START the worker processes
-        for process in processes_class:
-            process.start()
+        # # START the worker processes
+        # for process in processes_class:
+        #     process.start()
 
         # CREATE a worker processes on model klassifisering
         for _ in range(NUMBER_OF_PROCESSES_models):
