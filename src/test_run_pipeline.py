@@ -263,7 +263,7 @@ if s == 'y':
     print("MAX CPU CORES: ", os.cpu_count())
     input("...")
     p = Pipeline()
-    p.parallel_pipeline_classification_run(dataframe=dataframe_test, model_path=model_path, samples_pr_window=samples_pr_window, train_overlap=0.8)
+    p.parallel_pipeline_classification_run(dataframe=dataframe_test, rfc_model_path=model_path, samples_pr_window=samples_pr_window, train_overlap=0.8)
 
 
 
