@@ -5,7 +5,7 @@ except: print("SAdsadsadhsa;hkldasjkd")
 from pipeline.Pipeline import Pipeline
 from pipeline.DataHandler import DataHandler
 from src import models
-import pickle
+import pickle, math
 
 
 
@@ -114,17 +114,42 @@ RFC = models.get("RFC", {})
 s = 'y'
 if s == 'y':
     # TODO: fix where the file is saved
-    model_path = "./trained_rfc.sav"
-    print("MAX CPU CORES: ", os.cpu_count())
+    rfc_model_path = "./trained_rfc.sav"
+    lstm_models_path = {
+        "1": {
+            "config": "../params/config.yml",
+            "saved_model": "trained_models/test_model_two_sensors.h5",
+            "weights": "trained_models/test_model_two_sensors_weights.h5"
+        },
+        "2": {
+            "config": "../params/one_sensor_config.yml",
+            "saved_model": "trained_models/test_thigh_back_sensor.h5",
+            "weights": "trained_models/test_model_thigh_sensor_weights.h5"
+        },
+        "3": {
+            "config": "../params/one_sensor_config.yml",
+            "saved_model": "trained_models/test_model_back_sensor.h5",
+            "weights": "trained_models/test_model_back_sensor_weights.h5"
+        }
+    }
+
+
+    model_cpus = math.floor(os.cpu_count() // 2)
+    class_cpus = math.floor(os.cpu_count() // 2)
+    if model_cpus == 0 or class_cpus == 0:
+        model_cpus, class_cpus = 1, 1
+
+
     p = Pipeline()
     p.parallel_pipeline_classification_run(
         dataframe=dataframe_test,
-        model_path=model_path,
+        rfc_model_path=rfc_model_path,
+        lstm_models_paths=lstm_models_path,
         samples_pr_window=samples_pr_window,
         train_overlap=0.8,
         seq_lenght=250,
-        num_proc_mod=1,
-        num_proc_clas=1
+        num_proc_mod=model_cpus,
+        num_proc_clas=class_cpus
     )
 
 

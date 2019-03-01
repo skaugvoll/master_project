@@ -38,6 +38,35 @@ class OneSensorLSTM( HARModel ):
     self.build()
 
 
+  def save_model_and_weights(self, model_path):
+    '''
+
+    :param model_path: rel path from the "src/" including filename, excluding format. E.g  inside the src/ dir: "trained_models/twosensorlstm", makes a new directory /src/trained_models/twosensorlstm
+    :return: path to saved model
+    '''
+
+    try:
+      # check that the path exist, else create the directory to store the file
+      if not os.path.exists(os.getcwd() + "/" + os.path.dirname(model_path)):
+        os.mkdir(os.getcwd() + "/" + os.path.dirname(model_path))
+
+      # # serialize model to JSON
+      # model_json = self.model.to_json()
+      # with open("{}.json".format(os.getcwd() + "/" + model_path), "w") as json_file:
+      #   json_file.write(model_json)
+      #
+      # # serialize weights to HDF5
+      # self.model.save_weights("{}.h5".format(os.getcwd() + "/" + model_path + '_weights'))
+      # print("Saved model to disk")
+      #
+      self.saved_path = os.getcwd() + "/" + model_path
+
+      self.model.save(os.getcwd() + "/" + model_path + ".h5")
+      self.model.save_weights(os.getcwd() + "/" + model_path + "_weights.h5")
+
+      return self.saved_path
+    except Exception as e:
+      print("Could not save to disk, ", e)
 
 
   def train( self,
@@ -191,7 +220,7 @@ class OneSensorLSTM( HARModel ):
         dataframe[columns].values[ : (len(dataframe) - len(dataframe) % sequence_length) ] for dataframe in dataframes
       ]) #.reshape( -1, sequence_length, len(columns) )
 
-    print("X after concat:\n ", X.shape, "\n", X)
+    # print("X after concat:\n ", X.shape, "\n", X)
     # >> (598750, 3)
     #
     # [
@@ -372,9 +401,9 @@ class OneSensorLSTM( HARModel ):
     
     self.model.compile( loss='categorical_crossentropy', optimizer='adagrad', metrics=['accuracy'] )
 
-    print("MOdel compiled")
+    # print("Model compiled")
 
-    self.model.summary()
+    # self.model.summary()
 
   def lstm_layer( self, *args, **kwargs ):
     if self.bidirectional:

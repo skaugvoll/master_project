@@ -40,6 +40,38 @@ class TwoSensorLSTM( HARModel ):
     self.build()
 
 
+  def save_model_and_weights(self, model_path):
+    '''
+
+    :param model_path: rel path from the "src/" including filename, excluding format. E.g  inside the src/ dir: "trained_models/twosensorlstm", makes a new directory /src/trained_models/twosensorlstm
+    :return: path to saved model
+    '''
+
+    try:
+      # check that the path exist, else create the directory to store the file
+      if not os.path.exists(os.getcwd() + "/" + os.path.dirname(model_path)):
+        os.mkdir(os.getcwd() + "/" + os.path.dirname(model_path))
+
+      # # serialize model to JSON
+      # model_json = self.model.to_json()
+      # with open("{}.json".format(os.getcwd() + "/" + model_path), "w") as json_file:
+      #   json_file.write(model_json)
+      #
+      # # serialize weights to HDF5
+      # self.model.save_weights("{}.h5".format(os.getcwd() + "/" + model_path + '_weights'))
+      # print("Saved model to disk")
+      #
+      self.saved_path = os.getcwd() + "/" + model_path
+
+      self.model.save(os.getcwd() + "/" + model_path + ".h5")
+      self.model.save_weights(os.getcwd() + "/" + model_path + "_weights.h5")
+
+      return self.saved_path
+    except Exception as e:
+      print("Could not save to disk, ", e)
+
+
+
 
 
   def train( self,
@@ -92,7 +124,7 @@ class TwoSensorLSTM( HARModel ):
     callbacks = [ get_callback( cb['name'], **cb['args'] ) for cb in callbacks ]
 
     # Compile model AKA Configures the model for training.
-    self.model.compile( loss='categorical_crossentropy', optimizer='adagrad', metrics=['accuracy'] )
+    # self.model.compile( loss='categorical_crossentropy', optimizer='adagrad', metrics=['accuracy'] )
 
 
     # I think the fit method extracts batches of specific (512) length automatically
@@ -147,12 +179,12 @@ class TwoSensorLSTM( HARModel ):
     # instansiate the new object with the same values as this, AND only change the batch_size property
 
     # TODO find out shape of windows used and reshape the window ?
-    print(window, "\n", window.shape)
+    # print(window, "\n", window.shape)
 
 
     params = self.__dict__
     params['batch_size'] = 1
-    params['sequence_length'] = 1 # TODO change to be seq_length of window!
+    params['sequence_length'] = window.shape[0] # TODO change to be seq_length of window!
 
 
     # for k,v in params.items():
@@ -162,8 +194,8 @@ class TwoSensorLSTM( HARModel ):
     predict_model.model.set_weights(self.model.get_weights())
     print(predict_model.model.summary())
 
-    x1 = predict_model.get_features([window], ['bx', 'by', 'bz'], batch_size=1, sequence_length=1)
-    x2 = predict_model.get_features([window], ['tx', 'ty', 'tz'], batch_size=1, sequence_length=1)
+    x1 = predict_model.get_features([window], ['bx', 'by', 'bz'], batch_size=1, sequence_length=params['sequence_lenght'])
+    x2 = predict_model.get_features([window], ['tx', 'ty', 'tz'], batch_size=1, sequence_length=params['sequence_lenght'])
 
     # print("X1: \n", x1, "\n", x1.shape)
 
@@ -444,6 +476,7 @@ class TwoSensorLSTM( HARModel ):
 
     # Make model
     self.model = Model( inputs=[ipt_back, ipt_thigh], outputs=net )
+    self.model.compile(loss='categorical_crossentropy', optimizer='adagrad', metrics=['accuracy'])
     print(">>>>>>> BUILD COMPLETE")
     # TODO: Compile here?
 

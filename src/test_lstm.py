@@ -227,13 +227,17 @@ model.train(
 
 
 #####
-# Save the weights
+# Save the model / weights
 #####
-
+# this saves to /src/trained_models/x.test_model_two_sensors.json
+model.save_model_and_weights("trained_models/test_model_two_sensors")
 
 # model.model.save_weights(config.WEIGHTS_PATH)
 
-input("\nTRAINING DONE\n [PRESS ENTER]")
+answr = input("\nTRAINING DONE\n Continue or quite [y | n]")
+if not answr == "y":
+    os._exit(1)
+
 
 #################
 # EVALUATE MODEL
@@ -262,7 +266,9 @@ res = model.evaluate(
 
 print(model.model.metrics_names, "\n", res)
 
-input("\nEVALUATE DONE\n [PRESS ENTER]")
+answr = input("\nEVALUATE DONE\n Continue or quite [y | n]")
+if not answr == "y":
+    os._exit(1)
 
 #################
 # Predict on one window
@@ -280,7 +286,9 @@ indx_of_most_conf = res.argmax(axis=0)
 print("CLASS", " --> ", "CONFIDENCE")
 print(indx_of_most_conf, " --> ", res[indx_of_most_conf])
 
-input("\nONE WINDOW CLASSIFICATION DONE\n [PRESS ENTER]")
+answr = input("\nONE WINDOW CLASSIFICATION DONE\n Continue or quite [y | n]")
+if not answr == "y":
+    os._exit(1)
 
 #################
 # CLASSIFY W/ MODEL
@@ -309,5 +317,7 @@ predictions = model.inference(
 )
 
 
-input("\nENTIRE DATASET CLASSIFICATION DONE\n [PRESS ENTER]")
+answr = input("\nENTIRE DATASET CLASSIFICATION DONE\n Continue or quite [y | n]")
+if not answr == "y":
+    os._exit(1)
 
