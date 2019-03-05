@@ -12,6 +12,7 @@ from layers.normalize import Normalize
 import utils.temperature_segmentation_and_calculation as temp_feature_util
 from src.config import Config
 from src import models
+from keras.models import load_model
 
 
 
@@ -45,7 +46,6 @@ class Pipeline:
         ))
 
         sys.stdout.flush()
-
 
 
     def unzip_extractNconvert_temp_merge_dataset(self, rel_filepath, label_interval, label_mapping, unzip_path='../data/temp', unzip_cleanup=False, cwa_paralell_convert=True):
@@ -336,7 +336,7 @@ class Pipeline:
         # ...
         # ...
         # ...
-        from keras.models import load_model
+
 
         # See results
         print("OUTPUT/Activities windows to classify : ", len(output_classification_windows))
@@ -346,33 +346,31 @@ class Pipeline:
             config = Config.from_yaml(lstm_models_paths[key]['config'], override_variables={})
             model_name = config.MODEL['name']
             model_args = dict(config.MODEL['args'].items(), **config.INFERENCE.get('extra_model_args', {}))
-            #
+
             model = models.get(model_name, model_args)
             model.model.load_weights(lstm_models_paths[key]['weights'])
-            # model.compile()
-            classifiers[key] = model
 
-            # classifiers[key] = load_model(lstm_models_paths[key]['saved_model'], custom_objects={'Normalize': Normalize})
+            classifiers[key] = {"model": model , "weights": lstm_models_paths[key]["weights"]}
 
-
-            # print("WEIGHTS: ", lstm_models_paths[key]['weights'])
-            # print("MODEL: ", model)
-            # input("...")
 
         start = 0
         end = len(output_classification_windows)
         while start < end:
             meta = output_classification_windows.pop()
             wndo_idx, _, mod_clas = meta[0], meta[1][0], meta[2]
-            model = classifiers[mod_clas]
+            model = classifiers[mod_clas]['model']
+            weights_path = classifiers[mod_clas]['weights']
 
-            print("PRED MODEL: ", model)
             # get the correct features from the dataframe, and not the temperature feature
+            x1 = model.get_features([dataframe], ['back_x', 'back_y', 'back_z'], batch_size=1, sequence_length=seq_lenght)
+            x2 = model.get_features([dataframe], ['back_x', 'back_y', 'back_z'], batch_size=1, sequence_length=seq_lenght)
+            x1 = x1[wndo_idx].reshape(1, seq_lenght, x1.shape[2])
+            x2 = x2[wndo_idx].reshape(1, seq_lenght, x2.shape[2])
 
-            res = model.predict_on_one_window(self.dataframe, wndo_idx)
+            res = model.predict_on_one_window([x1,x2], weights_path, seq_lenght)
             res = res[0] # [ [probability dists ]]
             print("RES: ", res)
-            # input("...")
+
 
 
 

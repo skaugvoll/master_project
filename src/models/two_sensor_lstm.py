@@ -71,9 +71,6 @@ class TwoSensorLSTM( HARModel ):
       print("Could not save to disk, ", e)
 
 
-
-
-
   def train( self,
       train_data,
       valid_data=None,
@@ -168,7 +165,7 @@ class TwoSensorLSTM( HARModel ):
     )
 
 
-  def predict_on_one_window( self, dataframe, wnd_idx ):
+  def predict_on_one_window( self, window, weights_path, sequence_length ):
 
     # todo: the params from self object includes the actual layer objects etc,
     # thus we might have to pass in the original config object and its values, as when we instntiate the model
@@ -178,48 +175,15 @@ class TwoSensorLSTM( HARModel ):
     # Thus we should create another two_sensor_lstm object
     # instansiate the new object with the same values as this, AND only change the batch_size property
 
-    # TODO find out shape of windows used and reshape the window ?
-    batch_size, sequence_length = 1, 250
-    # print(dataframe)
-    # input("DF...")
-    x1 = self.get_features([dataframe], ['back_x', 'back_y', 'back_z'], batch_size=batch_size, sequence_length=sequence_length)
-    x2 = self.get_features([dataframe], ['thigh_x', 'thigh_y', 'thigh_z'], batch_size=batch_size, sequence_length=sequence_length)
-
-    print(x1.shape)
-    # input("X1 ...")
-
-    x1 = x1[wnd_idx].reshape(1, sequence_length, x1.shape[2])
-    x2 = x2[wnd_idx].reshape(1, sequence_length, x2.shape[2])
-
-    # print(x1.shape)
-    #
-    # res = self.model.predict([x1,x2])
-    # return res
-    # print("RES: ", res)
-    # input("....")
-
-    # print("WINDOW: \n", window, "\n", window.shape)
     params = self.__dict__
     params['batch_size'] = 1
     params['sequence_length'] = sequence_length # TODO change to be seq_length of window!
 
-    #
-    # # for k,v in params.items():
-    # #   print(k, v)
-    #
-    # # predict_model = TwoSensorLSTM(**params)
     predict_model = self.build(window_pred=True)
-    predict_model.load_weights('./trained_models/test_model_two_sensors_weights.h5')
+    predict_model.load_weights(weights_path)
     predict_model.compile(loss='categorical_crossentropy', optimizer='adagrad', metrics=['accuracy'])
-    # print(predict_model.summary())
-    #
-    # x1 = self.get_features(np.array(window), ['bx', 'by', 'bz'], batch_size=1, sequence_length=params['sequence_length'])
-    # x2 = self.get_features(np.array(window), ['tx', 'ty', 'tz'], batch_size=1, sequence_length=params['sequence_length'])
-    #
-    # # print("X1: \n", x1, "\n", x1.shape)
-    # # print("TWO SENSOR MODEL predict on one windows ")
-    return predict_model.predict([x1, x2], batch_size=1)
-    # # return [1]
+
+    return predict_model.predict(window, batch_size=1)
 
 
   def inference( self, dataframe_iterator,
@@ -414,8 +378,6 @@ class TwoSensorLSTM( HARModel ):
 
     return Y
 
-
-
   def build( self, window_pred=False ):
     
     # Create input tensors; batch_size must be specified for stateful variant
@@ -499,8 +461,6 @@ class TwoSensorLSTM( HARModel ):
     if window_pred:
       model = Model( inputs=[ipt_back, ipt_thigh], outputs=net )
       model.compile(loss='categorical_crossentropy', optimizer='adagrad', metrics=['accuracy'])
-      model.summary()
-      input("---")
       return model
 
     else:
