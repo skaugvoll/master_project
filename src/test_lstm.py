@@ -278,7 +278,8 @@ print("PREDICTION ON ONE WINDOW! in this case, one row of the dataset "\
       "should change to (1, seq_lenght, 3)")
 
 
-res = model.predict_on_one_window(eval_df.iloc[0])
+# res = model.predict_on_one_window(eval_df.iloc[0])
+res = model.predict_on_one_window(eval_df, 1)
 res = res[0] # there will always be an array with one element
 print("RES: ", res)
 print("")
