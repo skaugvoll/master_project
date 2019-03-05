@@ -2,7 +2,7 @@ import sys, os
 try: sys.path.append( os.path.abspath( os.path.join( os.path.dirname( __file__), '..')))
 except: print("SAdsadsadhsa;hkldasjkd")
 
-from pipeline.Pipeline import Pipeline
+from pipeline.PipeLineRFCWindow import Pipeline
 from pipeline.DataHandler import DataHandler
 from src import models
 import pickle, math
@@ -115,6 +115,7 @@ s = 'y'
 if s == 'y':
     # TODO: fix where the file is saved
     rfc_model_path = "./trained_rfc.sav"
+    # has to start on one, and be incremental
     lstm_models_path = {
         "1": {
             "config": "../params/config.yml",
@@ -123,7 +124,7 @@ if s == 'y':
         },
         "2": {
             "config": "../params/one_sensor_config.yml",
-            "saved_model": "trained_models/test_thigh_back_sensor.h5",
+            "saved_model": "trained_models/test_model_thigh_sensor.h5",
             "weights": "trained_models/test_model_thigh_sensor_weights.h5"
         },
         "3": {
@@ -148,8 +149,10 @@ if s == 'y':
         samples_pr_window=samples_pr_window,
         train_overlap=0.8,
         seq_lenght=250,
-        num_proc_mod=model_cpus,
-        num_proc_clas=class_cpus
+        # num_proc_mod=model_cpus,
+        # num_proc_clas=class_cpus
+        num_proc_mod = model_cpus
+        # num_proc_clas = 3
     )
 
 
