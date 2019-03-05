@@ -131,6 +131,8 @@ class OneSensorLSTM( HARModel ):
       callbacks=callbacks
     )
 
+  def predict_on_one_window(self, dataframe, wndo_idx):
+      return [1]
 
   def inference( self, dataframe_iterator,
       batch_size=None,
@@ -180,6 +182,10 @@ class OneSensorLSTM( HARModel ):
       'prediction': np.concatenate( predictions ),
       'confidence': np.concatenate( confidences )
     })
+
+  def predict_on_one_window(self, window):
+    # print("ONE SENSOR MODEL predict on one window")
+    return [2]
 
 
   def get_features( self, dataframes, columns, batch_size=None, sequence_length=None ):
@@ -416,3 +422,7 @@ class OneSensorLSTM( HARModel ):
       return Activation(activation)(BatchNormalization()(Add()([l0,l1])))
     else:
       return Activation(activation)(Add()([l0,l1]))
+
+
+  def compile(self):
+    self.model.compile(loss='categorical_crossentropy', optimizer='adagrad', metrics=['accuracy'])
