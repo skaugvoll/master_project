@@ -132,7 +132,7 @@ class OneSensorLSTM( HARModel ):
     )
 
   def predict_on_one_window(self, window):
-      return [1]
+      return [1], [2]
 
   def inference( self, dataframe_iterator,
       batch_size=None,
@@ -182,10 +182,6 @@ class OneSensorLSTM( HARModel ):
       'prediction': np.concatenate( predictions ),
       'confidence': np.concatenate( confidences )
     })
-
-  def predict_on_one_window(self, window):
-    # print("ONE SENSOR MODEL predict on one window")
-    return [2]
 
 
   def get_features( self, dataframes, columns, batch_size=None, sequence_length=None ):

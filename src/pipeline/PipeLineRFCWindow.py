@@ -371,11 +371,11 @@ class Pipeline:
             x1 = x1[wndo_idx].reshape(1, seq_lenght, x1.shape[2])
             x2 = x2[wndo_idx].reshape(1, seq_lenght, x2.shape[2])
 
-            res = model.predict_on_one_window(window=[x1, x2])
-            res = res # [ [probability dists ]]
-            # self.printProgressBar(start, end, 20, explenation="Activity classification prog. :: ")
+            target, prob = model.predict_on_one_window(window=[x1, x2])
+            print(target, prob)
+            # print(res)
+            self.printProgressBar(start, end, 20, explenation="Activity classification prog. :: ")
             start += 1
-            print("RES: ", res)
 
 
 
