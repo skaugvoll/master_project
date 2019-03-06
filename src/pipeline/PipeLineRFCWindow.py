@@ -346,11 +346,14 @@ class Pipeline:
             config = Config.from_yaml(lstm_models_paths[key]['config'], override_variables={})
             model_name = config.MODEL['name']
             model_args = dict(config.MODEL['args'].items(), **config.INFERENCE.get('extra_model_args', {}))
+            model_args['batch_size'] = 1
 
             model = models.get(model_name, model_args)
+            model.compile()
             model.model.load_weights(lstm_models_paths[key]['weights'])
+            model.compile()
 
-            classifiers[key] = {"model": model , "weights": lstm_models_paths[key]["weights"]}
+            classifiers[key] = {"model": model, "weights": lstm_models_paths[key]["weights"]}
 
 
         start = 0
@@ -359,16 +362,19 @@ class Pipeline:
             meta = output_classification_windows.pop()
             wndo_idx, _, mod_clas = meta[0], meta[1][0], meta[2]
             model = classifiers[mod_clas]['model']
-            weights_path = classifiers[mod_clas]['weights']
+            model.compile()
+            # weights_path = classifiers[mod_clas]['weights']
 
             # get the correct features from the dataframe, and not the temperature feature
             x1 = model.get_features([dataframe], ['back_x', 'back_y', 'back_z'], batch_size=1, sequence_length=seq_lenght)
-            x2 = model.get_features([dataframe], ['back_x', 'back_y', 'back_z'], batch_size=1, sequence_length=seq_lenght)
+            x2 = model.get_features([dataframe], ['thigh_x', 'thigh_y', 'thigh_z'], batch_size=1, sequence_length=seq_lenght)
             x1 = x1[wndo_idx].reshape(1, seq_lenght, x1.shape[2])
             x2 = x2[wndo_idx].reshape(1, seq_lenght, x2.shape[2])
 
-            res = model.predict_on_one_window([x1,x2], weights_path, seq_lenght)
-            res = res[0] # [ [probability dists ]]
+            res = model.predict_on_one_window(window=[x1, x2])
+            res = res # [ [probability dists ]]
+            # self.printProgressBar(start, end, 20, explenation="Activity classification prog. :: ")
+            start += 1
             print("RES: ", res)
 
 

@@ -165,7 +165,7 @@ class TwoSensorLSTM( HARModel ):
     )
 
 
-  def predict_on_one_window( self, window, weights_path, sequence_length ):
+  def predict_on_one_window( self, window ):
 
     # todo: the params from self object includes the actual layer objects etc,
     # thus we might have to pass in the original config object and its values, as when we instntiate the model
@@ -175,15 +175,16 @@ class TwoSensorLSTM( HARModel ):
     # Thus we should create another two_sensor_lstm object
     # instansiate the new object with the same values as this, AND only change the batch_size property
 
-    params = self.__dict__
-    params['batch_size'] = 1
-    params['sequence_length'] = sequence_length # TODO change to be seq_length of window!
-
-    predict_model = self.build(window_pred=True)
-    predict_model.load_weights(weights_path)
-    predict_model.compile(loss='categorical_crossentropy', optimizer='adagrad', metrics=['accuracy'])
-
-    return predict_model.predict(window, batch_size=1)
+    # params = self.__dict__
+    # params['batch_size'] = 1
+    # params['sequence_length'] = sequence_length # TODO change to be seq_length of window!
+    #
+    # predict_model = self.build(window_pred=True)
+    # predict_model.load_weights(weights_path)
+    # predict_model.compile(loss='categorical_crossentropy', optimizer='adagrad', metrics=['accuracy'])
+    #
+    # return predict_model.predict(window, batch_size=1)
+    return self.model.predict(window, batch_size=1)
 
 
   def inference( self, dataframe_iterator,

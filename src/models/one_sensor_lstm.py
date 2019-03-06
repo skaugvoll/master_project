@@ -131,7 +131,7 @@ class OneSensorLSTM( HARModel ):
       callbacks=callbacks
     )
 
-  def predict_on_one_window(self, dataframe, wndo_idx):
+  def predict_on_one_window(self, window):
       return [1]
 
   def inference( self, dataframe_iterator,
