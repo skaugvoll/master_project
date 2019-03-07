@@ -349,20 +349,20 @@ class Pipeline:
             model_args['batch_size'] = 1
 
             model = models.get(model_name, model_args)
-            model.compile()
+            # model.compile()
             model.model.load_weights(lstm_models_paths[key]['weights'])
-            model.compile()
+            # model.compile()
 
             classifiers[key] = {"model": model, "weights": lstm_models_paths[key]["weights"]}
 
 
         start = 0
-        end = len(output_classification_windows)
+        end = len(output_classification_windows) // 5
         while start < end:
             meta = output_classification_windows.pop()
             wndo_idx, _, mod_clas = meta[0], meta[1][0], meta[2]
             model = classifiers[mod_clas]['model']
-            model.compile()
+            model.compile() # with this as the only compile it started to run agian...
             # weights_path = classifiers[mod_clas]['weights']
 
             # get the correct features from the dataframe, and not the temperature feature
