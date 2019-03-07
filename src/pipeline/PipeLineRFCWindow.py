@@ -205,6 +205,7 @@ class Pipeline:
             # print("RESSS: >>>>>> :: ", res, type(res))
 
             # output_queue.put((idx, window, res))
+            # TODO remove window from output tuple, we do not need the temperature window anymore
             output.append((idx, window, res))
 
 
@@ -341,47 +342,130 @@ class Pipeline:
         # See results
         print("OUTPUT/Activities windows to classify : ", len(output_classification_windows))
 
-        classifiers = {}
-        for key in lstm_models_paths.keys():
-            config = Config.from_yaml(lstm_models_paths[key]['config'], override_variables={})
-            model_name = config.MODEL['name']
-            model_args = dict(config.MODEL['args'].items(), **config.INFERENCE.get('extra_model_args', {}))
-            model_args['batch_size'] = 1
+        both_sensors_windows_queue = filter(lambda x: x[2] == '1', output_classification_windows)
+        thigh_sensors_windows_queue = filter(lambda x: x[2] == '2', output_classification_windows)
+        back_sensors_windows_queue = filter(lambda x: x[2] == '3', output_classification_windows)
 
-            model = models.get(model_name, model_args)
-            # model.compile()
-            model.model.load_weights(lstm_models_paths[key]['weights'])
-            # model.compile()
+        back_colums = ['back_x', 'back_y', 'back_z']
+        thigh_colums = ['thigh_x', 'thigh_y', 'thigh_z']
 
-            classifiers[key] = {"model": model, "weights": lstm_models_paths[key]["weights"]}
+        # x1 = model.get_features([dataframe], ['back_x', 'back_y', 'back_z'], batch_size=1, sequence_length=seq_lenght)
+        xBack = np.concatenate([dataframe[back_colums].values[ : (len(dataframe) - len(dataframe) % seq_lenght) ] for dataframe in [dataframe]])
+        xThigh = np.concatenate([dataframe[thigh_colums].values[: (len(dataframe) - len(dataframe) % seq_lenght)] for dataframe in [dataframe]])
+
+        xBack = xBack.reshape(-1, seq_lenght, len(back_colums))
+        xThigh = xThigh.reshape(-1, seq_lenght, len(thigh_colums))
+
+        print("XBACK: ", xBack.shape)
+
+        # BOTH
+        model = None
+        config = Config.from_yaml(lstm_models_paths["1"]['config'], override_variables={})
+        model_name = config.MODEL['name']
+        model_args = dict(config.MODEL['args'].items(), **config.INFERENCE.get('extra_model_args', {}))
+        model_args['batch_size'] = 1
+
+        model = models.get(model_name, model_args)
+        model.compile()
+        model.model.load_weights(lstm_models_paths["1"]['weights'])
+        model.compile()
+        for meta in both_sensors_windows_queue:
+            wndo_idx, _, mod = meta[0], meta[1][0], meta[2]
+            x1 = xBack[wndo_idx].reshape(1, seq_lenght, xBack.shape[2])
+            x2 = xThigh[wndo_idx].reshape(1, seq_lenght, xThigh.shape[2])
+
+            target, prob = model.predict_on_one_window(window=[x1, x2])
+            print("<<<<>>>>><<<>>>: \n", ":: 1 ::", target, prob)
+        del model  # remove the model
 
 
-        start = 0
-        end = len(output_classification_windows) // 5
-        while start < end:
-            meta = output_classification_windows.pop()
-            wndo_idx, _, mod_clas = meta[0], meta[1][0], meta[2]
-            model = classifiers[mod_clas]['model']
-            # model.compile() # with this as the only compile it started to run agian...
-            # weights_path = classifiers[mod_clas]['weights']
+        ## THIGH
+        model = None
+        config = Config.from_yaml(lstm_models_paths['2']['config'], override_variables={})
+        model_name = config.MODEL['name']
+        model_args = dict(config.MODEL['args'].items(), **config.INFERENCE.get('extra_model_args', {}))
+        model_args['batch_size'] = 1
 
-            # get the correct features from the dataframe, and not the temperature feature
-            x1 = model.get_features([dataframe], ['back_x', 'back_y', 'back_z'], batch_size=1, sequence_length=seq_lenght)
-            x2 = model.get_features([dataframe], ['thigh_x', 'thigh_y', 'thigh_z'], batch_size=1, sequence_length=seq_lenght)
-            x1 = x1[wndo_idx].reshape(1, seq_lenght, x1.shape[2])
-            x2 = x2[wndo_idx].reshape(1, seq_lenght, x2.shape[2])
-            if mod_clas == "1":  # both sensors
-                target, prob = model.predict_on_one_window(window=[x1, x2])
-            elif mod_clas == '2':  # just thigh sensor
-                target, prob = model.predict_on_one_window(window=x2)
-            elif mod_clas == '3':  # just back sensor
-                target, prob = model.predict_on_one_window(window=x1)
-            print(target, prob)
-            # print(res)
-            self.printProgressBar(start, end, 20, explenation="Activity classification prog. :: ")
-            start += 1
+        model = models.get(model_name, model_args)
+        model.compile()
+        model.model.load_weights(lstm_models_paths["2"]['weights'])
+        model.compile()
 
-        self.printProgressBar(start, end, 20, explenation="Activity classification prog. :: ")
+        for meta in thigh_sensors_windows_queue:
+            wndo_idx, _, mod = meta[0], meta[1][0], meta[2]
+            x1 = xThigh[wndo_idx].reshape(1, seq_lenght, xThigh.shape[2])
+
+            target, prob = model.predict_on_one_window(window=x1)
+            print("<<<<>>>>><<<>>>: \n", " :: 2 :: ", target, prob)
+        del model  # remove the model
+
+        ## BACK
+        model = None
+        config = Config.from_yaml(lstm_models_paths['3']['config'], override_variables={})
+        model_name = config.MODEL['name']
+        model_args = dict(config.MODEL['args'].items(), **config.INFERENCE.get('extra_model_args', {}))
+        model_args['batch_size'] = 1
+
+        model = models.get(model_name, model_args)
+        model.compile()
+        model.model.load_weights(lstm_models_paths['3']['weights'])
+        model.compile()
+        for meta in back_sensors_windows_queue:
+            wndo_idx, _, mod = meta[0], meta[1][0], meta[2]
+            x1 = xThigh[wndo_idx].reshape(1, seq_lenght, xBack.shape[2])
+
+            target, prob = model.predict_on_one_window(window=x1)
+            print("<<<<>>>>><<<>>>: \n"," ::3 :: ", target, prob)
+        del model  # remove the model
+
+
+
+
+
+
+
+
+        # classifiers = {}
+        # for key in lstm_models_paths.keys():
+        #     config = Config.from_yaml(lstm_models_paths[key]['config'], override_variables={})
+        #     model_name = config.MODEL['name']
+        #     model_args = dict(config.MODEL['args'].items(), **config.INFERENCE.get('extra_model_args', {}))
+        #     model_args['batch_size'] = 1
+        #
+        #     model = models.get(model_name, model_args)
+        #     # model.compile()
+        #     model.model.load_weights(lstm_models_paths[key]['weights'])
+        #     # model.compile()
+        #
+        #     classifiers[key] = {"model": model, "weights": lstm_models_paths[key]["weights"]}
+        #
+        #
+        # start = 0
+        # end = len(output_classification_windows) // 5
+        # while start < end:
+        #     meta = output_classification_windows.pop()
+        #     wndo_idx, _, mod_clas = meta[0], meta[1][0], meta[2]
+        #     model = classifiers[mod_clas]['model']
+        #     # model.compile() # with this as the only compile it started to run agian...
+        #     # weights_path = classifiers[mod_clas]['weights']
+        #
+        #     # get the correct features from the dataframe, and not the temperature feature
+        #     x1 = model.get_features([dataframe], ['back_x', 'back_y', 'back_z'], batch_size=1, sequence_length=seq_lenght)
+        #     x2 = model.get_features([dataframe], ['thigh_x', 'thigh_y', 'thigh_z'], batch_size=1, sequence_length=seq_lenght)
+        #     x1 = x1[wndo_idx].reshape(1, seq_lenght, x1.shape[2])
+        #     x2 = x2[wndo_idx].reshape(1, seq_lenght, x2.shape[2])
+        #     if mod_clas == "1":  # both sensors
+        #         target, prob = model.predict_on_one_window(window=[x1, x2])
+        #     elif mod_clas == '2':  # just thigh sensor
+        #         target, prob = model.predict_on_one_window(window=x2)
+        #     elif mod_clas == '3':  # just back sensor
+        #         target, prob = model.predict_on_one_window(window=x1)
+        #     print(target, prob)
+        #     # print(res)
+        #     self.printProgressBar(start, end, 20, explenation="Activity classification prog. :: ")
+        #     start += 1
+        #
+        # self.printProgressBar(start, end, 20, explenation="Activity classification prog. :: ")
 
 
 
