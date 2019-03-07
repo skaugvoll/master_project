@@ -4,8 +4,10 @@ import re
 import axivity
 import pandas as pd
 import numpy as np
+import time
 from utils import zip_utils
 from utils import csv_loader
+
 
 
 
@@ -174,7 +176,7 @@ class DataHandler():
         except:
             print("Cleanup FAILED")
 
-    def merge_csvs_on_first_time_overlap(self, master_csv_path, slave_csv_path, out_path=None, master_columns=['time', 'bx', 'by', 'bz', 'btemp'], slave_columns=['time', 'tx', 'ty', 'tz', 'ttemp'], rearrange_columns_to=None):
+    def merge_csvs_on_first_time_overlap(self, master_csv_path, slave_csv_path, out_path=None, master_columns=['time', 'bx', 'by', 'bz', 'btemp'], slave_columns=['time', 'tx', 'ty', 'tz', 'ttemp'], rearrange_columns_to=None, merge_how='inner'):
         '''
         Master_csv is the csv that the first recording is used as starting point
 
@@ -197,7 +199,7 @@ class DataHandler():
 
         # Merge the csvs
         print("MERGING MASTER AND SLAVE CSV")
-        merged_df = master_df.merge(slave_df, on='time')
+        merged_df = master_df.merge(slave_df, on='time', how=merge_how)
 
         ## Rearrange the columns
         if not rearrange_columns_to is None:
@@ -221,7 +223,9 @@ class DataHandler():
 
 
         print("SAVING MERGED CSV")
-        merged_df.to_csv(out_path, index=False)
+        print("DONE, here is a sneak peak:\n", merged_df.head(5))
+        print("Saving")
+        merged_df.to_csv(out_path, index=False, float_format='%.6f')
         print("Saved synched and merged as csv to : ", os.path.abspath(out_path))
 
         self.dataframe_iterator = merged_df
@@ -232,15 +236,17 @@ class DataHandler():
         self.data_temp_folder = os.path.abspath(os.path.split(out_path)[0])
 
     def _adc_to_c(self, row, normalize=False):
-        temperature_celsius_b = (row['btemp'] * 300 / 1024) - 50
-        temperature_celsius_t = (row['ttemp'] * 300 / 1024) - 50
+        if not np.isnan(row['btemp']):
+            row['btemp'] = (row['btemp'] * 300 / 1024) - 50
+        if not np.isnan(row['ttemp']):
+            row['ttemp'] = (row['ttemp'] * 300 / 1024) - 50
 
         if normalize:
             print("NORAMLIZATION NOT IMPLEMENTED YET")
             # TODO IMPLEMENT NORMALIZATION
 
-        row['btemp'] = temperature_celsius_b
-        row['ttemp'] = temperature_celsius_t
+            # temperature_celsius_b = (row['btemp'] * 300 / 1024) - 50
+            # temperature_celsius_t = (row['ttemp'] * 300 / 1024) - 50
 
         return row
 
@@ -289,7 +295,7 @@ class DataHandler():
 
         if (dataframe_path or self.data_synched_csv_path) and save:
             path = dataframe_path or self.data_synched_csv_path
-            self.dataframe_iterator.to_csv(path, index=False)
+            self.dataframe_iterator.to_csv(path, index=False, float_format='%.6f')
 
         return self.get_dataframe_iterator()
 
@@ -475,6 +481,113 @@ class DataHandler():
 
 
 
+    def write_temp_to_txt(self, dataframe_path=None):
+
+        df = None
+
+        if not dataframe_path is None:
+            try:
+                df = pd.read_csv(dataframe_path)
+            except Exception as e:
+                print("Did not give a valid csv_path")
+                raise e
+        elif dataframe_path is None:
+            print("Need to pass either dataframe or csv_path")
+            raise Exception("Need to pass either dataframe or csv_path")
+
+        print("STARTING weiting temp to file")
+        # TODO: change to datafram_iterator??
+        # self.dataframe_iterator = df.apply(self.find_temp, axis=0, raw=True)
+
+        start_time = time.time()
+        nanIndex = list(df['btemp'].index[df['btemp'].apply(np.isnan)])
+        valildIndex = list(df['btemp'].index[df['btemp'].notnull()])
+        firstLastIndex = [nanIndex[0], nanIndex[-1]]
+        print(len(valildIndex))
+
+        # file = open('../../data/temp/csv2/temptext.txt', 'w')
+        file = open('../../data/temp/4000181.7z/4000181/temptext.txt', 'w')
+
+        print(str(df.loc[valildIndex[-1], 'ttemp']))
+
+        if firstLastIndex[0] < valildIndex[0]:
+            file.write(str(str(df.loc[valildIndex[0], 'btemp']) + ',' + str(df.loc[valildIndex[0], 'ttemp']) + '\n') * (valildIndex[0] - firstLastIndex[0]))
+
+        for j in range(len(valildIndex) - 1):
+            # if j % 1000 == 0:
+            #     print(j)
+            if valildIndex[j] + 1 == valildIndex[j + 1]:
+                file.write(str(df.loc[valildIndex[j], 'btemp']) + ',' + str(df.loc[valildIndex[j], 'ttemp']) + '\n')
+            else:
+                file.write(str(df.loc[valildIndex[j], 'btemp']) + ',' + str(df.loc[valildIndex[j], 'ttemp']) + '\n')
+                file.write(str(str(df.loc[valildIndex[j+1], 'btemp']) + ',' + str(df.loc[valildIndex[j+1], 'ttemp']) + '\n') * ((valildIndex[j + 1]) - (valildIndex[j] + 1)))
+
+        if firstLastIndex[1] > valildIndex[-1]:
+            file.write(str(str(df.loc[valildIndex[-1], 'btemp']) + ',' + str(df.loc[valildIndex[-1], 'ttemp']) + '\n') * ((firstLastIndex[-1]+1) - valildIndex[-1]))
+
+        file.close()
+        print("---- %s seconds ---" % (time.time() - start_time))
+
+        return self.get_dataframe_iterator()
+
+
+
+    def merge_multiple_csvs(self, master_csv_path, slave_csv_path, slave2_csv_path, out_path=None,
+                            master_columns=['time', 'bx', 'by', 'bz', 'tx', 'ty', 'tz'],
+                            slave_columns=['time', 'bx1', 'by1', 'bz1', 'btemp'],
+                            slave2_columns=['time', 'tx1', 'ty1', 'tz1', 'ttemp'],
+                            rearrange_columns_to=None,
+                            merge_how='inner'):
+
+        print("READING MASTER CSV")
+        master_df = pd.read_csv(master_csv_path)
+        master_df.columns = master_columns
+
+        print("READING SLAVE CSV")
+        slave_df = pd.read_csv(slave_csv_path)
+        slave_df.columns = slave_columns
+
+        print("READING SLAVE2 CSV")
+        slave2_df = pd.read_csv(slave2_csv_path)
+        slave2_df.columns = slave2_columns
+
+        # Merge the csvs
+        print("MERGING MASTER AND SLAVE CSV")
+        merged_df = master_df.merge(slave_df, on='time', how=merge_how).merge(slave2_df, on='time', how=merge_how)
+
+
+        ## Rearrange the columns
+        if not rearrange_columns_to is None:
+            print("REARRANGING CSV COLUMNS")
+            merged_df = merged_df[rearrange_columns_to]
+
+        if out_path is None:
+            master_file_dir, master_filename_w_format = os.path.split(master_csv_path)
+            out_path = os.path.join(master_file_dir, master_filename_w_format.split('.')[0] + '_TEMP_SYNCHED_BT.csv')
+
+        else:
+            out_path_dir, out_path_filename = os.path.split(out_path)
+            if out_path_filename == '':
+                out_path_filename = os.path.basename(master_csv_path).split('.')[0] + '_TEMP_SYNCHED_BT.csv'
+
+            if not os.path.exists(out_path_dir):
+                print('Creating output directory... ', out_path_dir)
+                os.makedirs(out_path_dir)
+
+            out_path = os.path.join(out_path_dir, out_path_filename)
+
+        print("SAVING MERGED CSV")
+        print("DONE, here is a sneak peak:\n", merged_df.head(5))
+        print("Saving")
+        merged_df.to_csv(out_path, index=False, float_format='%.6f')
+        print("Saved synched and merged as csv to : ", os.path.abspath(out_path))
+
+        self.dataframe_iterator = merged_df
+
+        self.data_cleanup_path = os.path.abspath(out_path[:out_path.find('.7z/') + 4])
+        self.data_synched_csv_path = os.path.abspath(out_path)
+        self.name = os.path.basename(out_path)
+        self.data_temp_folder = os.path.abspath(os.path.split(out_path)[0])
 
 if __name__ == '__main__':
     pass
