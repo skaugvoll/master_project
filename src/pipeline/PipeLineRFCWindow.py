@@ -377,6 +377,8 @@ class Pipeline:
             self.printProgressBar(start, end, 20, explenation="Activity classification prog. :: ")
             start += 1
 
+        self.printProgressBar(start, end, 20, explenation="Activity classification prog. :: ")
+
 
 
 

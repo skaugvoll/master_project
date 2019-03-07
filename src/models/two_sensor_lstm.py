@@ -382,7 +382,7 @@ class TwoSensorLSTM( HARModel ):
 
     return Y
 
-  def build( self, window_pred=False ):
+  def build( self ):
     
     # Create input tensors; batch_size must be specified for stateful variant
     '''
@@ -407,9 +407,9 @@ class TwoSensorLSTM( HARModel ):
       ipt_thigh = Input( shape=[ self.sequence_length, self.back_layers['inputs'] ])
 
     # Create Input Normalization layers
-    if not window_pred:
-      self.norm_back  = Normalize()
-      self.norm_thigh = Normalize()
+
+    self.norm_back  = Normalize()
+    self.norm_thigh = Normalize()
 
     # Create separate networks (LAYERS) for back sensor channels and thigh sensor channels
     back_net  = self.create_sub_net( self.norm_back( ipt_back ), self.back_layers['layers'] )
@@ -462,14 +462,8 @@ class TwoSensorLSTM( HARModel ):
     net = Activation( 'softmax' )( net )
 
     # Make model
-    if window_pred:
-      model = Model( inputs=[ipt_back, ipt_thigh], outputs=net )
-      model.compile(loss='categorical_crossentropy', optimizer='adagrad', metrics=['accuracy'])
-      return model
-
-    else:
-      self.model = Model( inputs=[ipt_back, ipt_thigh], outputs=net )
-      self.model.compile(loss='categorical_crossentropy', optimizer='adagrad', metrics=['accuracy'])
+    self.model = Model( inputs=[ipt_back, ipt_thigh], outputs=net )
+    self.model.compile(loss='categorical_crossentropy', optimizer='adagrad', metrics=['accuracy'])
     print(">>>>>>> BUILD COMPLETE")
     # TODO: Compile here?
 
