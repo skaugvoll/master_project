@@ -131,13 +131,46 @@ class OneSensorLSTM( HARModel ):
       callbacks=callbacks
     )
 
-  def predict_on_one_window(self, window):
-      return [1], [2]
 
-  def inference( self, dataframe_iterator,
+  def evaluate( self,
+      dataframes,
       batch_size=None,
       sequence_length=None,
-      weights_path=None ):
+      cols=['x', 'y', 'z'],
+      label_col='label'
+      ):
+
+    # Make batch_size and sequence_length default to architecture params
+    batch_size = batch_size or self.batch_size
+    sequence_length = sequence_length or self.sequence_length
+
+    # Get design matrices of training data
+    x1 = self.get_features( dataframes, cols, batch_size=batch_size, sequence_length=sequence_length )
+    y = self.get_labels( dataframes, label_col, batch_size=batch_size, sequence_length=sequence_length )
+
+    return self.model.evaluate(
+      x=x1,
+      y=y,
+      batch_size=batch_size,
+    )
+
+  def predict_on_one_window(self, window):
+    '''
+
+    :param window:
+    :return:
+    '''
+    # self.compile()
+    classification = self.model.predict(window, batch_size=1)
+    prob = classification.max(axis=1)
+    target = classification.argmax(axis=1)
+    return target, prob
+
+  def inference( self, dataframe_iterator,
+      cols = ['x', 'y', 'z'],
+      batch_size=None,
+      sequence_length=None,
+      weights_path=None):
 
     # Make sure that valid weights are provided
     if not weights_path:
@@ -149,8 +182,6 @@ class OneSensorLSTM( HARModel ):
     self.model.load_weights( weights_path )
 
     timestamp_col = 'timestamp'
-    back_cols  = ['back_x', 'back_y', 'back_z']
-    thigh_cols = ['thigh_x', 'thigh_y', 'thigh_z']
 
     batch_size = batch_size or self.batch_size
     sequence_length = sequence_length or self.sequence_length
@@ -165,10 +196,10 @@ class OneSensorLSTM( HARModel ):
     # Begin processing batches
     for batch in batch_iterator:
       # Extract back and thigh sensor data
-      batch_x1 = batch[ back_cols ].values.reshape( -1, sequence_length, len( back_cols ))
-      batch_x2 = batch[ thigh_cols ].values .reshape( -1, sequence_length, len( thigh_cols ))
+      batch = batch[ cols ].values.reshape( -1, sequence_length, len( cols ))
+
       # Predict on data
-      raw_predictions = self.model.predict_on_batch( [batch_x1, batch_x2] )
+      raw_predictions = self.model.predict_on_batch( batch )
       # Store the highest confidence
       confidences.append( raw_predictions.max( axis=1 ))
       # Decode argmaxes
@@ -398,10 +429,8 @@ class OneSensorLSTM( HARModel ):
     out = Activation( 'softmax' )( net )
     # Make model
     self.model = Model(inputs=ipt, outputs=out )
+    self.model.compile(loss='categorical_crossentropy', optimizer='adagrad', metrics=['accuracy'])
     print(">>>>>>> BUILD COMPLETE")
-    # TODO: Compile here?
-    
-    self.model.compile( loss='categorical_crossentropy', optimizer='adagrad', metrics=['accuracy'] )
 
     # print("Model compiled")
 
@@ -418,7 +447,6 @@ class OneSensorLSTM( HARModel ):
       return Activation(activation)(BatchNormalization()(Add()([l0,l1])))
     else:
       return Activation(activation)(Add()([l0,l1]))
-
 
   def compile(self):
     self.model.compile(loss='categorical_crossentropy', optimizer='adagrad', metrics=['accuracy'])

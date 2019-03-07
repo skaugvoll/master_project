@@ -184,6 +184,7 @@ class TwoSensorLSTM( HARModel ):
     # predict_model.compile(loss='categorical_crossentropy', optimizer='adagrad', metrics=['accuracy'])
     #
     # return predict_model.predict(window, batch_size=1)
+    # self.compile()
     classification = self.model.predict(window, batch_size=1)
     prob = classification.max(axis=1)
     target = classification.argmax(axis=1)

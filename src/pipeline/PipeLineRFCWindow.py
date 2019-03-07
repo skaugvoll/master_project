@@ -362,7 +362,7 @@ class Pipeline:
             meta = output_classification_windows.pop()
             wndo_idx, _, mod_clas = meta[0], meta[1][0], meta[2]
             model = classifiers[mod_clas]['model']
-            model.compile() # with this as the only compile it started to run agian...
+            # model.compile() # with this as the only compile it started to run agian...
             # weights_path = classifiers[mod_clas]['weights']
 
             # get the correct features from the dataframe, and not the temperature feature
@@ -370,8 +370,12 @@ class Pipeline:
             x2 = model.get_features([dataframe], ['thigh_x', 'thigh_y', 'thigh_z'], batch_size=1, sequence_length=seq_lenght)
             x1 = x1[wndo_idx].reshape(1, seq_lenght, x1.shape[2])
             x2 = x2[wndo_idx].reshape(1, seq_lenght, x2.shape[2])
-
-            target, prob = model.predict_on_one_window(window=[x1, x2])
+            if mod_clas == "1":  # both sensors
+                target, prob = model.predict_on_one_window(window=[x1, x2])
+            elif mod_clas == '2':  # just thigh sensor
+                target, prob = model.predict_on_one_window(window=x2)
+            elif mod_clas == '3':  # just back sensor
+                target, prob = model.predict_on_one_window(window=x1)
             print(target, prob)
             # print(res)
             self.printProgressBar(start, end, 20, explenation="Activity classification prog. :: ")
