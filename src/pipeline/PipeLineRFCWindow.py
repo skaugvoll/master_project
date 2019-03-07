@@ -13,6 +13,7 @@ import utils.temperature_segmentation_and_calculation as temp_feature_util
 from src.config import Config
 from src import models
 from keras.models import load_model
+from tensorflow.keras.backend import clear_session
 
 
 
@@ -38,8 +39,10 @@ class Pipeline:
         fillerChars = "#" * filled_bar
         remains = "-" * (sizeProgressBarInChars - filled_bar)
 
+        color = '\033[94m' # blue
+        reset  = "\u001b[0m" # reset (turn of color)
         sys.stdout.write('\r{} {} {} [{:>7.2%}]'.format(
-            explenation,
+            color + explenation + reset,
             fillerChars,
             remains,
             fraction_completed
@@ -206,7 +209,7 @@ class Pipeline:
 
             # output_queue.put((idx, window, res))
             # TODO remove window from output tuple, we do not need the temperature window anymore
-            output.append((idx, window, res))
+            output.append((idx, res))
 
 
 
@@ -342,9 +345,10 @@ class Pipeline:
         # See results
         print("OUTPUT/Activities windows to classify : ", len(output_classification_windows))
 
-        both_sensors_windows_queue = filter(lambda x: x[2] == '1', output_classification_windows)
-        thigh_sensors_windows_queue = filter(lambda x: x[2] == '2', output_classification_windows)
-        back_sensors_windows_queue = filter(lambda x: x[2] == '3', output_classification_windows)
+        both_sensors_windows_queue = list(filter(lambda x: x[1] == '1', output_classification_windows))
+        thigh_sensors_windows_queue = list(filter(lambda x: x[1] == '2', output_classification_windows))
+        back_sensors_windows_queue = list(filter(lambda x: x[1] == '3', output_classification_windows))
+        del output_classification_windows
 
         back_colums = ['back_x', 'back_y', 'back_z']
         thigh_colums = ['thigh_x', 'thigh_y', 'thigh_z']
@@ -359,64 +363,68 @@ class Pipeline:
         print("XBACK: ", xBack.shape)
 
         # BOTH
-        model = None
-        config = Config.from_yaml(lstm_models_paths["1"]['config'], override_variables={})
-        model_name = config.MODEL['name']
-        model_args = dict(config.MODEL['args'].items(), **config.INFERENCE.get('extra_model_args', {}))
-        model_args['batch_size'] = 1
+        self.predict_on_one_window("1", lstm_models_paths, both_sensors_windows_queue, xBack, xThigh, seq_lenght)
+        # model = None
+        # config = Config.from_yaml(lstm_models_paths["1"]['config'], override_variables={})
+        # model_name = config.MODEL['name']
+        # model_args = dict(config.MODEL['args'].items(), **config.INFERENCE.get('extra_model_args', {}))
+        # model_args['batch_size'] = 1
+        #
+        # model = models.get(model_name, model_args)
+        # model.compile()
+        # model.model.load_weights(lstm_models_paths["1"]['weights'])
+        # model.compile()
+        # for meta in both_sensors_windows_queue:
+        #     wndo_idx, _, mod = meta[0], meta[1][0], meta[2]
+        #     x1 = xBack[wndo_idx].reshape(1, seq_lenght, xBack.shape[2])
+        #     x2 = xThigh[wndo_idx].reshape(1, seq_lenght, xThigh.shape[2])
+        #
+        #     target, prob = model.predict_on_one_window(window=[x1, x2])
+        #     print("<<<<>>>>><<<>>>: \n", ":: 1 ::", target, prob)
+        # del model  # remove the model
 
-        model = models.get(model_name, model_args)
-        model.compile()
-        model.model.load_weights(lstm_models_paths["1"]['weights'])
-        model.compile()
-        for meta in both_sensors_windows_queue:
-            wndo_idx, _, mod = meta[0], meta[1][0], meta[2]
-            x1 = xBack[wndo_idx].reshape(1, seq_lenght, xBack.shape[2])
-            x2 = xThigh[wndo_idx].reshape(1, seq_lenght, xThigh.shape[2])
 
-            target, prob = model.predict_on_one_window(window=[x1, x2])
-            print("<<<<>>>>><<<>>>: \n", ":: 1 ::", target, prob)
-        del model  # remove the model
+        # THIGH
+        self.predict_on_one_window('2', lstm_models_paths, thigh_sensors_windows_queue, xBack, xThigh, seq_lenght)
+        # model = None
+        # config = Config.from_yaml(lstm_models_paths['2']['config'], override_variables={})
+        # model_name = config.MODEL['name']
+        # model_args = dict(config.MODEL['args'].items(), **config.INFERENCE.get('extra_model_args', {}))
+        # model_args['batch_size'] = 1
+        #
+        # model = models.get(model_name, model_args)
+        # model.compile()
+        # model.model.load_weights(lstm_models_paths["2"]['weights'])
+        # model.compile()
+        #
+        # for meta in thigh_sensors_windows_queue:
+        #     wndo_idx, _, mod = meta[0], meta[1][0], meta[2]
+        #     x1 = xThigh[wndo_idx].reshape(1, seq_lenght, xThigh.shape[2])
+        #
+        #     target, prob = model.predict_on_one_window(window=x1)
+        #     print("<<<<>>>>><<<>>>: \n", " :: 2 :: ", target, prob)
+        # del model  # remove the model
 
 
-        ## THIGH
-        model = None
-        config = Config.from_yaml(lstm_models_paths['2']['config'], override_variables={})
-        model_name = config.MODEL['name']
-        model_args = dict(config.MODEL['args'].items(), **config.INFERENCE.get('extra_model_args', {}))
-        model_args['batch_size'] = 1
-
-        model = models.get(model_name, model_args)
-        model.compile()
-        model.model.load_weights(lstm_models_paths["2"]['weights'])
-        model.compile()
-
-        for meta in thigh_sensors_windows_queue:
-            wndo_idx, _, mod = meta[0], meta[1][0], meta[2]
-            x1 = xThigh[wndo_idx].reshape(1, seq_lenght, xThigh.shape[2])
-
-            target, prob = model.predict_on_one_window(window=x1)
-            print("<<<<>>>>><<<>>>: \n", " :: 2 :: ", target, prob)
-        del model  # remove the model
-
-        ## BACK
-        model = None
-        config = Config.from_yaml(lstm_models_paths['3']['config'], override_variables={})
-        model_name = config.MODEL['name']
-        model_args = dict(config.MODEL['args'].items(), **config.INFERENCE.get('extra_model_args', {}))
-        model_args['batch_size'] = 1
-
-        model = models.get(model_name, model_args)
-        model.compile()
-        model.model.load_weights(lstm_models_paths['3']['weights'])
-        model.compile()
-        for meta in back_sensors_windows_queue:
-            wndo_idx, _, mod = meta[0], meta[1][0], meta[2]
-            x1 = xThigh[wndo_idx].reshape(1, seq_lenght, xBack.shape[2])
-
-            target, prob = model.predict_on_one_window(window=x1)
-            print("<<<<>>>>><<<>>>: \n"," ::3 :: ", target, prob)
-        del model  # remove the model
+        # BACK
+        self.predict_on_one_window('3', lstm_models_paths, back_sensors_windows_queue, xBack, xThigh, seq_lenght)
+        # model = None
+        # config = Config.from_yaml(lstm_models_paths['3']['config'], override_variables={})
+        # model_name = config.MODEL['name']
+        # model_args = dict(config.MODEL['args'].items(), **config.INFERENCE.get('extra_model_args', {}))
+        # model_args['batch_size'] = 1
+        #
+        # model = models.get(model_name, model_args)
+        # model.compile()
+        # model.model.load_weights(lstm_models_paths['3']['weights'])
+        # model.compile()
+        # for meta in back_sensors_windows_queue:
+        #     wndo_idx, _, mod = meta[0], meta[1][0], meta[2]
+        #     x1 = xThigh[wndo_idx].reshape(1, seq_lenght, xBack.shape[2])
+        #
+        #     target, prob = model.predict_on_one_window(window=x1)
+        #     print("<<<<>>>>><<<>>>: \n"," ::3 :: ", target, prob)
+        # del model  # remove the model
 
 
 
@@ -444,7 +452,7 @@ class Pipeline:
         # end = len(output_classification_windows) // 5
         # while start < end:
         #     meta = output_classification_windows.pop()
-        #     wndo_idx, _, mod_clas = meta[0], meta[1][0], meta[2]
+        #     wndo_idx, mod_clas = meta[0], meta[1]
         #     model = classifiers[mod_clas]['model']
         #     # model.compile() # with this as the only compile it started to run agian...
         #     # weights_path = classifiers[mod_clas]['weights']
@@ -560,6 +568,46 @@ class Pipeline:
         # print("Final merge form: ", merged_df.shape)
         return merged_df
 
+    def predict_on_one_window(self, model_num, lstm_models_paths, sensors_windows_queue, xBack, xThigh, seq_lenght):
+        model = None
+        config = Config.from_yaml(lstm_models_paths[model_num]['config'], override_variables={})
+        model_name = config.MODEL['name']
+        model_args = dict(config.MODEL['args'].items(), **config.INFERENCE.get('extra_model_args', {}))
+        model_args['batch_size'] = 1
+
+        model = models.get(model_name, model_args)
+        model.compile()
+        model.model.load_weights(lstm_models_paths[model_num]['weights'])
+        model.compile()
+        start = 0
+        end = len(sensors_windows_queue)
+        for meta in sensors_windows_queue:
+            wndo_idx, mod = meta[0], meta[1]
+            task = None
+            if mod == "1":
+                task = "Both"
+                x1 = xBack[wndo_idx].reshape(1, seq_lenght, xBack.shape[2])
+                x2 = xThigh[wndo_idx].reshape(1, seq_lenght, xThigh.shape[2])
+                target, prob = model.predict_on_one_window(window=[x1, x2])
+
+            elif mod == '2':
+                task = "Thigh"
+                x = xThigh[wndo_idx].reshape(1, seq_lenght, xThigh.shape[2])
+                target, prob = model.predict_on_one_window(window=x)
+
+            elif mod == '3':
+                task = "Back"
+                x = xThigh[wndo_idx].reshape(1, seq_lenght, xBack.shape[2])
+                target, prob = model.predict_on_one_window(window=x)
+
+            # print("<<<<>>>>><<<>>>: \n", ":: " + model_num +" ::", target, prob)
+            self.printProgressBar(start, end, 20, explenation=task + " activity classification prog. :: ")
+            start += 1
+
+        self.printProgressBar(start, end, 20, explenation=task + " activity classification prog. :: ")
+        print() # create new line
+        del model  # remove the model
+        clear_session()
 
     @staticmethod
     def load_model_weights(model, weights_path):
