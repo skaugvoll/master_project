@@ -6,7 +6,7 @@ INPUT_DIR: &INPUT_DIR '' # TODO: OVERRIDE WHEN PARSING (if training at least)
 # Where trained weights should be stored
 WEIGHTS_PATH: &WEIGHTS_PATH !join_paths [ *MODEL_DIR, weights.h5 ]
 # Where the training dataset can be found
-DATASET_PATH: &DATASET_PATH !join_paths [ *INPUT_DIR, 'OOL_RESAMPLE_50HZ.h5' ]
+DATASET_PATH: &DATASET_PATH !join_paths [ *INPUT_DIR, '4000181-34566_2017-09-19_B_TEMP_SYNCHED_BT.csv' ]
 
 # Which classes we use, and their replacements
 CLASSES: &CLASSES
@@ -21,7 +21,7 @@ CLASSES: &CLASSES
   - { value: 9,  name: 'transition',             plot: 'purple:purple:transition'     }
   - { value: 10, name: 'bending',                plot: 6                              }
   - { value: 11, name: 'picking',                plot: 9                              }
-  - { value: 12, name: 'undefined',              plot: 9                              } 
+  - { value: 12, name: 'undefined',              plot: 9                              }
   - { value: 13, name: 'cycling (sit)',          plot: 'darkorange:orange:cycling'    }
   - { value: 14, name: 'cycling (stand)',        plot: 13                             }
   - { value: 15, name: 'heel drop',              plot: 6                              }
@@ -36,10 +36,10 @@ UNCERTAIN_COLOR: black
 
 # Arguments defining model architecture
 MODEL:
-  name: HAAKON_LSTM
+  name: TWO_SENSOR_LSTM
   args:
     gpu: True
-    stateful: False
+    stateful: True
     bidirectional: True
     output_dropout: 0.9
     batch_norm: True
@@ -59,7 +59,7 @@ MODEL:
 # Arguments to use when doing training
 TRAINING:
   args:
-    epochs: 10
+    epochs: 1
     batch_size: 512
     sequence_length: 250
     callbacks:

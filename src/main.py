@@ -32,5 +32,7 @@ args = run_inference.parser.parse_args([
     '--plot-uncertainty-thresh', '0.4'
 ])
 
+print(args, type(args))
+
 # Run script
-run_inference.main( args )
+# run_inference.main( args )

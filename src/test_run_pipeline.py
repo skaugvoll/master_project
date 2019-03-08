@@ -255,17 +255,18 @@ dataframe_test.dropna(subset=['label'], inplace=True)
 
 #### save the model so that the parallelized code can lode it for each new process
 # s = input("save the trained RFC model? [y/n]: ")
-# if s == 'y':
-#     # TODO: fix where the file is saved
-#     model_path = "./trained_rfc.sav"
-#     pickle.dump(RFC, open(model_path, 'wb'))
-#     print("MAX CPU CORES: ", os.cpu_count())
-#     input("...")
-#     p = Pipeline()
-#     p.parallel_pipeline_classification_run(dataframe=dataframe_test, model_path=model_path, samples_pr_window=samples_pr_window, train_overlap=0.8)
-#
-#
-#
+s = 'y'
+if s == 'y':
+    # TODO: fix where the file is saved
+    model_path = "./trained_rfc.sav"
+    pickle.dump(RFC, open(model_path, 'wb'))
+    print("MAX CPU CORES: ", os.cpu_count())
+    input("...")
+    p = Pipeline()
+    p.parallel_pipeline_classification_run(dataframe=dataframe_test, rfc_model_path=model_path, samples_pr_window=samples_pr_window, train_overlap=0.8)
+
+
+
 
 
 
@@ -292,16 +293,16 @@ dataframe_test.dropna(subset=['label'], inplace=True)
 ##############
 
 # EXTRACT FEATURES
-back_feat_test, thigh_feat_test, label_test = pipeObj.get_features_and_labels(dataframe_test)
-
-res = RFC.classify(
-    back_test_feat=back_feat_test,
-    thigh_test_feat=thigh_feat_test,
-    samples_pr_window=samples_pr_window,
-    train_overlap=0.8
-)
-
-print("CLASSIFICATION RESULT: \nSHAPE: {}\n{}: \n".format(res.shape, res))
+# back_feat_test, thigh_feat_test, label_test = pipeObj.get_features_and_labels(dataframe_test)
+#
+# res = RFC.classify(
+#     back_test_feat=back_feat_test,
+#     thigh_test_feat=thigh_feat_test,
+#     samples_pr_window=samples_pr_window,
+#     train_overlap=0.8
+# )
+#
+# print("CLASSIFICATION RESULT: \nSHAPE: {}\n{}: \n".format(res.shape, res))
 
 
 
@@ -316,23 +317,23 @@ print("CLASSIFICATION RESULT: \nSHAPE: {}\n{}: \n".format(res.shape, res))
 # TEST (GET ACCURACY)
 ##############
 
-res = RFC.test(
-    back_test_feat=back_feat_test,
-    thigh_test_feat=thigh_feat_test,
-    labels=label_test,
-    samples_pr_window=samples_pr_window,
-    train_overlap=0.8
-)
-
-preds = RFC.predictions
-ground_truth = RFC.test_ground_truth_labels
-print("Calculating accuracy...")
-acc = RFC.calculate_accuracy()
-print("Done, ACC: {:.4f}".format(acc))
-
-print("Creating confusion matrix")
-conf_mat = RFC.calculate_confusion_matrix()
-print("DONE ")
-print(conf_mat)
+# res = RFC.test(
+#     back_test_feat=back_feat_test,
+#     thigh_test_feat=thigh_feat_test,
+#     labels=label_test,
+#     samples_pr_window=samples_pr_window,
+#     train_overlap=0.8
+# )
+#
+# preds = RFC.predictions
+# ground_truth = RFC.test_ground_truth_labels
+# print("Calculating accuracy...")
+# acc = RFC.calculate_accuracy()
+# print("Done, ACC: {:.4f}".format(acc))
+#
+# print("Creating confusion matrix")
+# conf_mat = RFC.calculate_confusion_matrix()
+# print("DONE ")
+# print(conf_mat)
 
 

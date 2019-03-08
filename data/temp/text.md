@@ -1,0 +1,1 @@
+label_mapping={"1": "Both", "2": "Thigh", "3": "Back"}
