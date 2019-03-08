@@ -19,12 +19,9 @@ from tensorflow.keras.backend import clear_session
 
 class Pipeline:
     def __init__(self):
-        print("HELLO FROM PIPELINE")
-        # Create a data handling object for importing and manipulating dataset ## PREPROCESSING
-        print('CREATING datahandler')
         self.dh = DataHandler()
-        print('CREATED datahandler')
         self.dataframe = None
+        self.model = None
 
     def printProgressBar(self, current, totalOperations, sizeProgressBarInChars, explenation=""):
         # try:
@@ -615,8 +612,10 @@ class Pipeline:
         sequence_length = sequence_length or config.TRAINING['args']['sequence_length']
         callbacks = config.TRAINING['args']['callbacks'] or None
 
-
+        cols = None
         if back_cols and thigh_cols:
+            self.num_sensors = 2
+            cols = [back_cols, thigh_cols]
             model.train(
                 train_data=[training_dataframe],
                 valid_data=validation_dataframe,
@@ -629,6 +628,7 @@ class Pipeline:
             )
         else:
             cols = back_cols or thigh_cols
+            self.num_sensors = 1
             model.train(
                 train_data=[training_dataframe],
                 valid_data=validation_dataframe,
@@ -649,8 +649,34 @@ class Pipeline:
                 )
             )
 
-        return model
+        self.config = config
+        self.batch_size = batch_size
+        self.sequence_length = sequence_length
+        self.cols = cols
+        self.model = model
+        return self.model
 
+
+    def evaluate_lstm_model(self, dataframe, label_col, num_sensors=None, model=None, back_cols=None, thigh_cols=None, cols=None, batch_size=None, sequence_length=None):
+        model = model or self.model
+        num_sensors = num_sensors or self.num_sensors
+
+        if num_sensors == 2:
+            model.evaluate(dataframes=[dataframe],
+                          batch_size=batch_size or self.config.TRAINING['args']['batch_size'],
+                          sequence_length=sequence_length or self.config.TRAINING['args']['sequence_length'],
+                          back_cols=self.cols[0] or back_cols,
+                          thigh_cols=self.cols[1] or thigh_cols,
+                          label_col=label_col)
+        elif num_sensors == 1:
+            model.evaluate(dataframes=[dataframe],
+                          batch_size=batch_size or self.config.TRAINING['args']['batch_size'],
+                          sequence_length=sequence_length or self.config.TRAINING['args']['sequence_length'],
+                          cols=self.cols or cols,
+                          label_col=label_col)
+        else:
+            print("Pipeline.py :: evaluate_lstm_model ::")
+            raise NotImplementedError()
 
 
 
