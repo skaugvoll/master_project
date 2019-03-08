@@ -6,6 +6,7 @@ import pandas as pd
 import numpy as np
 from utils import zip_utils
 from utils import csv_loader
+from sklearn.model_selection import train_test_split
 
 
 
@@ -507,6 +508,42 @@ class DataHandler():
 
     def tail_dataframe(self, n=5):
         print(self.dataframe_iterator.tail(n))
+
+    @staticmethod
+    def split_df_into_training_and_test(dataframe, label_col=None, split_rate=.8, shuffle=True):
+        '''
+
+        :param dataframe:
+        :param label_col:
+        :param split_rate:
+        :return: IF label_col is given, returns x_train, x_test, y_train, y_test ELSE: train, test
+        '''
+        # how_much_is_training_data = 0.8
+        # split_idx = int(dataframe.shape[0] * how_much_is_training_data)
+        # df1 = dataframe.iloc[: split_idx]
+        # df2 = dataframe.iloc[split_idx:]  # 1 - how_musch_is_training_data % of data
+        # return df1, df2
+
+        if label_col:
+            x = dataframe.iloc[:, :label_col]
+            y = dataframe.iloc[: , label_col]
+            return train_test_split(x, y, test_size=split_rate, shuffle=shuffle)
+        else:
+            return train_test_split(dataframe, test_size=split_rate, shuffle=shuffle)
+
+    @staticmethod
+    def create_batches_with_seq_length(dataframes, columns):
+        '''
+
+        :param self:
+        :param dataframes: list with dataframes
+        :param columns: list with columns (features) to keep in the new batch
+        :return:
+        '''
+        return np.concatenate([
+            dataframe[columns].values[: (len(dataframe) - len(dataframe) % sequence_length)] for dataframe in dataframes
+        ]).reshape( -1, sequence_length, len(columns) )
+
 
 
 

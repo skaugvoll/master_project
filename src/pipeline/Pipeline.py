@@ -415,8 +415,53 @@ class Pipeline:
         #
         # self.printProgressBar(start, end, 20, explenation="Activity classification prog. :: ")
 
+    def predict_on_one_window(self, model_num, lstm_models_paths, sensors_windows_queue, xBack, xThigh, seq_lenght):
+        model = None
+        config = Config.from_yaml(lstm_models_paths[model_num]['config'], override_variables={})
+        model_name = config.MODEL['name']
+        model_args = dict(config.MODEL['args'].items(), **config.INFERENCE.get('extra_model_args', {}))
+        model_args['batch_size'] = 1
 
+        model = models.get(model_name, model_args)
+        model.compile()
+        model.model.load_weights(lstm_models_paths[model_num]['weights'])
+        model.compile()
+        start = 0
+        end = len(sensors_windows_queue)
+        for meta in sensors_windows_queue:
+            wndo_idx, mod = meta[0], meta[1]
+            task = None
+            if mod == "1":
+                task = "Both"
+                x1 = xBack[wndo_idx].reshape(1, seq_lenght, xBack.shape[2])
+                x2 = xThigh[wndo_idx].reshape(1, seq_lenght, xThigh.shape[2])
+                target, prob = model.predict_on_one_window(window=[x1, x2])
 
+            elif mod == '2':
+                task = "Thigh"
+                x = xThigh[wndo_idx].reshape(1, seq_lenght, xThigh.shape[2])
+                target, prob = model.predict_on_one_window(window=x)
+
+            elif mod == '3':
+                task = "Back"
+                x = xBack[wndo_idx].reshape(1, seq_lenght, xBack.shape[2])
+                target, prob = model.predict_on_one_window(window=x)
+
+            # print("<<<<>>>>><<<>>>: \n", ":: " + model_num +" ::", target, prob)
+            self.printProgressBar(start, end, 20, explenation=task + " activity classification prog. :: ")
+            start += 1
+
+        self.printProgressBar(start, end, 20, explenation=task + " activity classification prog. :: ")
+        print() # create new line
+        try:
+            del model  # remove the model
+            clear_session()
+        except Exception as e:
+            print("Could not remove model from memory.")
+
+    @staticmethod
+    def load_model_weights(model, weights_path):
+        model.load_weights(weights_path)
 
     ####################################################################################################################
     #                                   ^PARALLELL PIPELINE EXECUTE WINDOW BY WINDOW CODE^                             #
@@ -508,54 +553,68 @@ class Pipeline:
         # print("Final merge form: ", merged_df.shape)
         return merged_df
 
-    def predict_on_one_window(self, model_num, lstm_models_paths, sensors_windows_queue, xBack, xThigh, seq_lenght):
-        model = None
-        config = Config.from_yaml(lstm_models_paths[model_num]['config'], override_variables={})
+
+    def train_two_sensor_lstm_model(self,
+                                    training_dataframe,
+                                    back_cols,
+                                    thigh_cols,
+                                    config_path,
+                                    label_col=None,
+                                    weights_path=None,
+                                    validation_dataframe=None,
+                                    validdation_label_df=None,
+                                    training_dataframe_label=None,
+                                    batch_size=None,
+                                    sequence_length=None,
+                                    save_model=False,
+                                    save_weights=False
+                                    ):
+        '''
+        src/models/__init__.py states:
+            Train the model. Usually, we like to split the data into training and validation
+            by producing a dichotomy over the subjects. This means that
+
+            Inputs:
+              - train_data: list<pd.DataFrame>
+                A list of dataframes, intended to be used for model fitting. It's columns are:
+                  <back_x, back_y, back_z, thigh_x, thigh_y, thigh_z, label>
+                Where the first 6 corresponds to sensor data as floats and the last one is an
+                integer corresponding to the annotated class
+              - valid_data: list<pd.DataFrame>
+                Same as train_data, execpt usually a much shorter list.
+              - **kwargs:
+                Extra arguments found in the model's config
+        '''
+
+        config = Config.from_yaml(config_path, override_variables={})
+        # config.pretty_print()
+
         model_name = config.MODEL['name']
         model_args = dict(config.MODEL['args'].items(), **config.INFERENCE.get('extra_model_args', {}))
-        model_args['batch_size'] = 1
-
         model = models.get(model_name, model_args)
-        model.compile()
-        model.model.load_weights(lstm_models_paths[model_num]['weights'])
-        model.compile()
-        start = 0
-        end = len(sensors_windows_queue)
-        for meta in sensors_windows_queue:
-            wndo_idx, mod = meta[0], meta[1]
-            task = None
-            if mod == "1":
-                task = "Both"
-                x1 = xBack[wndo_idx].reshape(1, seq_lenght, xBack.shape[2])
-                x2 = xThigh[wndo_idx].reshape(1, seq_lenght, xThigh.shape[2])
-                target, prob = model.predict_on_one_window(window=[x1, x2])
 
-            elif mod == '2':
-                task = "Thigh"
-                x = xThigh[wndo_idx].reshape(1, seq_lenght, xThigh.shape[2])
-                target, prob = model.predict_on_one_window(window=x)
+        # if passed in validation dataframe, give it its propper format.
+        if not validation_dataframe is None:
+            validation_dataframe = [validation_dataframe]
 
-            elif mod == '3':
-                task = "Back"
-                x = xBack[wndo_idx].reshape(1, seq_lenght, xBack.shape[2])
-                target, prob = model.predict_on_one_window(window=x)
+        model.train(
+            train_data=[training_dataframe],
+            valid_data=validation_dataframe,
+            epochs=config.TRAINING['args']['epochs'],
+            batch_size=batch_size, # gets this from config file when init model
+            sequence_length=sequence_length, # gets this from config file when init model
+            back_cols=back_cols,
+            thigh_cols=thigh_cols,
+            label_col=label_col,
 
-            # print("<<<<>>>>><<<>>>: \n", ":: " + model_num +" ::", target, prob)
-            self.printProgressBar(start, end, 20, explenation=task + " activity classification prog. :: ")
-            start += 1
+        )
 
-        self.printProgressBar(start, end, 20, explenation=task + " activity classification prog. :: ")
-        print() # create new line
-        try:
-            del model  # remove the model
-            clear_session()
-        except Exception as e:
-            print("Could not remove model from memory.")
+        #####
+        # Save the model / weights
+        #####
+        if save_weights or save_model:
+            print(model.save_model_andOr_weights(path=weights_path, model=save_model, weight=save_weights))
 
-
-    @staticmethod
-    def load_model_weights(model, weights_path):
-        model.load_weights(weights_path)
 
 
 if __name__ == '__main__':

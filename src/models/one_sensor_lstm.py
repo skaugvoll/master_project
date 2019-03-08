@@ -38,7 +38,7 @@ class OneSensorLSTM( HARModel ):
     self.build()
 
 
-  def save_model_and_weights(self, model_path):
+  def save_model_andOr_weights(self, path=False, model=False, weight=False):
     '''
 
     :param model_path: rel path from the "src/" including filename, excluding format. E.g  inside the src/ dir: "trained_models/twosensorlstm", makes a new directory /src/trained_models/twosensorlstm
@@ -47,8 +47,8 @@ class OneSensorLSTM( HARModel ):
 
     try:
       # check that the path exist, else create the directory to store the file
-      if not os.path.exists(os.getcwd() + "/" + os.path.dirname(model_path)):
-        os.mkdir(os.getcwd() + "/" + os.path.dirname(model_path))
+      if not os.path.exists(os.getcwd() + "/" + os.path.dirname(path)):
+        os.mkdir(os.getcwd() + "/" + os.path.dirname(path))
 
       # # serialize model to JSON
       # model_json = self.model.to_json()
@@ -59,10 +59,15 @@ class OneSensorLSTM( HARModel ):
       # self.model.save_weights("{}.h5".format(os.getcwd() + "/" + model_path + '_weights'))
       # print("Saved model to disk")
       #
-      self.saved_path = os.getcwd() + "/" + model_path
+      self.saved_path = os.getcwd() + "/" + path
+      status = ": "
 
-      self.model.save(os.getcwd() + "/" + model_path + ".h5")
-      self.model.save_weights(os.getcwd() + "/" + model_path + "_weights.h5")
+      if model:
+        status += "model saved, "
+        self.model.save(os.getcwd() + "/" + path + ".h5")
+      if weight:
+        status += "weight saved,"
+        self.model.save_weights(os.getcwd() + "/" + path + "_weights.h5")
 
       return self.saved_path
     except Exception as e:
