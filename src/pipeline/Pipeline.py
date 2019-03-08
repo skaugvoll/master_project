@@ -560,15 +560,27 @@ class Pipeline:
                          thigh_cols,
                          config_path,
                          label_col=None,
-                         weights_path=None,
                          validation_dataframe=None,
-                         validdation_label_df=None,
-                         training_dataframe_label=None,
                          batch_size=None,
                          sequence_length=None,
+                         save_to_path=None,
                          save_model=False,
                          save_weights=False
                          ):
+        '''
+        :param training_dataframe: Pandas Dataframe
+        :param back_cols: list containing the labels that identify back feature columns
+        :param thigh_cols: list containing the labels that identify thigh feature columns
+        :param config_path: relative path to the configuration of LSTM
+        :param label_col: the name of the column in dataframe that identifies Class/Target
+        :param validation_dataframe: Pandas Dataframe with same columns as training_dataframe
+        :param batch_size: Batch_size, should be given in config file, but this will over overwrite
+        :param sequence_length: sequence_length, should be given in config file, but this will over overwrite
+        :param save_to_path: if given, saves the trained weights and/or model to the given path
+        :param save_model: if path and save_model [True | False] saves the model to the path
+        :param save_weights: if path and save_weights [True | False] saves the weight to the path with suffix: _weights
+        :return: the trained model object
+        '''
         '''
         src/models/__init__.py states:
             Train the model. Usually, we like to split the data into training and validation
@@ -597,6 +609,13 @@ class Pipeline:
         if not validation_dataframe is None:
             validation_dataframe = [validation_dataframe]
 
+
+        # potentially overwrite config variables
+        batch_size = batch_size or config.TRAINING['args']['batch_size']
+        sequence_length = sequence_length or config.TRAINING['args']['sequence_length']
+        callbacks = config.TRAINING['args']['callbacks'] or None
+
+
         if back_cols and thigh_cols:
             model.train(
                 train_data=[training_dataframe],
@@ -624,11 +643,13 @@ class Pipeline:
         #####
         # Save the model / weights
         #####
-        if save_weights or save_model:
+        if save_to_path and (save_weights or save_model):
             print("Done saving: {}".format(
-                    model.save_model_andOr_weights(path=weights_path, model=save_model, weight=save_weights)
+                    model.save_model_andOr_weights(path=save_to_path, model=save_model, weight=save_weights)
                 )
             )
+
+        return model
 
 
 
