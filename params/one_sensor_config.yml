@@ -54,7 +54,7 @@ MODEL:
 # Arguments to use when doing training
 TRAINING:
   args:
-    epochs: 10
+    epochs: 1
     batch_size: 512
     sequence_length: 250
     callbacks:

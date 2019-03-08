@@ -69,7 +69,7 @@ class OneSensorLSTM( HARModel ):
         status += "weight saved,"
         self.model.save_weights(os.getcwd() + "/" + path + "_weights.h5")
 
-      return self.saved_path
+      return self.saved_path + status
     except Exception as e:
       print("Could not save to disk, ", e)
 

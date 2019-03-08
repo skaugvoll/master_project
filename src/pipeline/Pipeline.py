@@ -554,21 +554,21 @@ class Pipeline:
         return merged_df
 
 
-    def train_two_sensor_lstm_model(self,
-                                    training_dataframe,
-                                    back_cols,
-                                    thigh_cols,
-                                    config_path,
-                                    label_col=None,
-                                    weights_path=None,
-                                    validation_dataframe=None,
-                                    validdation_label_df=None,
-                                    training_dataframe_label=None,
-                                    batch_size=None,
-                                    sequence_length=None,
-                                    save_model=False,
-                                    save_weights=False
-                                    ):
+    def train_lstm_model(self,
+                         training_dataframe,
+                         back_cols,
+                         thigh_cols,
+                         config_path,
+                         label_col=None,
+                         weights_path=None,
+                         validation_dataframe=None,
+                         validdation_label_df=None,
+                         training_dataframe_label=None,
+                         batch_size=None,
+                         sequence_length=None,
+                         save_model=False,
+                         save_weights=False
+                         ):
         '''
         src/models/__init__.py states:
             Train the model. Usually, we like to split the data into training and validation
@@ -597,23 +597,39 @@ class Pipeline:
         if not validation_dataframe is None:
             validation_dataframe = [validation_dataframe]
 
-        model.train(
-            train_data=[training_dataframe],
-            valid_data=validation_dataframe,
-            epochs=config.TRAINING['args']['epochs'],
-            batch_size=batch_size, # gets this from config file when init model
-            sequence_length=sequence_length, # gets this from config file when init model
-            back_cols=back_cols,
-            thigh_cols=thigh_cols,
-            label_col=label_col,
-
-        )
+        if back_cols and thigh_cols:
+            model.train(
+                train_data=[training_dataframe],
+                valid_data=validation_dataframe,
+                epochs=config.TRAINING['args']['epochs'],
+                batch_size=batch_size, # gets this from config file when init model
+                sequence_length=sequence_length, # gets this from config file when init model
+                back_cols=back_cols,
+                thigh_cols=thigh_cols,
+                label_col=label_col,
+            )
+        else:
+            cols = back_cols or thigh_cols
+            model.train(
+                train_data=[training_dataframe],
+                valid_data=validation_dataframe,
+                callbacks=[],
+                epochs=config.TRAINING['args']['epochs'],
+                batch_size=batch_size,
+                sequence_length=sequence_length,
+                cols=cols,
+                label_col=label_col
+            )
 
         #####
         # Save the model / weights
         #####
         if save_weights or save_model:
-            print(model.save_model_andOr_weights(path=weights_path, model=save_model, weight=save_weights))
+            print("Done saving: {}".format(
+                    model.save_model_andOr_weights(path=weights_path, model=save_model, weight=save_weights)
+                )
+            )
+
 
 
 
