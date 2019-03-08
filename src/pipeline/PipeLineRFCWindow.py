@@ -304,7 +304,7 @@ class Pipeline:
                 sizeProgressBarInChars=30,
                 explenation="Model classification :: ")
 
-
+        
         self.printProgressBar(
             current=int(number_of_tasks - model_queue.qsize()),
             totalOperations=number_of_tasks,
@@ -364,72 +364,12 @@ class Pipeline:
 
         # BOTH
         self.predict_on_one_window("1", lstm_models_paths, both_sensors_windows_queue, xBack, xThigh, seq_lenght)
-        # model = None
-        # config = Config.from_yaml(lstm_models_paths["1"]['config'], override_variables={})
-        # model_name = config.MODEL['name']
-        # model_args = dict(config.MODEL['args'].items(), **config.INFERENCE.get('extra_model_args', {}))
-        # model_args['batch_size'] = 1
-        #
-        # model = models.get(model_name, model_args)
-        # model.compile()
-        # model.model.load_weights(lstm_models_paths["1"]['weights'])
-        # model.compile()
-        # for meta in both_sensors_windows_queue:
-        #     wndo_idx, _, mod = meta[0], meta[1][0], meta[2]
-        #     x1 = xBack[wndo_idx].reshape(1, seq_lenght, xBack.shape[2])
-        #     x2 = xThigh[wndo_idx].reshape(1, seq_lenght, xThigh.shape[2])
-        #
-        #     target, prob = model.predict_on_one_window(window=[x1, x2])
-        #     print("<<<<>>>>><<<>>>: \n", ":: 1 ::", target, prob)
-        # del model  # remove the model
-
 
         # THIGH
         self.predict_on_one_window('2', lstm_models_paths, thigh_sensors_windows_queue, xBack, xThigh, seq_lenght)
-        # model = None
-        # config = Config.from_yaml(lstm_models_paths['2']['config'], override_variables={})
-        # model_name = config.MODEL['name']
-        # model_args = dict(config.MODEL['args'].items(), **config.INFERENCE.get('extra_model_args', {}))
-        # model_args['batch_size'] = 1
-        #
-        # model = models.get(model_name, model_args)
-        # model.compile()
-        # model.model.load_weights(lstm_models_paths["2"]['weights'])
-        # model.compile()
-        #
-        # for meta in thigh_sensors_windows_queue:
-        #     wndo_idx, _, mod = meta[0], meta[1][0], meta[2]
-        #     x1 = xThigh[wndo_idx].reshape(1, seq_lenght, xThigh.shape[2])
-        #
-        #     target, prob = model.predict_on_one_window(window=x1)
-        #     print("<<<<>>>>><<<>>>: \n", " :: 2 :: ", target, prob)
-        # del model  # remove the model
-
 
         # BACK
         self.predict_on_one_window('3', lstm_models_paths, back_sensors_windows_queue, xBack, xThigh, seq_lenght)
-        # model = None
-        # config = Config.from_yaml(lstm_models_paths['3']['config'], override_variables={})
-        # model_name = config.MODEL['name']
-        # model_args = dict(config.MODEL['args'].items(), **config.INFERENCE.get('extra_model_args', {}))
-        # model_args['batch_size'] = 1
-        #
-        # model = models.get(model_name, model_args)
-        # model.compile()
-        # model.model.load_weights(lstm_models_paths['3']['weights'])
-        # model.compile()
-        # for meta in back_sensors_windows_queue:
-        #     wndo_idx, _, mod = meta[0], meta[1][0], meta[2]
-        #     x1 = xThigh[wndo_idx].reshape(1, seq_lenght, xBack.shape[2])
-        #
-        #     target, prob = model.predict_on_one_window(window=x1)
-        #     print("<<<<>>>>><<<>>>: \n"," ::3 :: ", target, prob)
-        # del model  # remove the model
-
-
-
-
-
 
 
 

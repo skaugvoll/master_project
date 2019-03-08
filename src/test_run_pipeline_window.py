@@ -149,10 +149,7 @@ if s == 'y':
         samples_pr_window=samples_pr_window,
         train_overlap=0.8,
         seq_lenght=250,
-        # num_proc_mod=model_cpus,
-        # num_proc_clas=class_cpus
         num_proc_mod = model_cpus
-        # num_proc_clas = 3
     )
 
 

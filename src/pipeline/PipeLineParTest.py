@@ -381,7 +381,7 @@ class PipelinePAR:
                     args=(activity_queue, model, output_classification_queue)))
 
 
-        START the worker processes for LSTM Classification
+        # START the worker processes for LSTM Classification
         for process_list in all_processes_act_class:
             for process in process_list:
                 process.start()
