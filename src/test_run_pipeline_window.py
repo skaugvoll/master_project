@@ -2,7 +2,7 @@ import sys, os
 try: sys.path.append( os.path.abspath( os.path.join( os.path.dirname( __file__), '..')))
 except: print("SAdsadsadhsa;hkldasjkd")
 
-from pipeline.PipeLineRFCWindow import Pipeline
+from pipeline.Pipeline import Pipeline
 from pipeline.DataHandler import DataHandler
 from src import models
 import pickle, math

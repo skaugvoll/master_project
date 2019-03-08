@@ -6,7 +6,7 @@ except: pass
 import pandas as pd
 
 from pipeline.DataHandler import DataHandler
-from pipeline.Pipeline import  Pipeline
+from src.scripts.Pipeline import  Pipeline
 
 # full_path = '/Users/sigveskaugvoll/Documents/Master/data/temp/4000181.7z/4000181/4000181-34566_2017-09-19_B_TEMP_SYNCHED_BT.csv'
 #
