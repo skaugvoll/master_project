@@ -537,7 +537,7 @@ class Pipeline:
 
             elif mod == '3':
                 task = "Back"
-                x = xThigh[wndo_idx].reshape(1, seq_lenght, xBack.shape[2])
+                x = xBack[wndo_idx].reshape(1, seq_lenght, xBack.shape[2])
                 target, prob = model.predict_on_one_window(window=x)
 
             # print("<<<<>>>>><<<>>>: \n", ":: " + model_num +" ::", target, prob)
