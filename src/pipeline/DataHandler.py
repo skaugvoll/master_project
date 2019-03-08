@@ -532,19 +532,27 @@ class DataHandler():
             return train_test_split(dataframe, test_size=split_rate, shuffle=shuffle)
 
     @staticmethod
-    def create_batches_with_seq_length(dataframes, columns):
+    def create_batches_with_seq_length(dataframes, columns, sequence_length, stateful=None, batch_size=None):
         '''
 
         :param self:
         :param dataframes: list with dataframes
         :param columns: list with columns (features) to keep in the new batch
+        :param batch_size:
+        :param sequence_length:
+        :param stateful: Only fill X with full batches
         :return:
         '''
-        return np.concatenate([
+        X =  np.concatenate([
             dataframe[columns].values[: (len(dataframe) - len(dataframe) % sequence_length)] for dataframe in dataframes
         ]).reshape( -1, sequence_length, len(columns) )
 
+        if stateful and batch_size:
+            # No half-batches are allowed if using stateful. TODO: This should probably be done very differently
+            batch_size = batch_size
+            X = X[: (len(X) - len(X) % batch_size)]
 
+        return X
 
 
 
