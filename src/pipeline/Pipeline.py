@@ -22,7 +22,7 @@ class Pipeline:
         print('CREATED datahandler')
 
 
-    def unzip_extractNconvert_temp_merge_dataset(self, rel_filepath, label_interval, label_mapping, unzip_path='../data/temp', unzip_cleanup=False, cwa_paralell_convert=True):
+    def unzip_extractNconvert_temp_merge_dataset(self, rel_filepath, label_interval, label_mapping, unzip_path='../../data/temp', unzip_cleanup=False, cwa_paralell_convert=True):
         # unzip cwas from 7z arhcive
         unzipped_path = self.dh.unzip_7z_archive(
             filepath=os.path.join(os.getcwd(), rel_filepath),
@@ -36,6 +36,8 @@ class Pipeline:
         #
         #
         ##########################
+
+
 
         # convert the cwas to independent csv containing timestamp xyz and temp
         back_csv, thigh_csv = cwa_converter.convert_cwas_to_csv_with_temp(
