@@ -328,10 +328,12 @@ class DataHandler():
 
     def convert_column_from_str_to_datetime_test(self, dataframe=None, column_name="time"):
         # TODO if dataframe is actually dataframe object, self.dataframe_iterator = dataframe
+        # TODO remove this and change all places it it called to call convert_column_from_str_to_datetime
         if isinstance(dataframe, str):
             self.dataframe_iterator = pd.read_csv(dataframe)
             print(self.dataframe_iterator.head(5))
             print()
+
             self.dataframe_iterator.columns = ['time', 'bx', 'by', 'bz', 'tx', 'ty', 'tz', 'btemp', 'ttemp']
         else:
             print("USING THE Datahandlers own dataframe-Instance")
@@ -553,7 +555,9 @@ class DataHandler():
         :param stateful: Only fill X with full batches
         :return:
         '''
-        X =  np.concatenate([
+
+
+        X = np.concatenate([
             dataframe[columns].values[: (len(dataframe) - len(dataframe) % sequence_length)] for dataframe in dataframes
         ]).reshape( -1, sequence_length, len(columns) )
 
@@ -620,6 +624,11 @@ class DataHandler():
             for k, _ in subjects.items():
                 print("Subject: {}".format(k))
         return subjects
+
+
+    @staticmethod
+    def getAttributeOrReturnDefault(dict, name, default=None):
+        return dict.get(name, default)
 
 
 

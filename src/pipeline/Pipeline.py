@@ -170,20 +170,20 @@ class Pipeline:
 
     # TODO create method for unzip_extractNconvert_temp_stack_dataset() or adopt the above def..
 
-    def get_features_and_labels(self, df, dh=None, columns_back=[0,1,2,6], columns_thigh=[3,4,5,7], column_label=[8]):
+    def get_features_and_labels(self, df, dh=None, back_columns=[0, 1, 2, 6], thigh_columns=[3, 4, 5, 7], label_column=[8]):
         if dh is None:
             dh = DataHandler()
 
         back_feat, thigh_feat, labels = None, None, None
 
-        print(columns_back, columns_thigh, column_label)
+        # print(back_columns, thigh_columns, label_column)
 
-        if columns_back:
-            back_feat = dh.get_rows_and_columns(dataframe=df, columns=columns_back).values
-        if columns_thigh:
-            thigh_feat = dh.get_rows_and_columns(dataframe=df, columns=columns_thigh).values
-        if column_label:
-            labels = dh.get_rows_and_columns(dataframe=df, columns=column_label).values
+        if back_columns:
+            back_feat = dh.get_rows_and_columns(dataframe=df, columns=back_columns).values
+        if thigh_columns:
+            thigh_feat = dh.get_rows_and_columns(dataframe=df, columns=thigh_columns).values
+        if label_column:
+            labels = dh.get_rows_and_columns(dataframe=df, columns=label_column).values
 
         return back_feat, thigh_feat, labels
 
@@ -213,16 +213,20 @@ class Pipeline:
 
     def parallel_pipeline_classification_run(self,
                                              dataframe,
+                                             dataframe_columns,
                                              rfc_model_path,
                                              lstm_models_paths,
                                              samples_pr_window,
                                              train_overlap=0.8,
                                              num_proc_mod=1,
                                              seq_lenght=None,
+                                             lstm_model_mapping={"both": '1', "thigh": '2', "back": '3'}
                                              ):
         '''
 
         :param dataframe: Pandas DataFrame
+        :param dataframe_columns: dictionary with keys
+            ['back_features', 'thigh_features', 'back_temp', 'thigh_temp', 'label_column']
         :param rfc_model_path: str with path to saved RFC
         :param lstm_models_paths: dictionary containing lstm_mapping and path {rfc_result_number : model_path}
         :param samples_pr_window:
@@ -230,7 +234,8 @@ class Pipeline:
         :param num_proc_mod:
         :param num_proc_clas:
         :param seq_lenght:
-        :return:
+        :param lstm_model_mapping: dict with keys ["both", "thigh", "back"]
+        :return: list<both>, list<thigh>, list<back>, each list has a new list with tuples (time, conf/prog, class)
         '''
 
         # TODO: burde passe inn back, thigh og label columns til methoden også videre inn i get_features_and_labels
@@ -246,7 +251,23 @@ class Pipeline:
 
 
         # Submit tasks for model klassifisering
-        back_feat, thigh_feat, label = self.get_features_and_labels(self.dataframe) # returns numpy arrays
+
+        # Build arguments for get_features_and_labels function
+
+        b_clm = DataHandler.getAttributeOrReturnDefault(dataframe_columns, 'back_features') + DataHandler.getAttributeOrReturnDefault(dataframe_columns, 'back_temp')
+        t_clm = DataHandler.getAttributeOrReturnDefault(dataframe_columns, 'thigh_features') + DataHandler.getAttributeOrReturnDefault(dataframe_columns, 'thigh_temp')
+        l_clm = DataHandler.getAttributeOrReturnDefault(dataframe_columns, 'label_column')
+
+        args = {
+            'back_columns': b_clm,
+            'thigh_columns': t_clm,
+            'label_column': l_clm
+        }
+
+        # extract back, thigh and labels
+        back_feat, thigh_feat, label = self.get_features_and_labels(self.dataframe, **args)  # returns numpy arrays
+
+        # calculate temperature features
         back_feat = temp_feature_util.segment_acceleration_and_calculate_features(back_feat,
                                                                     samples_pr_window=samples_pr_window,
                                                                     overlap=train_overlap)
@@ -346,34 +367,83 @@ class Pipeline:
         # ...
 
 
-        # See results
-        print("OUTPUT/Activities windows to classify : ", len(output_classification_windows))
+        # print("OUTPUT/Activities windows to classify : ", len(output_classification_windows))
 
-        both_sensors_windows_queue = list(filter(lambda x: x[1] == '1', output_classification_windows))
-        thigh_sensors_windows_queue = list(filter(lambda x: x[1] == '2', output_classification_windows))
-        back_sensors_windows_queue = list(filter(lambda x: x[1] == '3', output_classification_windows))
-        del output_classification_windows
+        both_sensors_windows_queue = list(
+            filter(lambda x: x[1] == lstm_model_mapping['both'], output_classification_windows)
+        )
+        thigh_sensors_windows_queue = list(
+            filter(lambda x: x[1] == lstm_model_mapping['thigh'], output_classification_windows)
+        )
+        back_sensors_windows_queue = list(
+            filter(lambda x: x[1] == lstm_model_mapping['back'], output_classification_windows)
+        )
 
-        back_colums = ['back_x', 'back_y', 'back_z']
-        thigh_colums = ['thigh_x', 'thigh_y', 'thigh_z']
+        del output_classification_windows # save memory! GC can clean this now
 
-        # x1 = model.get_features([dataframe], ['back_x', 'back_y', 'back_z'], batch_size=1, sequence_length=seq_lenght)
+        back_colums = DataHandler.getAttributeOrReturnDefault(dataframe_columns, 'back_features')
+        thigh_colums = DataHandler.getAttributeOrReturnDefault(dataframe_columns, 'thigh_features')
+
         xBack = np.concatenate([dataframe[back_colums].values[ : (len(dataframe) - len(dataframe) % seq_lenght) ] for dataframe in [dataframe]])
         xThigh = np.concatenate([dataframe[thigh_colums].values[: (len(dataframe) - len(dataframe) % seq_lenght)] for dataframe in [dataframe]])
 
         xBack = xBack.reshape(-1, seq_lenght, len(back_colums))
         xThigh = xThigh.reshape(-1, seq_lenght, len(thigh_colums))
 
-        print("XBACK: ", xBack.shape)
-
         # BOTH
-        bth_class = self.predict_on_one_window("1", lstm_models_paths, both_sensors_windows_queue, xBack, xThigh, seq_lenght)
+        bth_class = self.predict_on_one_window(DataHandler.getAttributeOrReturnDefault(lstm_model_mapping, 'both'), lstm_models_paths, both_sensors_windows_queue, xBack, xThigh, seq_lenght)
 
         # THIGH
-        thigh_class = self.predict_on_one_window('2', lstm_models_paths, thigh_sensors_windows_queue, xBack, xThigh, seq_lenght)
+        thigh_class = self.predict_on_one_window(DataHandler.getAttributeOrReturnDefault(lstm_model_mapping, 'thigh'), lstm_models_paths, thigh_sensors_windows_queue, xBack, xThigh, seq_lenght)
 
         # BACK
-        back_class = self.predict_on_one_window('3', lstm_models_paths, back_sensors_windows_queue, xBack, xThigh, seq_lenght)
+        back_class = self.predict_on_one_window(DataHandler.getAttributeOrReturnDefault(lstm_model_mapping, 'back'), lstm_models_paths, back_sensors_windows_queue, xBack, xThigh, seq_lenght)
+
+
+        # Get timestamps (TODO: extract to own function)
+        indexes = np.array(self.dataframe.index.tolist())
+
+        num_windows = int(indexes.shape[0] / seq_lenght)
+        prev_window = 0
+        next_window = prev_window + seq_lenght
+        timestap_windows = []
+        while len(timestap_windows) < num_windows:
+            indexes_window = [ indexes[prev_window : next_window] ]
+            timestap_windows.append( indexes_window )
+            prev_window = next_window
+            next_window += seq_lenght
+
+        timestap_windows = np.array(timestap_windows)
+
+        # Todo extract to static method in DataHandler
+        #build dataframe [timestart, timeend, confidence, target]
+        import pandas as pd
+        result_df = pd.DataFrame(columns=['timestart', 'timeend', 'confidence', 'target'])
+        classifications = np.concatenate((bth_class, thigh_class, back_class))
+        i = 0
+        for idx, conf, target in classifications:
+            # TODO: do some logic that finds timestart and timeend for sequences of same target, take avg, conf and then thats the row we want to add to dataframe, not all windows!
+            timestart = timestap_windows[idx][0][0]
+            timeend = timestap_windows[idx][0][-1]
+            row = {'timestart': timestart, 'timeend': timeend, 'confidence': conf[0], 'target': target[0]}
+            result_df.loc[len(result_df)] = row
+            self.printProgressBar(i, len(classifications), 20, explenation='Creating result dataframe')
+            i += 1
+        self.printProgressBar(i, len(classifications), 20, explenation='Creating result dataframe')
+        print("Done")
+
+        print(result_df.head(5))
+        result_df['timestart'] = pd.to_datetime(result_df['timestart'])
+        result_df['timeend'] = pd.to_datetime(result_df['timeend'])
+        result_df['confidence'] = pd.to_numeric(result_df['confidence'])
+        result_df['target'] = pd.to_numeric(result_df['target'])
+
+        print(result_df.dtypes)
+
+
+
+
+
 
         return bth_class, thigh_class, back_class
 
@@ -440,34 +510,22 @@ class Pipeline:
             task = None
             if mod == "1":
                 task = "Both"
-                # if time_col in xThigh.columns: # TODO, this does not work, as xThigh is a numpy array
-                #     timestamp = xThigh[time_col]
-                # else:
-                timestamp = "NA"
                 x1 = xBack[wndo_idx].reshape(1, seq_lenght, xBack.shape[2])
                 x2 = xThigh[wndo_idx].reshape(1, seq_lenght, xThigh.shape[2])
                 target, prob = model.predict_on_one_window(window=[x1, x2])
-                classifications.append((timestamp, prob, target))
+                classifications.append((wndo_idx, prob, target))
 
             elif mod == '2':
                 task = "Thigh"
-                # if time_col in xThigh.columns: # TODO, this does not work, as xThigh is a numpy array
-                #     timestamp = xThigh[time_col]
-                # else:
-                timestamp = "NA"
                 x = xThigh[wndo_idx].reshape(1, seq_lenght, xThigh.shape[2])
                 target, prob = model.predict_on_one_window(window=x)
-                classifications.append((timestamp, prob, target))
+                classifications.append((wndo_idx, prob, target))
 
             elif mod == '3':
                 task = "Back"
-                # if time_col in xBack.columns: # TODO, this does not work, as xBack is a numpy array
-                #     timestamp = xBack[time_col]
-                # else:
-                timestamp = "NA"
                 x = xBack[wndo_idx].reshape(1, seq_lenght, xBack.shape[2])
                 target, prob = model.predict_on_one_window(window=x)
-                classifications.append((timestamp, prob, target))
+                classifications.append((wndo_idx, prob, target))
 
             # print("<<<<>>>>><<<>>>: \n", ":: " + model_num +" ::", target, prob)
             self.printProgressBar(start, end, 20, explenation=task + " activity classification prog. :: ")

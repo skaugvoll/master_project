@@ -134,7 +134,6 @@ if s == 'y':
         }
     }
 
-
     model_cpus = math.floor(os.cpu_count() // 2)
     class_cpus = math.floor(os.cpu_count() // 2)
     if model_cpus == 0 or class_cpus == 0:
@@ -142,18 +141,29 @@ if s == 'y':
 
 
     p = Pipeline()
-    a,t, b = p.parallel_pipeline_classification_run(
+
+    dataframe_columns = {
+        'back_features': ['back_x','back_y','back_z'],
+        'thigh_features': ['thigh_x', 'thigh_y', 'thigh_z'],
+        'back_temp': ['btemp'],
+        'thigh_temp': ['ttemp'],
+        'label_column': ['label'],
+        'time': []
+    }
+
+    a, t, b = p.parallel_pipeline_classification_run(
         dataframe=dataframe_test,
+        dataframe_columns=dataframe_columns,
         rfc_model_path=rfc_model_path,
         lstm_models_paths=lstm_models_path,
         samples_pr_window=samples_pr_window,
         train_overlap=0.8,
         seq_lenght=250,
-        num_proc_mod = model_cpus
+        num_proc_mod=model_cpus,
+        lstm_model_mapping={"both": '1', "thigh": '2', "back": '3'}
     )
 
-
-    print(a, t ,b)
+    # print(a, t ,b)
 
 
 
