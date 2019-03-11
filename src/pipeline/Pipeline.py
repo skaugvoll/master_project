@@ -309,13 +309,6 @@ class Pipeline:
                 sizeProgressBarInChars=30,
                 explenation="Model classification :: ")
 
-        
-        self.printProgressBar(
-            current=int(number_of_tasks - model_queue.qsize()),
-            totalOperations=number_of_tasks,
-            sizeProgressBarInChars=30,
-            explenation="Model classification :: ")
-        print("DONE")
 
         # Tell child processes to stop waiting for more jobs
         for _ in range(NUMBER_OF_PROCESSES_models):
@@ -325,8 +318,14 @@ class Pipeline:
 
         # LET ALL PROCESSES ACTUALLY TERMINATE AKA FINISH THE JOB THEIR DOING
         while any([p.is_alive() for p in processes_model]):
+            self.printProgressBar(
+                current=int(number_of_tasks - model_queue.qsize()),
+                totalOperations=number_of_tasks,
+                sizeProgressBarInChars=30,
+                explenation="Model classification :: ")
             pass
 
+        print("DONE")
         # print(">>>>>>>>>>>>>>>>> POT OF GOLD <<<<<<<<<<<<<<<<<")
 
         # join the processes aka block the threads, do not let them take on any more jobs
@@ -441,7 +440,7 @@ class Pipeline:
             task = None
             if mod == "1":
                 task = "Both"
-                if time_col in xThigh:
+                if time_col in xThigh.columns: # TODO, this does not work, as xThigh is a numpy array
                     timestamp = xThigh[time_col]
                 else:
                     timestamp = "NA"
@@ -452,7 +451,7 @@ class Pipeline:
 
             elif mod == '2':
                 task = "Thigh"
-                if time_col in xThigh:
+                if time_col in xThigh.columns: # TODO, this does not work, as xThigh is a numpy array
                     timestamp = xThigh[time_col]
                 else:
                     timestamp = "NA"
@@ -462,7 +461,7 @@ class Pipeline:
 
             elif mod == '3':
                 task = "Back"
-                if time_col in xBack:
+                if time_col in xBack.columns: # TODO, this does not work, as xBack is a numpy array
                     timestamp = xBack[time_col]
                 else:
                     timestamp = "NA"
