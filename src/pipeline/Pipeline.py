@@ -440,10 +440,10 @@ class Pipeline:
             task = None
             if mod == "1":
                 task = "Both"
-                if time_col in xThigh.columns: # TODO, this does not work, as xThigh is a numpy array
-                    timestamp = xThigh[time_col]
-                else:
-                    timestamp = "NA"
+                # if time_col in xThigh.columns: # TODO, this does not work, as xThigh is a numpy array
+                #     timestamp = xThigh[time_col]
+                # else:
+                timestamp = "NA"
                 x1 = xBack[wndo_idx].reshape(1, seq_lenght, xBack.shape[2])
                 x2 = xThigh[wndo_idx].reshape(1, seq_lenght, xThigh.shape[2])
                 target, prob = model.predict_on_one_window(window=[x1, x2])
@@ -451,20 +451,20 @@ class Pipeline:
 
             elif mod == '2':
                 task = "Thigh"
-                if time_col in xThigh.columns: # TODO, this does not work, as xThigh is a numpy array
-                    timestamp = xThigh[time_col]
-                else:
-                    timestamp = "NA"
+                # if time_col in xThigh.columns: # TODO, this does not work, as xThigh is a numpy array
+                #     timestamp = xThigh[time_col]
+                # else:
+                timestamp = "NA"
                 x = xThigh[wndo_idx].reshape(1, seq_lenght, xThigh.shape[2])
                 target, prob = model.predict_on_one_window(window=x)
                 classifications.append((timestamp, prob, target))
 
             elif mod == '3':
                 task = "Back"
-                if time_col in xBack.columns: # TODO, this does not work, as xBack is a numpy array
-                    timestamp = xBack[time_col]
-                else:
-                    timestamp = "NA"
+                # if time_col in xBack.columns: # TODO, this does not work, as xBack is a numpy array
+                #     timestamp = xBack[time_col]
+                # else:
+                timestamp = "NA"
                 x = xBack[wndo_idx].reshape(1, seq_lenght, xBack.shape[2])
                 target, prob = model.predict_on_one_window(window=x)
                 classifications.append((timestamp, prob, target))
