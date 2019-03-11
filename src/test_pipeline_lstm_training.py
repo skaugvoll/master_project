@@ -34,7 +34,7 @@ dataframe = p.create_large_dafatframe_from_multiple_input_directories(
 
 
 train, validation = DataHandler.split_df_into_training_and_test(dataframe, split_rate=.8)
-validation, test = DataHandler.split_df_into_training_and_test(validation, split_rate=.8)
+validation, test = DataHandler.split_df_into_training_and_test(validation, split_rate=.5)
 
 p.train_lstm_model(
     training_dataframe=train,
@@ -46,13 +46,13 @@ p.train_lstm_model(
     # config_path='../params/one_sensor_config.yml',
     label_col='label',
     validation_dataframe=validation,
-    save_to_path="trained_models/test_le_both",
+    save_to_path="trained_models/both_sensors_11_03",
     save_weights=True
 )
 
 
-p.evaluate_lstm_model(
-    test,
+res = p.evaluate_lstm_model(
+    dataframe=test,
     label_col='label',
     num_sensors=None,
     model=None,
@@ -62,3 +62,5 @@ p.evaluate_lstm_model(
     batch_size=None,
     sequence_length=None
 )
+
+print("Evaluation result: {}".format(res))

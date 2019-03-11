@@ -662,14 +662,14 @@ class Pipeline:
         num_sensors = num_sensors or self.num_sensors
 
         if num_sensors == 2:
-            model.evaluate(dataframes=[dataframe],
+            return model.evaluate(dataframes=[dataframe],
                           batch_size=batch_size or self.config.TRAINING['args']['batch_size'],
                           sequence_length=sequence_length or self.config.TRAINING['args']['sequence_length'],
                           back_cols=self.cols[0] or back_cols,
                           thigh_cols=self.cols[1] or thigh_cols,
                           label_col=label_col)
         elif num_sensors == 1:
-            model.evaluate(dataframes=[dataframe],
+            return model.evaluate(dataframes=[dataframe],
                           batch_size=batch_size or self.config.TRAINING['args']['batch_size'],
                           sequence_length=sequence_length or self.config.TRAINING['args']['sequence_length'],
                           cols=self.cols or cols,
