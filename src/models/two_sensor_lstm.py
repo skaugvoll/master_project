@@ -188,7 +188,7 @@ class TwoSensorLSTM( HARModel ):
     # self.compile()
     classification = self.model.predict(window, batch_size=1)
     prob = classification.max(axis=1)
-    target = classification.argmax(axis=1)
+    target = self.encoder.one_hot_decode( classification )
     return target, prob
 
 

@@ -360,15 +360,15 @@ class Pipeline:
         print("XBACK: ", xBack.shape)
 
         # BOTH
-        self.predict_on_one_window("1", lstm_models_paths, both_sensors_windows_queue, xBack, xThigh, seq_lenght)
+        bth_class = self.predict_on_one_window("1", lstm_models_paths, both_sensors_windows_queue, xBack, xThigh, seq_lenght)
 
         # THIGH
-        self.predict_on_one_window('2', lstm_models_paths, thigh_sensors_windows_queue, xBack, xThigh, seq_lenght)
+        thigh_class = self.predict_on_one_window('2', lstm_models_paths, thigh_sensors_windows_queue, xBack, xThigh, seq_lenght)
 
         # BACK
-        self.predict_on_one_window('3', lstm_models_paths, back_sensors_windows_queue, xBack, xThigh, seq_lenght)
+        back_class = self.predict_on_one_window('3', lstm_models_paths, back_sensors_windows_queue, xBack, xThigh, seq_lenght)
 
-
+        return bth_class, thigh_class, back_class
 
         # classifiers = {}
         # for key in lstm_models_paths.keys():
@@ -412,7 +412,7 @@ class Pipeline:
         #
         # self.printProgressBar(start, end, 20, explenation="Activity classification prog. :: ")
 
-    def predict_on_one_window(self, model_num, lstm_models_paths, sensors_windows_queue, xBack, xThigh, seq_lenght):
+    def predict_on_one_window(self, model_num, lstm_models_paths, sensors_windows_queue, xBack, xThigh, seq_lenght, time_col='time'):
         model = None
         config = Config.from_yaml(lstm_models_paths[model_num]['config'], override_variables={})
         model_name = config.MODEL['name']
@@ -425,24 +425,42 @@ class Pipeline:
         model.compile()
         start = 0
         end = len(sensors_windows_queue)
+
+        classifications = []
+
         for meta in sensors_windows_queue:
             wndo_idx, mod = meta[0], meta[1]
             task = None
             if mod == "1":
                 task = "Both"
+                if time_col in xThigh:
+                    timestamp = xThigh[time_col]
+                else:
+                    timestamp = "NA"
                 x1 = xBack[wndo_idx].reshape(1, seq_lenght, xBack.shape[2])
                 x2 = xThigh[wndo_idx].reshape(1, seq_lenght, xThigh.shape[2])
                 target, prob = model.predict_on_one_window(window=[x1, x2])
+                classifications.append((timestamp, prob, target))
 
             elif mod == '2':
                 task = "Thigh"
+                if time_col in xThigh:
+                    timestamp = xThigh[time_col]
+                else:
+                    timestamp = "NA"
                 x = xThigh[wndo_idx].reshape(1, seq_lenght, xThigh.shape[2])
                 target, prob = model.predict_on_one_window(window=x)
+                classifications.append((timestamp, prob, target))
 
             elif mod == '3':
                 task = "Back"
+                if time_col in xBack:
+                    timestamp = xBack[time_col]
+                else:
+                    timestamp = "NA"
                 x = xBack[wndo_idx].reshape(1, seq_lenght, xBack.shape[2])
                 target, prob = model.predict_on_one_window(window=x)
+                classifications.append((timestamp, prob, target))
 
             # print("<<<<>>>>><<<>>>: \n", ":: " + model_num +" ::", target, prob)
             self.printProgressBar(start, end, 20, explenation=task + " activity classification prog. :: ")
@@ -455,6 +473,9 @@ class Pipeline:
             clear_session()
         except Exception as e:
             print("Could not remove model from memory.")
+        finally:
+            # RETURN TIMESTAMP, CONFIDENCE/PROB and TARGET
+            return np.array(classifications)
 
     @staticmethod
     def load_model_weights(model, weights_path):
@@ -479,31 +500,6 @@ class Pipeline:
                                                                 ):
 
 
-
-        # subjects = {}
-        # for subject in list_with_subjects:
-        #     if not os.path.exists(subject):
-        #         print("Could not find Subject at path: ", subject)
-        #
-        #     files = {}
-        #     for sub_files_and_dirs in os.listdir(subject):
-        #         # print(sub_files_and_dirs)
-        #         words = re.split("[_ .]", sub_files_and_dirs)
-        #         words = list(map(lambda x: x.lower(), words))
-        #
-        #         check_for_matching_word = lambda words, keywords: [True if keyword.lower() == word.lower() else False
-        #                                                            for word in words for keyword in keywords]
-        #
-        #         if any(check_for_matching_word(words, back_keywords)):
-        #             files["backCSV"] = sub_files_and_dirs
-        #
-        #         elif any(check_for_matching_word(words, thigh_keywords)):
-        #             files["thighCSV"] = sub_files_and_dirs
-        #
-        #         elif any(check_for_matching_word(words, label_keywords)):
-        #             files["labelCSV"] = sub_files_and_dirs
-        #
-        #     subjects[subject] = files
         subjects = DataHandler.findFilesInDirectoriesAndSubDirs(list_with_subjects,
                                                          back_keywords,
                                                          thigh_keywords,

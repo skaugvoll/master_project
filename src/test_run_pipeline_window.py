@@ -142,7 +142,7 @@ if s == 'y':
 
 
     p = Pipeline()
-    p.parallel_pipeline_classification_run(
+    a,t, b = p.parallel_pipeline_classification_run(
         dataframe=dataframe_test,
         rfc_model_path=rfc_model_path,
         lstm_models_paths=lstm_models_path,
@@ -152,6 +152,8 @@ if s == 'y':
         num_proc_mod = model_cpus
     )
 
+
+    print(a, t ,b)
 
 
 
