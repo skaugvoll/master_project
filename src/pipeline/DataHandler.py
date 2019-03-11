@@ -439,14 +439,19 @@ class DataHandler():
         if dataframe is None:
             print("Faak off, datahandler get_rows_and_columns")
             # TODO fix exception
-
         if rows is None and columns is None:
             return dataframe
         elif rows is None:
+            if type(columns[0]) == str:
+                return dataframe.loc[:, columns]
             return dataframe.iloc[:, columns]
         elif columns is None:
+            if type(rows[0]) == str:
+                return dataframe.loc[rows, :]
             return dataframe.iloc[rows, :]
         else:
+            if type(rows[0] == str) and type(columns[0]) == str:
+                return dataframe.loc[rows, columns]
             return dataframe.iloc[rows, columns]
 
     def show_dataframe(self):
