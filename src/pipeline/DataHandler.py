@@ -554,6 +554,63 @@ class DataHandler():
 
         return X
 
+    @staticmethod
+    def findFilesInDirectoriesAndSubDirs(list_with_subjects, back_keywords, thigh_keywords, label_keywords, verbose=False):
+        '''
+        takes in a list with path to directories containing files to look for based on keywords,
+        the files must be at root level in the directory.
+
+        NOTE: Files must use _ and or . for delimiter in filename
+        Note: case Insensitive
+
+        :param list_with_subjects:
+        :param back_keywords:
+        :param thigh_keywords:
+        :param label_keywords:
+        :return: a dictionary {subject_dir_name: {backCSV : x, thighCSV : y, labelCSVL : z}}
+        '''
+        # check if directory contains files or another directory:
+        sub_dirs = []
+        for sub in list_with_subjects:
+            for dirpath, dirnames, filenames in os.walk(sub):
+                # if not leaf directory, but has files
+                if filenames and not dirnames == []:
+                    sub_dirs.append(dirpath)
+
+                # if leaf directory and has files, not empty directory
+                if dirnames == [] and filenames:
+                    sub_dirs.append(dirpath)
+
+        subjects = {}
+        for subject in sub_dirs:
+            if not os.path.exists(subject):
+                print("Could not find Subject at path: ", subject)
+
+            files = {}
+            for sub_files_and_dirs in os.listdir(subject):
+                # print(sub_files_and_dirs)
+                words = re.split("[_ .]", sub_files_and_dirs)
+                words = list(map(lambda x: x.lower(), words))
+
+                check_for_matching_word = lambda words, keywords: [True if keyword.lower() == word.lower() else False
+                                                                   for word in words for keyword in keywords]
+
+                if any(check_for_matching_word(words, back_keywords)):
+                    files["backCSV"] = sub_files_and_dirs
+
+                elif any(check_for_matching_word(words, thigh_keywords)):
+                    files["thighCSV"] = sub_files_and_dirs
+
+                elif any(check_for_matching_word(words, label_keywords)):
+                    files["labelCSV"] = sub_files_and_dirs
+
+            subjects[subject] = files
+        if verbose:
+            print("Found following subjects")
+            for k, _ in subjects.items():
+                print("Subject: {}".format(k))
+        return subjects
+
 
 
 

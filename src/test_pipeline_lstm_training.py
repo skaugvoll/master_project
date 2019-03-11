@@ -15,7 +15,8 @@ p = Pipeline()
 list_with_subjects = [
     '../data/input/006',
     '../data/input/008',
-    '../data/input/009'
+    '../data/input/009',
+    '../data/input/training_data/small_set'
 ]
 
 dataframe = p.create_large_dafatframe_from_multiple_input_directories(

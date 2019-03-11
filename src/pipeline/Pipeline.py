@@ -480,33 +480,37 @@ class Pipeline:
 
 
 
-        subjects = {}
-        for subject in list_with_subjects:
-            if not os.path.exists(subject):
-                print("Could not find Subject at path: ", subject)
-
-            files = {}
-            for sub_files_and_dirs in os.listdir(subject):
-                # print(sub_files_and_dirs)
-                words = re.split("[_ .]", sub_files_and_dirs)
-                words = list(map(lambda x: x.lower(), words))
-
-                check_for_matching_word = lambda words, keywords: [True if keyword.lower() == word.lower() else False
-                                                                   for word in words for keyword in keywords]
-
-                if any(check_for_matching_word(words, back_keywords)):
-                    files["backCSV"] = sub_files_and_dirs
-
-                elif any(check_for_matching_word(words, thigh_keywords)):
-                    files["thighCSV"] = sub_files_and_dirs
-
-                elif any(check_for_matching_word(words, label_keywords)):
-                    files["labelCSV"] = sub_files_and_dirs
-
-            subjects[subject] = files
+        # subjects = {}
+        # for subject in list_with_subjects:
+        #     if not os.path.exists(subject):
+        #         print("Could not find Subject at path: ", subject)
+        #
+        #     files = {}
+        #     for sub_files_and_dirs in os.listdir(subject):
+        #         # print(sub_files_and_dirs)
+        #         words = re.split("[_ .]", sub_files_and_dirs)
+        #         words = list(map(lambda x: x.lower(), words))
+        #
+        #         check_for_matching_word = lambda words, keywords: [True if keyword.lower() == word.lower() else False
+        #                                                            for word in words for keyword in keywords]
+        #
+        #         if any(check_for_matching_word(words, back_keywords)):
+        #             files["backCSV"] = sub_files_and_dirs
+        #
+        #         elif any(check_for_matching_word(words, thigh_keywords)):
+        #             files["thighCSV"] = sub_files_and_dirs
+        #
+        #         elif any(check_for_matching_word(words, label_keywords)):
+        #             files["labelCSV"] = sub_files_and_dirs
+        #
+        #     subjects[subject] = files
+        subjects = DataHandler.findFilesInDirectoriesAndSubDirs(list_with_subjects,
+                                                         back_keywords,
+                                                         thigh_keywords,
+                                                         label_keywords,
+                                                         verbose=True)
 
         # print(subjects)
-
         merged_df = None
         dh = DataHandler()
         dh_stacker = DataHandler()
