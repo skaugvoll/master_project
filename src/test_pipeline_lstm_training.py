@@ -19,7 +19,7 @@ list_with_subjects = [
     '../data/input/training_data/small_set'
 ]
 
-dataframe = p.create_large_dafatframe_from_multiple_input_directories(
+dataframe = p.create_large_dataframe_from_multiple_input_directories(
     list_with_subjects,
     back_keywords=['Back', "b"],
     thigh_keywords=['Thigh', "t"],
@@ -30,7 +30,8 @@ dataframe = p.create_large_dafatframe_from_multiple_input_directories(
     slave_columns=['tx', 'ty', 'tz'],
     rearrange_columns_to=None,
     save=False,
-    added_columns_name=["label"]
+    added_columns_name=["label"],
+    verbose=False
 )
 
 

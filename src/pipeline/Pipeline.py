@@ -211,7 +211,15 @@ class Pipeline:
 
 
 
-    def parallel_pipeline_classification_run(self, dataframe, rfc_model_path, lstm_models_paths, samples_pr_window, train_overlap=0.8, num_proc_mod=1, seq_lenght=None):
+    def parallel_pipeline_classification_run(self,
+                                             dataframe,
+                                             rfc_model_path,
+                                             lstm_models_paths,
+                                             samples_pr_window,
+                                             train_overlap=0.8,
+                                             num_proc_mod=1,
+                                             seq_lenght=None,
+                                             ):
         '''
 
         :param dataframe: Pandas DataFrame
@@ -485,26 +493,27 @@ class Pipeline:
     #                                   ^PARALLELL PIPELINE EXECUTE WINDOW BY WINDOW CODE^                             #
     ####################################################################################################################
 
-    def create_large_dafatframe_from_multiple_input_directories(self,
-                                                                list_with_subjects,
-                                                                back_keywords=['Back'],
-                                                                thigh_keywords = ['Thigh'],
-                                                                label_keywords = ['GoPro', "Labels"],
-                                                                out_path=None,
-                                                                merge_column = None,
-                                                                master_columns = ['bx', 'by', 'bz'],
-                                                                slave_columns = ['tx', 'ty', 'tz'],
-                                                                rearrange_columns_to = None,
-                                                                save=False,
-                                                                added_columns_name=["new_col"]
-                                                                ):
+    def create_large_dataframe_from_multiple_input_directories(self,
+                                                               list_with_subjects,
+                                                               back_keywords=['Back'],
+                                                               thigh_keywords = ['Thigh'],
+                                                               label_keywords = ['GoPro', "Labels"],
+                                                               out_path=None,
+                                                               merge_column = None,
+                                                               master_columns = ['bx', 'by', 'bz'],
+                                                               slave_columns = ['tx', 'ty', 'tz'],
+                                                               rearrange_columns_to = None,
+                                                               save=False,
+                                                               added_columns_name=["new_col"],
+                                                               verbose=True
+                                                               ):
 
 
         subjects = DataHandler.findFilesInDirectoriesAndSubDirs(list_with_subjects,
                                                          back_keywords,
                                                          thigh_keywords,
                                                          label_keywords,
-                                                         verbose=True)
+                                                         verbose=verbose)
 
         # print(subjects)
         merged_df = None
@@ -529,7 +538,8 @@ class Pipeline:
                 rearrange_columns_to=rearrange_columns_to,
                 save=save,
                 left_index=True,
-                right_index=True
+                right_index=True,
+                verbose=verbose
             )
 
             dh.add_columns_based_on_csv(label, columns_name=added_columns_name, join_type="inner")
@@ -543,11 +553,9 @@ class Pipeline:
             merged_df = dh_stacker.vertical_stack_dataframes(merged_df, dh.get_dataframe_iterator(),
                                                              set_as_current_df=False)
 
-        #     print(
-        #     "shape merged df: ", merged_df.shape, "should be ", dh.get_dataframe_iterator().shape, "  more than old  ",
-        #     merged_old_shape)
-        #
-        # print("Final merge form: ", merged_df.shape)
+            self.printProgressBar(idx, len(subjects), 20, explenation='Merging datasets prog.: ')
+
+        self.printProgressBar(len(subjects), len(subjects), 20, explenation='Merging datasets prog.: ')
         return merged_df
 
 

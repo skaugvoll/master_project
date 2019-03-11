@@ -192,6 +192,7 @@ class DataHandler():
                                          slave_columns=['time', 'tx', 'ty', 'tz', 'ttemp'],
                                          rearrange_columns_to=None,
                                          save=True,
+                                         verbose=False,
                                          **kwargs
                                          ):
         '''
@@ -205,30 +206,34 @@ class DataHandler():
         :param slave_columns: the name to give each column in master csv
         :param rearrange_columns_to:
         :param save: default True
+        :param verbose: default False, prints out what it does
         :param **kwargs: additional keyword=value arguments, that can be used with the pandas.merge() function
         :return: None
         '''
 
         # TODO: PASS IN MASTER AND SLAVE COLUMN NAMES
         # TODO change all the pd.read_csv s to use datahandlers own load_from_csv function
-
-        print("READING MASTER CSV")
+        if verbose:
+            print("READING MASTER CSV")
         master_df = pd.read_csv(master_csv_path)
         master_df.columns = master_columns
 
-        print("READING SLAVE CSV")
+        if verbose:
+            print("READING SLAVE CSV")
         slave_df = pd.read_csv(slave_csv_path)
         slave_df.columns = slave_columns
 
         # Merge the csvs
-        print("MERGING MASTER AND SLAVE CSV")
+        if verbose:
+            print("MERGING MASTER AND SLAVE CSV")
         merged_df = master_df.merge(slave_df, on=merge_column, **kwargs)
 
         # print("MASTER SHAPE: {} \n SLAVE SHAPE: {} \n MERGED SHAPE: {}".format(master_df.shape, slave_df.shape, merged_df.shape))
 
         ## Rearrange the columns
         if not rearrange_columns_to is None:
-            print("REARRANGING CSV COLUMNS")
+            if verbose:
+                print("REARRANGING CSV COLUMNS")
             merged_df = merged_df[rearrange_columns_to]
 
         if out_path is None:
