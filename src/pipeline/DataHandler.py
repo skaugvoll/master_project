@@ -326,36 +326,40 @@ class DataHandler():
 
         return self.get_dataframe_iterator()
 
-    def convert_column_from_str_to_datetime_test(self, dataframe=None, column_name="time"):
+    def convert_column_from_str_to_datetime_test(self, dataframe=None, column_name="time", verbose=False):
         # TODO if dataframe is actually dataframe object, self.dataframe_iterator = dataframe
         # TODO remove this and change all places it it called to call convert_column_from_str_to_datetime
+
+        # TODO: PERHAPS MAYBE WHO KNOWS, is this the one we should use and just pass in column names????
+
         if isinstance(dataframe, str):
             self.dataframe_iterator = pd.read_csv(dataframe)
-            print(self.dataframe_iterator.head(5))
-            print()
+            if verbose: print(self.dataframe_iterator.head(5)); print()
+
 
             self.dataframe_iterator.columns = ['time', 'bx', 'by', 'bz', 'tx', 'ty', 'tz', 'btemp', 'ttemp']
         else:
-            print("USING THE Datahandlers own dataframe-Instance")
+            if verbose: print("USING THE Datahandlers own dataframe-Instance")
+            else: pass
 
         self.dataframe_iterator[column_name] = pd.to_datetime(self.dataframe_iterator[column_name])
-        print(self.dataframe_iterator.dtypes)
+        if verbose: print(self.dataframe_iterator.dtypes)
 
-    def convert_column_from_str_to_datetime(self, column_name="time"):
+    def convert_column_from_str_to_datetime(self, column_name="time", verbose=False):
         self.dataframe_iterator[column_name] = pd.to_datetime(self.dataframe_iterator[column_name])
-        print(self.dataframe_iterator.dtypes)
+        if verbose: print(self.dataframe_iterator.dtypes)
 
-    def convert_column_from_str_to_numeric(self, column_name="ttemp"):
+    def convert_column_from_str_to_numeric(self, column_name="ttemp", verbose=False):
         self.dataframe_iterator[column_name] = pd.to_numeric(self.dataframe_iterator[column_name])
-        print(self.dataframe_iterator.dtypes)
+        if verbose: print(self.dataframe_iterator.dtypes)
 
-    def set_column_as_index(self, column_name):
+    def set_column_as_index(self, column_name, verbose=False):
         self.dataframe_iterator.set_index(column_name, inplace=True)
-        print("The dataframe index is now: ", self.dataframe_iterator.index.name)
+        if verbose: print("The dataframe index is now: ", self.dataframe_iterator.index.name)
 
-    def add_new_column(self, name='label', default_value=np.nan):
+    def add_new_column(self, name='label', default_value=np.nan, verbose=False):
         self.dataframe_iterator.insert(len(self.dataframe_iterator.columns), name, value=default_value)
-        print(self.dataframe_iterator.describe())
+        if verbose: print(self.dataframe_iterator.describe())
 
     def add_columns_based_on_csv(self, path, columns_name=['label'], join_type='outer', **kwargs_read_csv):
         df_label = pd.read_csv(path, **kwargs_read_csv)
@@ -366,7 +370,7 @@ class DataHandler():
 
 
 
-    def add_labels_file_based_on_intervals(self, intervals={}, label_mapping={}):
+    def add_labels_file_based_on_intervals(self, intervals={}, label_mapping={}, verbose=False):
         '''
         intervals = {
             'Label' : [
@@ -382,12 +386,12 @@ class DataHandler():
         '''
 
         if not intervals:
-            print("Faak off, datahandler add_labels_file_based_on_intervals")
+            if verbose: print("Faak off, datahandler add_labels_file_based_on_intervals")
 
         for label in intervals:
-            print("label", label)
+            if verbose: print("label", label)
             for interval in intervals[label]:
-                print("INTERVAL", interval)
+                if verbose: print("INTERVAL", interval)
                 date = interval[0]
                 start = interval[1]
                 end = interval[2]
@@ -397,7 +401,7 @@ class DataHandler():
                 # get indexes to add label to
                 self.dataframe_iterator.loc[start_string:end_string, 'label'] = label
 
-        print(self.dataframe_iterator)
+        if verbose: print(self.dataframe_iterator)
 
     def read_and_return_multiple_csv_iterators(self, dir_path,
                                                filenames=['back', 'thigh', "labels"],

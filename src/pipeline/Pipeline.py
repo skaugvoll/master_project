@@ -287,7 +287,7 @@ class Pipeline:
         num_rows_in_window = 1
         if seq_lenght:
             num_rows = both_features.shape[0]
-            num_rows_in_window = int( num_rows / seq_lenght)
+            num_rows_in_window = int(num_rows / seq_lenght)
 
 
         feature_windows = []
