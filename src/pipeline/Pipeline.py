@@ -427,6 +427,7 @@ class Pipeline:
         classifications = np.concatenate((bth_class, thigh_class, back_class))
 
         if not minimize_result:  # do not minimize result
+            i = 1
             for idx, conf, target in classifications:
                 timestart = timestap_windows[idx][0][0]
                 timeend = timestap_windows[idx][0][-1]
@@ -440,6 +441,11 @@ class Pipeline:
                     'target': target
                 }
                 result_df.loc[len(result_df)] = row
+                self.printProgressBar(
+                    current=i,
+                    totalOperations=len(classifications),
+                    sizeProgressBarInChars=20,
+                    explenation='Creating result dataframe')
         else:  # minizime result
             windowMemory = WindowMemory()
             for idx, conf, target in classifications:
