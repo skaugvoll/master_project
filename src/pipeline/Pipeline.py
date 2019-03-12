@@ -218,21 +218,24 @@ class Pipeline:
                                              train_overlap=0.8,
                                              num_proc_mod=1,
                                              seq_lenght=None,
-                                             lstm_model_mapping={"both": '1', "thigh": '2', "back": '3'}
+                                             lstm_model_mapping={"both": '1', "thigh": '2', "back": '3'},
+                                             minimize_result=True
                                              ):
         '''
-
         :param dataframe: Pandas DataFrame
         :param dataframe_columns: dictionary with keys
-            ['back_features', 'thigh_features', 'back_temp', 'thigh_temp', 'label_column']
+                ['back_features', 'thigh_features', 'back_temp', 'thigh_temp', 'label_column']
         :param rfc_model_path: str with path to saved RFC
         :param lstm_models_paths: dictionary containing lstm_mapping and path {rfc_result_number : model_path}
         :param samples_pr_window:
-        :param train_overlap:
-        :param num_proc_mod:
-        :param num_proc_clas:
-        :param seq_lenght:
-        :param lstm_model_mapping: dict with keys ["both", "thigh", "back"]
+        :param train_overlap: :: DEFAULT 0.8 ::
+        :param num_proc_mod: :: DEFAULT 1 ::
+        :param seq_lenght: :: DEFAULT None ::
+        :param lstm_model_mapping: :: DEFAULT {"both": '1', "thigh": '2', "back": '3'} ::
+                dict with keys ["both" : <str>, "thigh" : <str>, "back": <str>]
+        :param minimize_result: :: DEFAULT TRUE ::reduces the output size by taking the starttime of the first window in
+                a sequence with same target, calculates avg of confidence over all sequential windows and
+                takes the time of last window with same target, as the endtime of activity sequence
         :return: list<both>, list<thigh>, list<back>, each list has a new list with tuples (time, conf/prog, class)
         '''
 
@@ -422,80 +425,85 @@ class Pipeline:
         result_df['confidence'] = pd.to_numeric(result_df['confidence'])
         result_df['target'] = pd.to_numeric(result_df['target'])
 
-        print(result_df.dtypes)
-
+        # combine all windows for saving
         classifications = np.concatenate((bth_class, thigh_class, back_class))
 
-        windowMemory = WindowMemory()
-        for idx, conf, target in classifications:
-            timestart = timestap_windows[idx][0][0]
-            timeend = timestap_windows[idx][0][-1]
-            conf = conf[0]
-            target = target[0]
+        if not minimize_result:  # do not minimize result
+            for idx, conf, target in classifications:
+                timestart = timestap_windows[idx][0][0]
+                timeend = timestap_windows[idx][0][-1]
+                conf = conf[0]
+                target = target[0]
 
-            # row = {
-            #     'timestart': timestart,
-            #     'timeend': timeend,
-            #     'confidence': conf,
-            #     'target': target
-            # }
-            # result_df.loc[len(result_df)] = row
-
-            # TODO: do some logic that finds timestart and timeend for sequences of same target, take avg, conf and then thats the row we want to add to dataframe, not all windows!
-            if windowMemory.get_last_target() is None:
-                # this can be done outside the loop, to not check each time, use classifiaction.pop() on var init
-                # last_target = target
-                windowMemory.update_last_target(target)
-                # last_start = timestart
-                windowMemory.update_last_start(timestart)
-                # last_end = timeend
-                windowMemory.update_last_end(timeend)
-                # avg_conf += conf
-                windowMemory.update_avg_conf_nominator(conf)
-
-            elif not windowMemory.check_targets(target):
-                # add to result_df
                 row = {
-                    'timestart': windowMemory.get_last_start(),
-                    'timeend': windowMemory.get_last_end(),
-                    'confidence': windowMemory.get_avg_conf(),
-                    'target': windowMemory.get_last_target()
+                    'timestart': timestart,
+                    'timeend': timeend,
+                    'confidence': conf,
+                    'target': target
                 }
                 result_df.loc[len(result_df)] = row
+        else:  # minizime result
+            windowMemory = WindowMemory()
+            for idx, conf, target in classifications:
+                timestart = timestap_windows[idx][0][0]
+                timeend = timestap_windows[idx][0][-1]
+                conf = conf[0]
+                target = target[0]
 
-                # keep track of new windows with same result
-                windowMemory.reset_avg_conf()
-                windowMemory.update_avg_conf_nominator(conf)
-                windowMemory.update_last_target(target)
-                windowMemory.update_last_start(timestart)
-                windowMemory.update_last_end(timeend)
-                windowMemory.reset_divisor()
-            else:
-                # upate memory_variables
-                windowMemory.update_last_end(timeend)
-                windowMemory.update_avg_conf_nominator(conf)
-                windowMemory.update_avg_conf_divisor()
+                # row = {
+                #     'timestart': timestart,
+                #     'timeend': timeend,
+                #     'confidence': conf,
+                #     'target': target
+                # }
+                # result_df.loc[len(result_df)] = row
 
-            # Feedback to user
-            self.printProgressBar(
-                current=windowMemory.get_num_windows(),
-                totalOperations=len(classifications),
-                sizeProgressBarInChars=20,
-                explenation='Creating result dataframe')
+                # TODO: do some logic that finds timestart and timeend for sequences of same target, take avg, conf and then thats the row we want to add to dataframe, not all windows!
+                if windowMemory.get_last_target() is None:
+                    # this can be done outside the loop, to not check each time, use classifiaction.pop() on var init
+                    # last_target = target
+                    windowMemory.update_last_target(target)
+                    # last_start = timestart
+                    windowMemory.update_last_start(timestart)
+                    # last_end = timeend
+                    windowMemory.update_last_end(timeend)
+                    # avg_conf += conf
+                    windowMemory.update_avg_conf_nominator(conf)
 
-            # Controll feedback to user
-            windowMemory.update_num_windows()
+                elif not windowMemory.check_targets(target):
+                    # add to result_df
+                    row = {
+                        'timestart': windowMemory.get_last_start(),
+                        'timeend': windowMemory.get_last_end(),
+                        'confidence': windowMemory.get_avg_conf(),
+                        'target': windowMemory.get_last_target()
+                    }
+                    result_df.loc[len(result_df)] = row
 
-        print("Done")
+                    # keep track of new windows with same result
+                    windowMemory.reset_avg_conf()
+                    windowMemory.update_avg_conf_nominator(conf)
+                    windowMemory.update_last_target(target)
+                    windowMemory.update_last_start(timestart)
+                    windowMemory.update_last_end(timeend)
+                    windowMemory.reset_divisor()
+                else:
+                    # upate memory_variables
+                    windowMemory.update_last_end(timeend)
+                    windowMemory.update_avg_conf_nominator(conf)
+                    windowMemory.update_avg_conf_divisor()
 
-        print(result_df.head(5))
-        print(result_df.shape)
+                # Feedback to user
+                self.printProgressBar(
+                    current=windowMemory.get_num_windows(),
+                    totalOperations=len(classifications),
+                    sizeProgressBarInChars=20,
+                    explenation='Creating result dataframe')
 
+                # Controll feedback to user
+                windowMemory.update_num_windows()
 
-
-
-
-
+            print("Done")
 
         return bth_class, thigh_class, back_class
 
