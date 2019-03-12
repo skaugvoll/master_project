@@ -1,7 +1,4 @@
 import sys, os
-# try: sys.path.append( os.path.abspath( os.path.join( os.path.dirname( __file__), '..')))
-# except: print("SAdsadsadhsa;hkldasjkd")
-
 import numpy as np
 import cwa_converter
 import pickle
@@ -12,7 +9,6 @@ from src.config import Config
 from src import models
 from src.utils.WindowMemory import WindowMemory
 from tensorflow.keras.backend import clear_session
-
 
 
 class Pipeline:
@@ -360,7 +356,7 @@ class Pipeline:
         for process in processes_model:
             process.terminate()
 
-        print(">>>>>>>>>>>>>>>>> ||||||||| <<<<<<<<<<<<<<<<<")
+        # print(">>>>>>>>>>>>>>>>> ||||||||| <<<<<<<<<<<<<<<<<")
 
         # continue the pipeline work
         # ...

@@ -8,6 +8,14 @@ from src import models
 import pickle, math
 
 
+#########################################################
+##
+# Disabling Tensorflow GPU inforamtion
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+##
+#########################################################
+
+
 
 
 # #########################################################

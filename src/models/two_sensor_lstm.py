@@ -400,6 +400,9 @@ class TwoSensorLSTM( HARModel ):
 
     :return:
     '''
+
+    print("BUILDING LSTM... ", end='')
+
     if self.stateful:
       # Create input with shape (batch_size, seq_length, features)
       ipt_back  = Input( batch_shape=[ self.batch_size, self.sequence_length, self.back_layers['inputs'] ])
@@ -466,8 +469,7 @@ class TwoSensorLSTM( HARModel ):
     # Make model
     self.model = Model( inputs=[ipt_back, ipt_thigh], outputs=net )
     self.model.compile(loss='categorical_crossentropy', optimizer='adagrad', metrics=['accuracy'])
-    print(">>>>>>> BUILD COMPLETE")
-    # TODO: Compile here?
+    print(">>>>>>> BUILD COMPLETE <<<<<<<<")
 
   def create_sub_net( self, net, layers ):
 

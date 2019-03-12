@@ -372,6 +372,9 @@ class OneSensorLSTM( HARModel ):
 
     :return:
     '''
+
+    print("BUILDING LSTM... ", end='')
+
     if self.stateful:
       # Create input with shape (batch_size, seq_length, features)
       ipt = Input( batch_shape=[ self.batch_size, self.sequence_length, self.layers['inputs'] ])
@@ -435,8 +438,7 @@ class OneSensorLSTM( HARModel ):
     # Make model
     self.model = Model(inputs=ipt, outputs=out )
     self.model.compile(loss='categorical_crossentropy', optimizer='adagrad', metrics=['accuracy'])
-    print(">>>>>>> BUILD COMPLETE")
-
+    print(">>>>>>> BUILD COMPLETE <<<<<<<<")
     # print("Model compiled")
 
     # self.model.summary()
