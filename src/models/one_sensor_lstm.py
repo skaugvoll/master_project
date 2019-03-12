@@ -10,10 +10,10 @@ from keras.models import Model
 from . import HARModel
 from ..layers.lstm import LSTM
 from ..layers.normalize import Normalize
-from ..layers.residual_addition import residual_addition
 from ..utils import data_encoder
 from ..utils import normalization
 from ..utils import csv_loader
+from ..utils.ColorPrint import ColorPrinter
 from ..callbacks import get_callback
 
 
@@ -33,6 +33,8 @@ class OneSensorLSTM( HARModel ):
 
     self.encoder = data_encoder.DataEncoder( self.classes )
     self.num_outputs = self.encoder.num_active_classes
+
+    self.colorPrinter = ColorPrinter()
 
     # Build network
     self.build()
@@ -372,8 +374,7 @@ class OneSensorLSTM( HARModel ):
 
     :return:
     '''
-
-    print("BUILDING LSTM... ", end='')
+    print(self.colorPrinter.colorString('BUILDING LSTM...', color="yellow"), end='')
 
     if self.stateful:
       # Create input with shape (batch_size, seq_length, features)
@@ -438,10 +439,9 @@ class OneSensorLSTM( HARModel ):
     # Make model
     self.model = Model(inputs=ipt, outputs=out )
     self.model.compile(loss='categorical_crossentropy', optimizer='adagrad', metrics=['accuracy'])
-    print(">>>>>>> BUILD COMPLETE <<<<<<<<")
-    # print("Model compiled")
 
-    # self.model.summary()
+    print(self.colorPrinter.colorString(">>>>>>> BUILD COMPLETE <<<<<<<<", "yellow"))
+
 
   def lstm_layer( self, *args, **kwargs ):
     if self.bidirectional:

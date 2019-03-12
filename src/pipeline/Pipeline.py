@@ -8,14 +8,17 @@ import utils.temperature_segmentation_and_calculation as temp_feature_util
 from src.config import Config
 from src import models
 from src.utils.WindowMemory import WindowMemory
+from src.utils.ColorPrint import ColorPrinter
 from tensorflow.keras.backend import clear_session
 
 
 class Pipeline:
     def __init__(self):
         self.dh = DataHandler()
+        self.colorPrinter = ColorPrinter()
         self.dataframe = None
         self.model = None
+
 
     def printProgressBar(self, current, totalOperations, sizeProgressBarInChars, explenation=""):
         # try:
@@ -30,10 +33,9 @@ class Pipeline:
         fillerChars = "#" * filled_bar
         remains = "-" * (sizeProgressBarInChars - filled_bar)
 
-        color = '\033[94m' # blue
-        reset  = "\u001b[0m" # reset (turn of color)
+
         sys.stdout.write('\r{} {} {} [{:>7.2%}]'.format(
-            color + explenation + reset,
+            self.colorPrinter.colorString(text=explenation, color="blue"),
             fillerChars,
             remains,
             fraction_completed
