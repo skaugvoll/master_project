@@ -1,18 +1,16 @@
 import sys, os
 # try: sys.path.append( os.path.abspath( os.path.join( os.path.dirname( __file__), '..')))
 # except: print("SAdsadsadhsa;hkldasjkd")
-import re, math, random, time
+
 import numpy as np
 import cwa_converter
 import pickle
-from multiprocessing import Process, Queue, current_process, freeze_support, Manager
+from multiprocessing import Process, Queue, Manager
 from pipeline.DataHandler import DataHandler
-from keras.models import load_model
-from layers.normalize import Normalize
 import utils.temperature_segmentation_and_calculation as temp_feature_util
 from src.config import Config
 from src import models
-from keras.models import load_model
+from src.utils.WindowMemory import WindowMemory
 from tensorflow.keras.backend import clear_session
 
 
@@ -419,26 +417,80 @@ class Pipeline:
         #build dataframe [timestart, timeend, confidence, target]
         import pandas as pd
         result_df = pd.DataFrame(columns=['timestart', 'timeend', 'confidence', 'target'])
-        classifications = np.concatenate((bth_class, thigh_class, back_class))
-        i = 0
-        for idx, conf, target in classifications:
-            # TODO: do some logic that finds timestart and timeend for sequences of same target, take avg, conf and then thats the row we want to add to dataframe, not all windows!
-            timestart = timestap_windows[idx][0][0]
-            timeend = timestap_windows[idx][0][-1]
-            row = {'timestart': timestart, 'timeend': timeend, 'confidence': conf[0], 'target': target[0]}
-            result_df.loc[len(result_df)] = row
-            self.printProgressBar(i, len(classifications), 20, explenation='Creating result dataframe')
-            i += 1
-        self.printProgressBar(i, len(classifications), 20, explenation='Creating result dataframe')
-        print("Done")
-
-        print(result_df.head(5))
-        result_df['timestart'] = pd.to_datetime(result_df['timestart'])
+        result_df['timestart'] = pd.to_datetime(result_df['timestart']).sort_values() # sort the dataframe on starttime
         result_df['timeend'] = pd.to_datetime(result_df['timeend'])
         result_df['confidence'] = pd.to_numeric(result_df['confidence'])
         result_df['target'] = pd.to_numeric(result_df['target'])
 
         print(result_df.dtypes)
+
+        classifications = np.concatenate((bth_class, thigh_class, back_class))
+
+        windowMemory = WindowMemory()
+        for idx, conf, target in classifications:
+            timestart = timestap_windows[idx][0][0]
+            timeend = timestap_windows[idx][0][-1]
+            conf = conf[0]
+            target = target[0]
+
+            # row = {
+            #     'timestart': timestart,
+            #     'timeend': timeend,
+            #     'confidence': conf,
+            #     'target': target
+            # }
+            # result_df.loc[len(result_df)] = row
+
+            # TODO: do some logic that finds timestart and timeend for sequences of same target, take avg, conf and then thats the row we want to add to dataframe, not all windows!
+            if windowMemory.get_last_target() is None:
+                # this can be done outside the loop, to not check each time, use classifiaction.pop() on var init
+                # last_target = target
+                windowMemory.update_last_target(target)
+                # last_start = timestart
+                windowMemory.update_last_start(timestart)
+                # last_end = timeend
+                windowMemory.update_last_end(timeend)
+                # avg_conf += conf
+                windowMemory.update_avg_conf_nominator(conf)
+
+            elif not windowMemory.check_targets(target):
+                # add to result_df
+                row = {
+                    'timestart': windowMemory.get_last_start(),
+                    'timeend': windowMemory.get_last_end(),
+                    'confidence': windowMemory.get_avg_conf(),
+                    'target': windowMemory.get_last_target()
+                }
+                result_df.loc[len(result_df)] = row
+
+                # keep track of new windows with same result
+                windowMemory.reset_avg_conf()
+                windowMemory.update_avg_conf_nominator(conf)
+                windowMemory.update_last_target(target)
+                windowMemory.update_last_start(timestart)
+                windowMemory.update_last_end(timeend)
+                windowMemory.reset_divisor()
+            else:
+                # upate memory_variables
+                windowMemory.update_last_end(timeend)
+                windowMemory.update_avg_conf_nominator(conf)
+                windowMemory.update_avg_conf_divisor()
+
+            # Feedback to user
+            self.printProgressBar(
+                current=windowMemory.get_num_windows(),
+                totalOperations=len(classifications),
+                sizeProgressBarInChars=20,
+                explenation='Creating result dataframe')
+
+            # Controll feedback to user
+            windowMemory.update_num_windows()
+
+        print("Done")
+
+        print(result_df.head(5))
+        print(result_df.shape)
+
 
 
 
