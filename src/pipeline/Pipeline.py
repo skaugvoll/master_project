@@ -501,7 +501,7 @@ class Pipeline:
                 # Controll feedback to user
                 windowMemory.update_num_windows()
 
-            print("Done")
+            print("DONE")
 
         return bth_class, thigh_class, back_class
 
@@ -590,7 +590,7 @@ class Pipeline:
             start += 1
 
         self.printProgressBar(start, end, 20, explenation=task + " activity classification prog. :: ")
-        print() # create new line
+        print("Done") # create new line
         try:
             del model  # remove the model
             clear_session()

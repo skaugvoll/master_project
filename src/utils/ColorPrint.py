@@ -46,5 +46,5 @@ class ColorPrinter:
         else:
             return ""
 
-    def colorString(self, text, color=None):
-        return self.get_color(color) + text + self.reset
+    def colorString(self, text, color=None, bright=True):
+        return self.get_color(color, bright) + text + self.reset

@@ -471,7 +471,7 @@ class TwoSensorLSTM( HARModel ):
     self.model = Model( inputs=[ipt_back, ipt_thigh], outputs=net )
     self.model.compile(loss='categorical_crossentropy', optimizer='adagrad', metrics=['accuracy'])
 
-    print(self.colorPrinter.colorString(">>>>>>> BUILD COMPLETE <<<<<<<<", "yellow"))
+    print(self.colorPrinter.colorString(">>>>>>> BUILD COMPLETE <<<<<<<<", "green", bright=False))
 
   def create_sub_net( self, net, layers ):
 

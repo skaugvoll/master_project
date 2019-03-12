@@ -440,7 +440,7 @@ class OneSensorLSTM( HARModel ):
     self.model = Model(inputs=ipt, outputs=out )
     self.model.compile(loss='categorical_crossentropy', optimizer='adagrad', metrics=['accuracy'])
 
-    print(self.colorPrinter.colorString(">>>>>>> BUILD COMPLETE <<<<<<<<", "yellow"))
+    print(self.colorPrinter.colorString(">>>>>>> BUILD COMPLETE <<<<<<<<", "green", bright=True))
 
 
   def lstm_layer( self, *args, **kwargs ):
