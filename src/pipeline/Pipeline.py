@@ -691,7 +691,8 @@ class Pipeline:
                          sequence_length=None,
                          save_to_path=None,
                          save_model=False,
-                         save_weights=False
+                         save_weights=False,
+                         shuffle=False
                          ):
         '''
         :param training_dataframe: Pandas Dataframe
@@ -705,6 +706,7 @@ class Pipeline:
         :param save_to_path: if given, saves the trained weights and/or model to the given path
         :param save_model: if path and save_model [True | False] saves the model to the path
         :param save_weights: if path and save_weights [True | False] saves the weight to the path with suffix: _weights
+        :param shuffle: if given, set numpy random seed to 47, then shuffle the windows and labels
         :return: the trained model object
         '''
         '''
@@ -754,6 +756,7 @@ class Pipeline:
                 back_cols=back_cols,
                 thigh_cols=thigh_cols,
                 label_col=label_col,
+                shuffle=shuffle,
             )
         else:
             cols = back_cols or thigh_cols
@@ -766,7 +769,8 @@ class Pipeline:
                 batch_size=batch_size,
                 sequence_length=sequence_length,
                 cols=cols,
-                label_col=label_col
+                label_col=label_col,
+                shuffle=shuffle
             )
 
         #####

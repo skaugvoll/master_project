@@ -35,8 +35,8 @@ dataframe = p.create_large_dataframe_from_multiple_input_directories(
 )
 
 
-train, validation = DataHandler.split_df_into_training_and_test(dataframe, split_rate=.8)
-validation, test = DataHandler.split_df_into_training_and_test(validation, split_rate=.5)
+train, validation = DataHandler.split_df_into_training_and_test(dataframe, split_rate=.2, shuffle=False)
+validation, test = DataHandler.split_df_into_training_and_test(validation, split_rate=.5, shuffle=False)
 
 p.train_lstm_model(
     training_dataframe=train,
@@ -49,7 +49,8 @@ p.train_lstm_model(
     label_col='label',
     validation_dataframe=validation,
     save_to_path="trained_models/both_sensors_11_03",
-    save_weights=True
+    save_weights=True,
+    shuffle=False
 )
 
 

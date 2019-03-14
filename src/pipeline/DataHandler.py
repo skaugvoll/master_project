@@ -526,12 +526,12 @@ class DataHandler():
         print(self.dataframe_iterator.tail(n))
 
     @staticmethod
-    def split_df_into_training_and_test(dataframe, label_col=None, split_rate=.8, shuffle=True):
+    def split_df_into_training_and_test(data, label_col=None, split_rate=.2, shuffle=False):
         '''
 
-        :param dataframe:
+        :param data:
         :param label_col:
-        :param split_rate:
+        :param split_rate: how many percent hould be in the test TEST set!
         :return: IF label_col is given, returns x_train, x_test, y_train, y_test ELSE: train, test
         '''
         # how_much_is_training_data = 0.8
@@ -541,11 +541,11 @@ class DataHandler():
         # return df1, df2
 
         if label_col:
-            x = dataframe.iloc[:, :label_col]
-            y = dataframe.iloc[: , label_col]
+            x = data.iloc[:, :label_col]
+            y = data.iloc[: , label_col]
             return train_test_split(x, y, test_size=split_rate, shuffle=shuffle)
         else:
-            return train_test_split(dataframe, test_size=split_rate, shuffle=shuffle)
+            return train_test_split(data, test_size=split_rate, shuffle=shuffle)
 
     @staticmethod
     def create_batches_with_seq_length(dataframes, columns, sequence_length, stateful=None, batch_size=None):

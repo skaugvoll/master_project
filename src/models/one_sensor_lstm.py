@@ -84,7 +84,8 @@ class OneSensorLSTM( HARModel ):
         batch_size=None,
         sequence_length=None,
         cols=['back_x', 'back_y', 'back_z'],
-        label_col='label'
+        label_col='label',
+        shuffle=False
       ):
 
     # Make batch_size and sequence_length default to architecture params
@@ -101,6 +102,12 @@ class OneSensorLSTM( HARModel ):
     train_x1 = self.get_features( train_data, cols, batch_size=batch_size, sequence_length=sequence_length )
 
     train_y = self.get_labels( train_data, label_col, batch_size=batch_size, sequence_length=sequence_length )
+
+    if shuffle:
+      np.random.seed(47)  # set the seed so that the shuffling is the same for all shuffles
+      np.random.shuffle(train_x1)
+      np.random.shuffle(train_y)
+
 
     # Get design matrix of validation data if provided
     if valid_data is not None:
