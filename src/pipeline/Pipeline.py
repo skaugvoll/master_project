@@ -50,41 +50,23 @@ class Pipeline:
 
         sys.stdout.flush()
 
-
-    def unzip_extractNconvert_temp_merge_dataset(self, rel_filepath, label_interval, label_mapping, unzip_path='../../data/temp', unzip_cleanup=False, cwa_paralell_convert=True):
+    def unzipNsynch(self, rel_filepath, unzip_path='../../data/temp', cwa_paralell_convert=True):
         # unzip cwas from 7z arhcive
-        unzipped_path = self.dh.unzip_7z_archive(
-            filepath=os.path.join(os.getcwd(), rel_filepath),
-            unzip_to_path=unzip_path,
-            cleanup=unzip_cleanup
-        )
 
-        print('UNZIPPED PATH RETURNED', unzipped_path)
+        os.system("rm -rf ../../data/temp/4000181.7z/")
+        self.dh.unzip_synch_cwa(rel_filepath)
 
-        ##########################
-        #
-        #
-        ##########################
-
-
-
-        # convert the cwas to independent csv containing timestamp xyz and temp
         back_csv, thigh_csv = cwa_converter.convert_cwas_to_csv_with_temp(
-            subject_dir=unzipped_path,
-            out_dir=unzipped_path,
+            subject_dir=self.dh.get_unzipped_path(),
+            out_dir=self.dh.get_unzipped_path(),
             paralell=cwa_paralell_convert
         )
 
-        ##########################
-        #
-        #
-        ##########################
-
-
-        # Timesynch and concate csvs
-        self.dh.merge_csvs_on_first_time_overlap(
-            master_csv_path=back_csv,
-            slave_csv_path=thigh_csv,
+        self.dh.merge_multiple_csvs(
+            master_csv_path=self.dh.get_synched_csv_path(),
+            slave_csv_path=back_csv,
+            slave2_csv_path=thigh_csv,
+            merge_how='left',
             rearrange_columns_to=[
                 'time',
                 'bx',
@@ -98,82 +80,45 @@ class Pipeline:
             ]
         )
 
-        df = self.dh.get_dataframe_iterator()
-        print(df.head(5))
-        # input("looks ok ? \n")
-
-
-        ##########################
-        #
-        #
-        ##########################
-
-        self.dh.convert_ADC_temp_to_C(
-            dataframe=df,
-            dataframe_path=None,
-            normalize=False,
-            save=True
+        self.dh.write_temp_to_txt(
+            dataframe=self.dh.get_dataframe_iterator(),
+            # dataframe_path='../../data/temp/4000181.7z/4000181/4000181-34566_2017-09-19_B_4000181-26584_2017-09-19_T_timesync_output_TEMP_SYNCHED_BT.csv'
         )
 
-        df = self.dh.get_dataframe_iterator()
-        print(df.head(5))
-        # input("looks ok ? \n")
-
-        ##########################
-        #
-        #
-        ##########################
-
-
-        print('SET INDEX TO TIMESTAMP')
-        #test that this works with a dataframe and not only path to csv
-        # thus pre-loaded and makes it run a little faster
-        self.dh.convert_column_from_str_to_datetime_test(
-                dataframe=df,
+        self.dh.concat_timesynch_and_temp(
+            master_csv_path=self.dh.get_synched_csv_path(),
+            btemp_txt_path=self.dh.get_unzipped_path() + '/btemp.txt',
+            ttemp_txt_path=self.dh.get_unzipped_path() + '/ttemp.txt',
         )
 
-        self.dh.set_column_as_index("time")
-        print('DONE')
-
-        ##########################
+        # print('SET INDEX TO TIMESTAMP')
+        # # test that this works with a dataframe and not only path to csv
+        # # thus pre-loaded and makes it run a little faster
+        # self.dh.convert_column_from_str_to_datetime_test(
+        #     dataframe=df,
+        # )
         #
+        # self.dh.set_column_as_index("time")
+        # print('DONE')
         #
-        ##########################
-
-
-        print('MAKE NUMERIC')
-        self.dh.convert_column_from_str_to_numeric(column_name="btemp")
-
-        self.dh.convert_column_from_str_to_numeric(column_name="ttemp")
-        print('DONE')
-
-        ##########################
-        #
-        #
-        ##########################
-
-
-        print('ADDING LABELS')
-        self.dh.add_new_column()
-        print('DONE')
-
-        self.dh.add_labels_file_based_on_intervals(
-            intervals=label_interval,
-            label_mapping=label_mapping
-        )
-
-
         # ##########################
-        # #
-        # #
+        #
+        # print('MAKE NUMERIC')
+        # self.dh.convert_column_from_str_to_numeric(column_name="btemp")
+        #
+        # self.dh.convert_column_from_str_to_numeric(column_name="ttemp")
+        # print('DONE')
+        #
         # ##########################
-
-        # dh.show_dataframe()
-        df = self.dh.get_dataframe_iterator()
-
-        return df, self.dh
-
-    # TODO create method for unzip_extractNconvert_temp_stack_dataset() or adopt the above def..
+        #
+        # print('ADDING LABELS')
+        # self.dh.add_new_column()
+        # print('DONE')
+        #
+        # self.dh.add_labels_file_based_on_intervals(
+        #     intervals=label_interval,
+        #     label_mapping=label_mapping
+        # )
 
     def get_features_and_labels(self, df, dh=None, columns_back=[0,1,2,6], columns_thigh=[3,4,5,7], column_label=[8]):
         if dh is None:
