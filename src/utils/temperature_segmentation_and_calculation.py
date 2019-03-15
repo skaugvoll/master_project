@@ -91,8 +91,6 @@ def segment_acceleration_and_calculate_features(sensor_data,
     if remove_sign_after_calculation:
         np.absolute(one_large_array, one_large_array)
 
-    print(one_large_array.shape)
-
     return one_large_array
 
 

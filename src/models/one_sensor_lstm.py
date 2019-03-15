@@ -10,10 +10,10 @@ from keras.models import Model
 from . import HARModel
 from ..layers.lstm import LSTM
 from ..layers.normalize import Normalize
-from ..layers.residual_addition import residual_addition
 from ..utils import data_encoder
 from ..utils import normalization
 from ..utils import csv_loader
+from ..utils.ColorPrint import ColorPrinter
 from ..callbacks import get_callback
 
 
@@ -34,11 +34,13 @@ class OneSensorLSTM( HARModel ):
     self.encoder = data_encoder.DataEncoder( self.classes )
     self.num_outputs = self.encoder.num_active_classes
 
+    self.colorPrinter = ColorPrinter()
+
     # Build network
     self.build()
 
 
-  def save_model_and_weights(self, model_path):
+  def save_model_andOr_weights(self, path=False, model=False, weight=False):
     '''
 
     :param model_path: rel path from the "src/" including filename, excluding format. E.g  inside the src/ dir: "trained_models/twosensorlstm", makes a new directory /src/trained_models/twosensorlstm
@@ -47,8 +49,8 @@ class OneSensorLSTM( HARModel ):
 
     try:
       # check that the path exist, else create the directory to store the file
-      if not os.path.exists(os.getcwd() + "/" + os.path.dirname(model_path)):
-        os.mkdir(os.getcwd() + "/" + os.path.dirname(model_path))
+      if not os.path.exists(os.getcwd() + "/" + os.path.dirname(path)):
+        os.mkdir(os.getcwd() + "/" + os.path.dirname(path))
 
       # # serialize model to JSON
       # model_json = self.model.to_json()
@@ -59,12 +61,17 @@ class OneSensorLSTM( HARModel ):
       # self.model.save_weights("{}.h5".format(os.getcwd() + "/" + model_path + '_weights'))
       # print("Saved model to disk")
       #
-      self.saved_path = os.getcwd() + "/" + model_path
+      self.saved_path = os.getcwd() + "/" + path
+      status = ": "
 
-      self.model.save(os.getcwd() + "/" + model_path + ".h5")
-      self.model.save_weights(os.getcwd() + "/" + model_path + "_weights.h5")
+      if model:
+        status += "model saved, "
+        self.model.save(os.getcwd() + "/" + path + ".h5")
+      if weight:
+        status += "weight saved,"
+        self.model.save_weights(os.getcwd() + "/" + path + "_weights.h5")
 
-      return self.saved_path
+      return self.saved_path + status
     except Exception as e:
       print("Could not save to disk, ", e)
 
@@ -77,7 +84,8 @@ class OneSensorLSTM( HARModel ):
         batch_size=None,
         sequence_length=None,
         cols=['back_x', 'back_y', 'back_z'],
-        label_col='label'
+        label_col='label',
+        shuffle=False
       ):
 
     # Make batch_size and sequence_length default to architecture params
@@ -94,6 +102,12 @@ class OneSensorLSTM( HARModel ):
     train_x1 = self.get_features( train_data, cols, batch_size=batch_size, sequence_length=sequence_length )
 
     train_y = self.get_labels( train_data, label_col, batch_size=batch_size, sequence_length=sequence_length )
+
+    if shuffle:
+      np.random.seed(47)  # set the seed so that the shuffling is the same for all shuffles
+      np.random.shuffle(train_x1)
+      np.random.shuffle(train_y)
+
 
     # Get design matrix of validation data if provided
     if valid_data is not None:
@@ -367,6 +381,8 @@ class OneSensorLSTM( HARModel ):
 
     :return:
     '''
+    print(self.colorPrinter.colorString('BUILDING LSTM...', color="yellow"), end='')
+
     if self.stateful:
       # Create input with shape (batch_size, seq_length, features)
       ipt = Input( batch_shape=[ self.batch_size, self.sequence_length, self.layers['inputs'] ])
@@ -430,11 +446,9 @@ class OneSensorLSTM( HARModel ):
     # Make model
     self.model = Model(inputs=ipt, outputs=out )
     self.model.compile(loss='categorical_crossentropy', optimizer='adagrad', metrics=['accuracy'])
-    print(">>>>>>> BUILD COMPLETE")
 
-    # print("Model compiled")
+    print(self.colorPrinter.colorString(">>>>>>> BUILD COMPLETE <<<<<<<<", "green", bright=True))
 
-    # self.model.summary()
 
   def lstm_layer( self, *args, **kwargs ):
     if self.bidirectional:
