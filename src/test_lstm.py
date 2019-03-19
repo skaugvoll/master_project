@@ -121,7 +121,7 @@ list_with_subjects = [
             '../data/input/008'
         ]
 
-dataframe = p.create_large_dafatframe_from_multiple_input_directories(
+dataframe = p.create_large_dataframe_from_multiple_input_directories(
     list_with_subjects,
     back_keywords=['Back'],
     thigh_keywords = ['Thigh'],
@@ -243,7 +243,7 @@ if not answr == "y":
 # EVALUATE MODEL
 #################
 
-eval_df = p.create_large_dafatframe_from_multiple_input_directories(
+eval_df = p.create_large_dataframe_from_multiple_input_directories(
     ["../data/input/009"],
     back_keywords=['B'],
     thigh_keywords = ['T'],

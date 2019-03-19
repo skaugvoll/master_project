@@ -1,30 +1,24 @@
 import sys, os
-# try: sys.path.append( os.path.abspath( os.path.join( os.path.dirname( __file__), '..')))
-# except: print("SAdsadsadhsa;hkldasjkd")
-import re, math, random, time
 import numpy as np
 import cwa_converter
 import pickle
-from multiprocessing import Process, Queue, current_process, freeze_support, Manager
+from multiprocessing import Process, Queue, Manager
 from pipeline.DataHandler import DataHandler
-from keras.models import load_model
-from layers.normalize import Normalize
 import utils.temperature_segmentation_and_calculation as temp_feature_util
 from src.config import Config
 from src import models
-from keras.models import load_model
+from src.utils.WindowMemory import WindowMemory
+from src.utils.ColorPrint import ColorPrinter
 from tensorflow.keras.backend import clear_session
-
 
 
 class Pipeline:
     def __init__(self):
-        print("HELLO FROM PIPELINE")
-        # Create a data handling object for importing and manipulating dataset ## PREPROCESSING
-        print('CREATING datahandler')
         self.dh = DataHandler()
-        print('CREATED datahandler')
+        self.colorPrinter = ColorPrinter()
         self.dataframe = None
+        self.model = None
+
 
     def printProgressBar(self, current, totalOperations, sizeProgressBarInChars, explenation=""):
         # try:
@@ -39,10 +33,9 @@ class Pipeline:
         fillerChars = "#" * filled_bar
         remains = "-" * (sizeProgressBarInChars - filled_bar)
 
-        color = '\033[94m' # blue
-        reset  = "\u001b[0m" # reset (turn of color)
+
         sys.stdout.write('\r{} {} {} [{:>7.2%}]'.format(
-            color + explenation + reset,
+            self.colorPrinter.colorString(text=explenation, color="blue"),
             fillerChars,
             remains,
             fraction_completed
@@ -110,20 +103,20 @@ class Pipeline:
         print('DONE')
 
 
-    def get_features_and_labels(self, df, dh=None, columns_back=[0,1,2,6], columns_thigh=[3,4,5,7], column_label=[8]):
+    def get_features_and_labels(self, df, dh=None, back_columns=[0, 1, 2, 6], thigh_columns=[3, 4, 5, 7], label_column=[8]):
         if dh is None:
             dh = DataHandler()
 
         back_feat, thigh_feat, labels = None, None, None
 
-        print(columns_back, columns_thigh, column_label)
+        # print(back_columns, thigh_columns, label_column)
 
-        if columns_back:
-            back_feat = dh.get_rows_and_columns(dataframe=df, columns=columns_back).values
-        if columns_thigh:
-            thigh_feat = dh.get_rows_and_columns(dataframe=df, columns=columns_thigh).values
-        if column_label:
-            labels = dh.get_rows_and_columns(dataframe=df, columns=column_label).values
+        if back_columns:
+            back_feat = dh.get_rows_and_columns(dataframe=df, columns=back_columns).values
+        if thigh_columns:
+            thigh_feat = dh.get_rows_and_columns(dataframe=df, columns=thigh_columns).values
+        if label_column:
+            labels = dh.get_rows_and_columns(dataframe=df, columns=label_column).values
 
         return back_feat, thigh_feat, labels
 
@@ -151,18 +144,34 @@ class Pipeline:
 
 
 
-    def parallel_pipeline_classification_run(self, dataframe, rfc_model_path, lstm_models_paths, samples_pr_window, train_overlap=0.8, num_proc_mod=1, seq_lenght=None):
+    def parallel_pipeline_classification_run(self,
+                                             dataframe,
+                                             dataframe_columns,
+                                             rfc_model_path,
+                                             lstm_models_paths,
+                                             samples_pr_window,
+                                             train_overlap=0.8,
+                                             num_proc_mod=1,
+                                             seq_lenght=None,
+                                             lstm_model_mapping={"both": '1', "thigh": '2', "back": '3'},
+                                             minimize_result=True
+                                             ):
         '''
-
         :param dataframe: Pandas DataFrame
+        :param dataframe_columns: dictionary with keys
+                ['back_features', 'thigh_features', 'back_temp', 'thigh_temp', 'label_column']
         :param rfc_model_path: str with path to saved RFC
         :param lstm_models_paths: dictionary containing lstm_mapping and path {rfc_result_number : model_path}
         :param samples_pr_window:
-        :param train_overlap:
-        :param num_proc_mod:
-        :param num_proc_clas:
-        :param seq_lenght:
-        :return:
+        :param train_overlap: :: DEFAULT 0.8 ::
+        :param num_proc_mod: :: DEFAULT 1 ::
+        :param seq_lenght: :: DEFAULT None ::
+        :param lstm_model_mapping: :: DEFAULT {"both": '1', "thigh": '2', "back": '3'} ::
+                dict with keys ["both" : <str>, "thigh" : <str>, "back": <str>]
+        :param minimize_result: :: DEFAULT TRUE ::reduces the output size by taking the starttime of the first window in
+                a sequence with same target, calculates avg of confidence over all sequential windows and
+                takes the time of last window with same target, as the endtime of activity sequence
+        :return: list<both>, list<thigh>, list<back>, each list has a new list with tuples (time, conf/prog, class)
         '''
 
         # TODO: burde passe inn back, thigh og label columns til methoden også videre inn i get_features_and_labels
@@ -178,7 +187,23 @@ class Pipeline:
 
 
         # Submit tasks for model klassifisering
-        back_feat, thigh_feat, label = self.get_features_and_labels(self.dataframe) # returns numpy arrays
+
+        # Build arguments for get_features_and_labels function
+
+        b_clm = DataHandler.getAttributeOrReturnDefault(dataframe_columns, 'back_features') + DataHandler.getAttributeOrReturnDefault(dataframe_columns, 'back_temp')
+        t_clm = DataHandler.getAttributeOrReturnDefault(dataframe_columns, 'thigh_features') + DataHandler.getAttributeOrReturnDefault(dataframe_columns, 'thigh_temp')
+        l_clm = DataHandler.getAttributeOrReturnDefault(dataframe_columns, 'label_column')
+
+        args = {
+            'back_columns': b_clm,
+            'thigh_columns': t_clm,
+            'label_column': l_clm
+        }
+
+        # extract back, thigh and labels
+        back_feat, thigh_feat, label = self.get_features_and_labels(self.dataframe, **args)  # returns numpy arrays
+
+        # calculate temperature features
         back_feat = temp_feature_util.segment_acceleration_and_calculate_features(back_feat,
                                                                     samples_pr_window=samples_pr_window,
                                                                     overlap=train_overlap)
@@ -197,7 +222,7 @@ class Pipeline:
         num_rows_in_window = 1
         if seq_lenght:
             num_rows = both_features.shape[0]
-            num_rows_in_window = int( num_rows / seq_lenght)
+            num_rows_in_window = int(num_rows / seq_lenght)
 
 
         feature_windows = []
@@ -241,13 +266,6 @@ class Pipeline:
                 sizeProgressBarInChars=30,
                 explenation="Model classification :: ")
 
-        
-        self.printProgressBar(
-            current=int(number_of_tasks - model_queue.qsize()),
-            totalOperations=number_of_tasks,
-            sizeProgressBarInChars=30,
-            explenation="Model classification :: ")
-        print("DONE")
 
         # Tell child processes to stop waiting for more jobs
         for _ in range(NUMBER_OF_PROCESSES_models):
@@ -257,8 +275,14 @@ class Pipeline:
 
         # LET ALL PROCESSES ACTUALLY TERMINATE AKA FINISH THE JOB THEIR DOING
         while any([p.is_alive() for p in processes_model]):
+            self.printProgressBar(
+                current=int(number_of_tasks - model_queue.qsize()),
+                totalOperations=number_of_tasks,
+                sizeProgressBarInChars=30,
+                explenation="Model classification :: ")
             pass
 
+        print("DONE")
         # print(">>>>>>>>>>>>>>>>> POT OF GOLD <<<<<<<<<<<<<<<<<")
 
         # join the processes aka block the threads, do not let them take on any more jobs
@@ -271,7 +295,7 @@ class Pipeline:
         for process in processes_model:
             process.terminate()
 
-        print(">>>>>>>>>>>>>>>>> ||||||||| <<<<<<<<<<<<<<<<<")
+        # print(">>>>>>>>>>>>>>>>> ||||||||| <<<<<<<<<<<<<<<<<")
 
         # continue the pipeline work
         # ...
@@ -279,36 +303,150 @@ class Pipeline:
         # ...
 
 
-        # See results
-        print("OUTPUT/Activities windows to classify : ", len(output_classification_windows))
+        # print("OUTPUT/Activities windows to classify : ", len(output_classification_windows))
 
-        both_sensors_windows_queue = list(filter(lambda x: x[1] == '1', output_classification_windows))
-        thigh_sensors_windows_queue = list(filter(lambda x: x[1] == '2', output_classification_windows))
-        back_sensors_windows_queue = list(filter(lambda x: x[1] == '3', output_classification_windows))
-        del output_classification_windows
+        both_sensors_windows_queue = list(
+            filter(lambda x: x[1] == lstm_model_mapping['both'], output_classification_windows)
+        )
+        thigh_sensors_windows_queue = list(
+            filter(lambda x: x[1] == lstm_model_mapping['thigh'], output_classification_windows)
+        )
+        back_sensors_windows_queue = list(
+            filter(lambda x: x[1] == lstm_model_mapping['back'], output_classification_windows)
+        )
 
-        back_colums = ['back_x', 'back_y', 'back_z']
-        thigh_colums = ['thigh_x', 'thigh_y', 'thigh_z']
+        del output_classification_windows # save memory! GC can clean this now
 
-        # x1 = model.get_features([dataframe], ['back_x', 'back_y', 'back_z'], batch_size=1, sequence_length=seq_lenght)
+        back_colums = DataHandler.getAttributeOrReturnDefault(dataframe_columns, 'back_features')
+        thigh_colums = DataHandler.getAttributeOrReturnDefault(dataframe_columns, 'thigh_features')
+
         xBack = np.concatenate([dataframe[back_colums].values[ : (len(dataframe) - len(dataframe) % seq_lenght) ] for dataframe in [dataframe]])
         xThigh = np.concatenate([dataframe[thigh_colums].values[: (len(dataframe) - len(dataframe) % seq_lenght)] for dataframe in [dataframe]])
 
         xBack = xBack.reshape(-1, seq_lenght, len(back_colums))
         xThigh = xThigh.reshape(-1, seq_lenght, len(thigh_colums))
 
-        print("XBACK: ", xBack.shape)
-
         # BOTH
-        self.predict_on_one_window("1", lstm_models_paths, both_sensors_windows_queue, xBack, xThigh, seq_lenght)
+        bth_class = self.predict_on_one_window(DataHandler.getAttributeOrReturnDefault(lstm_model_mapping, 'both'), lstm_models_paths, both_sensors_windows_queue, xBack, xThigh, seq_lenght)
 
         # THIGH
-        self.predict_on_one_window('2', lstm_models_paths, thigh_sensors_windows_queue, xBack, xThigh, seq_lenght)
+        thigh_class = self.predict_on_one_window(DataHandler.getAttributeOrReturnDefault(lstm_model_mapping, 'thigh'), lstm_models_paths, thigh_sensors_windows_queue, xBack, xThigh, seq_lenght)
 
         # BACK
-        self.predict_on_one_window('3', lstm_models_paths, back_sensors_windows_queue, xBack, xThigh, seq_lenght)
+        back_class = self.predict_on_one_window(DataHandler.getAttributeOrReturnDefault(lstm_model_mapping, 'back'), lstm_models_paths, back_sensors_windows_queue, xBack, xThigh, seq_lenght)
 
 
+        # Get timestamps (TODO: extract to own function)
+        indexes = np.array(self.dataframe.index.tolist())
+
+        num_windows = int(indexes.shape[0] / seq_lenght)
+        prev_window = 0
+        next_window = prev_window + seq_lenght
+        timestap_windows = []
+        while len(timestap_windows) < num_windows:
+            indexes_window = [ indexes[prev_window : next_window] ]
+            timestap_windows.append( indexes_window )
+            prev_window = next_window
+            next_window += seq_lenght
+
+        timestap_windows = np.array(timestap_windows)
+
+        # Todo extract to static method in DataHandler
+        #build dataframe [timestart, timeend, confidence, target]
+        import pandas as pd
+        result_df = pd.DataFrame(columns=['timestart', 'timeend', 'confidence', 'target'])
+        result_df['timestart'] = pd.to_datetime(result_df['timestart']).sort_values() # sort the dataframe on starttime
+        result_df['timeend'] = pd.to_datetime(result_df['timeend'])
+        result_df['confidence'] = pd.to_numeric(result_df['confidence'])
+        result_df['target'] = pd.to_numeric(result_df['target'])
+
+        # combine all windows for saving
+        classifications = np.concatenate((bth_class, thigh_class, back_class))
+
+        if not minimize_result:  # do not minimize result
+            i = 1
+            for idx, conf, target in classifications:
+                timestart = timestap_windows[idx][0][0]
+                timeend = timestap_windows[idx][0][-1]
+                conf = conf[0]
+                target = target[0]
+
+                row = {
+                    'timestart': timestart,
+                    'timeend': timeend,
+                    'confidence': conf,
+                    'target': target
+                }
+                result_df.loc[len(result_df)] = row
+                self.printProgressBar(
+                    current=i,
+                    totalOperations=len(classifications),
+                    sizeProgressBarInChars=20,
+                    explenation='Creating result dataframe')
+        else:  # minizime result
+            windowMemory = WindowMemory()
+            for idx, conf, target in classifications:
+                timestart = timestap_windows[idx][0][0]
+                timeend = timestap_windows[idx][0][-1]
+                conf = conf[0]
+                target = target[0]
+
+                # row = {
+                #     'timestart': timestart,
+                #     'timeend': timeend,
+                #     'confidence': conf,
+                #     'target': target
+                # }
+                # result_df.loc[len(result_df)] = row
+
+                # TODO: do some logic that finds timestart and timeend for sequences of same target, take avg, conf and then thats the row we want to add to dataframe, not all windows!
+                if windowMemory.get_last_target() is None:
+                    # this can be done outside the loop, to not check each time, use classifiaction.pop() on var init
+                    # last_target = target
+                    windowMemory.update_last_target(target)
+                    # last_start = timestart
+                    windowMemory.update_last_start(timestart)
+                    # last_end = timeend
+                    windowMemory.update_last_end(timeend)
+                    # avg_conf += conf
+                    windowMemory.update_avg_conf_nominator(conf)
+
+                elif not windowMemory.check_targets(target):
+                    # add to result_df
+                    row = {
+                        'timestart': windowMemory.get_last_start(),
+                        'timeend': windowMemory.get_last_end(),
+                        'confidence': windowMemory.get_avg_conf(),
+                        'target': windowMemory.get_last_target()
+                    }
+                    result_df.loc[len(result_df)] = row
+
+                    # keep track of new windows with same result
+                    windowMemory.reset_avg_conf()
+                    windowMemory.update_avg_conf_nominator(conf)
+                    windowMemory.update_last_target(target)
+                    windowMemory.update_last_start(timestart)
+                    windowMemory.update_last_end(timeend)
+                    windowMemory.reset_divisor()
+                else:
+                    # upate memory_variables
+                    windowMemory.update_last_end(timeend)
+                    windowMemory.update_avg_conf_nominator(conf)
+                    windowMemory.update_avg_conf_divisor()
+
+                # Feedback to user
+                self.printProgressBar(
+                    current=windowMemory.get_num_windows(),
+                    totalOperations=len(classifications),
+                    sizeProgressBarInChars=20,
+                    explenation='Creating result dataframe')
+
+                # Controll feedback to user
+                windowMemory.update_num_windows()
+
+            print("DONE")
+
+        return bth_class, thigh_class, back_class
 
         # classifiers = {}
         # for key in lstm_models_paths.keys():
@@ -352,56 +490,90 @@ class Pipeline:
         #
         # self.printProgressBar(start, end, 20, explenation="Activity classification prog. :: ")
 
+    def predict_on_one_window(self, model_num, lstm_models_paths, sensors_windows_queue, xBack, xThigh, seq_lenght, time_col='time'):
+        model = None
+        config = Config.from_yaml(lstm_models_paths[model_num]['config'], override_variables={})
+        model_name = config.MODEL['name']
+        model_args = dict(config.MODEL['args'].items(), **config.INFERENCE.get('extra_model_args', {}))
+        model_args['batch_size'] = 1
 
+        model = models.get(model_name, model_args)
+        model.compile()
+        model.model.load_weights(lstm_models_paths[model_num]['weights'])
+        model.compile()
+        start = 0
+        end = len(sensors_windows_queue)
 
+        classifications = []
+
+        for meta in sensors_windows_queue:
+            wndo_idx, mod = meta[0], meta[1]
+            task = None
+            if mod == "1":
+                task = "Both"
+                x1 = xBack[wndo_idx].reshape(1, seq_lenght, xBack.shape[2])
+                x2 = xThigh[wndo_idx].reshape(1, seq_lenght, xThigh.shape[2])
+                target, prob = model.predict_on_one_window(window=[x1, x2])
+                classifications.append((wndo_idx, prob, target))
+
+            elif mod == '2':
+                task = "Thigh"
+                x = xThigh[wndo_idx].reshape(1, seq_lenght, xThigh.shape[2])
+                target, prob = model.predict_on_one_window(window=x)
+                classifications.append((wndo_idx, prob, target))
+
+            elif mod == '3':
+                task = "Back"
+                x = xBack[wndo_idx].reshape(1, seq_lenght, xBack.shape[2])
+                target, prob = model.predict_on_one_window(window=x)
+                classifications.append((wndo_idx, prob, target))
+
+            # print("<<<<>>>>><<<>>>: \n", ":: " + model_num +" ::", target, prob)
+            self.printProgressBar(start, end, 20, explenation=task + " activity classification prog. :: ")
+            start += 1
+
+        self.printProgressBar(start, end, 20, explenation=task + " activity classification prog. :: ")
+        print("Done") # create new line
+        try:
+            del model  # remove the model
+            clear_session()
+        except Exception as e:
+            print("Could not remove model from memory.")
+        finally:
+            # RETURN TIMESTAMP, CONFIDENCE/PROB and TARGET
+            return np.array(classifications)
+
+    @staticmethod
+    def load_model_weights(model, weights_path):
+        model.load_weights(weights_path)
 
     ####################################################################################################################
     #                                   ^PARALLELL PIPELINE EXECUTE WINDOW BY WINDOW CODE^                             #
     ####################################################################################################################
 
-    def create_large_dafatframe_from_multiple_input_directories(self,
-                                                                list_with_subjects,
-                                                                back_keywords=['Back'],
-                                                                thigh_keywords = ['Thigh'],
-                                                                label_keywords = ['GoPro', "Labels"],
-                                                                out_path=None,
-                                                                merge_column = None,
-                                                                master_columns = ['bx', 'by', 'bz'],
-                                                                slave_columns = ['tx', 'ty', 'tz'],
-                                                                rearrange_columns_to = None,
-                                                                save=False,
-                                                                added_columns_name=["new_col"]
-                                                                ):
+    def create_large_dataframe_from_multiple_input_directories(self,
+                                                               list_with_subjects,
+                                                               back_keywords=['Back'],
+                                                               thigh_keywords = ['Thigh'],
+                                                               label_keywords = ['GoPro', "Labels"],
+                                                               out_path=None,
+                                                               merge_column = None,
+                                                               master_columns = ['bx', 'by', 'bz'],
+                                                               slave_columns = ['tx', 'ty', 'tz'],
+                                                               rearrange_columns_to = None,
+                                                               save=False,
+                                                               added_columns_name=["new_col"],
+                                                               verbose=True
+                                                               ):
 
 
-
-        subjects = {}
-        for subject in list_with_subjects:
-            if not os.path.exists(subject):
-                print("Could not find Subject at path: ", subject)
-
-            files = {}
-            for sub_files_and_dirs in os.listdir(subject):
-                # print(sub_files_and_dirs)
-                words = re.split("[_ .]", sub_files_and_dirs)
-                words = list(map(lambda x: x.lower(), words))
-
-                check_for_matching_word = lambda words, keywords: [True if keyword.lower() == word.lower() else False
-                                                                   for word in words for keyword in keywords]
-
-                if any(check_for_matching_word(words, back_keywords)):
-                    files["backCSV"] = sub_files_and_dirs
-
-                elif any(check_for_matching_word(words, thigh_keywords)):
-                    files["thighCSV"] = sub_files_and_dirs
-
-                elif any(check_for_matching_word(words, label_keywords)):
-                    files["labelCSV"] = sub_files_and_dirs
-
-            subjects[subject] = files
+        subjects = DataHandler.findFilesInDirectoriesAndSubDirs(list_with_subjects,
+                                                         back_keywords,
+                                                         thigh_keywords,
+                                                         label_keywords,
+                                                         verbose=verbose)
 
         # print(subjects)
-
         merged_df = None
         dh = DataHandler()
         dh_stacker = DataHandler()
@@ -424,7 +596,8 @@ class Pipeline:
                 rearrange_columns_to=rearrange_columns_to,
                 save=save,
                 left_index=True,
-                right_index=True
+                right_index=True,
+                verbose=verbose
             )
 
             dh.add_columns_based_on_csv(label, columns_name=added_columns_name, join_type="inner")
@@ -438,61 +611,143 @@ class Pipeline:
             merged_df = dh_stacker.vertical_stack_dataframes(merged_df, dh.get_dataframe_iterator(),
                                                              set_as_current_df=False)
 
-        #     print(
-        #     "shape merged df: ", merged_df.shape, "should be ", dh.get_dataframe_iterator().shape, "  more than old  ",
-        #     merged_old_shape)
-        #
-        # print("Final merge form: ", merged_df.shape)
+            self.printProgressBar(idx, len(subjects), 20, explenation='Merging datasets prog.: ')
+
+        self.printProgressBar(len(subjects), len(subjects), 20, explenation='Merging datasets prog.: ')
         return merged_df
 
-    def predict_on_one_window(self, model_num, lstm_models_paths, sensors_windows_queue, xBack, xThigh, seq_lenght):
-        model = None
-        config = Config.from_yaml(lstm_models_paths[model_num]['config'], override_variables={})
+
+    def train_lstm_model(self,
+                         training_dataframe,
+                         back_cols,
+                         thigh_cols,
+                         config_path,
+                         label_col=None,
+                         validation_dataframe=None,
+                         batch_size=None,
+                         sequence_length=None,
+                         save_to_path=None,
+                         save_model=False,
+                         save_weights=False,
+                         shuffle=False
+                         ):
+        '''
+        :param training_dataframe: Pandas Dataframe
+        :param back_cols: list containing the labels that identify back feature columns
+        :param thigh_cols: list containing the labels that identify thigh feature columns
+        :param config_path: relative path to the configuration of LSTM
+        :param label_col: the name of the column in dataframe that identifies Class/Target
+        :param validation_dataframe: Pandas Dataframe with same columns as training_dataframe
+        :param batch_size: Batch_size, should be given in config file, but this will over overwrite
+        :param sequence_length: sequence_length, should be given in config file, but this will over overwrite
+        :param save_to_path: if given, saves the trained weights and/or model to the given path
+        :param save_model: if path and save_model [True | False] saves the model to the path
+        :param save_weights: if path and save_weights [True | False] saves the weight to the path with suffix: _weights
+        :param shuffle: if given, set numpy random seed to 47, then shuffle the windows and labels
+        :return: the trained model object
+        '''
+        '''
+        src/models/__init__.py states:
+            Train the model. Usually, we like to split the data into training and validation
+            by producing a dichotomy over the subjects. This means that
+
+            Inputs:
+              - train_data: list<pd.DataFrame>
+                A list of dataframes, intended to be used for model fitting. It's columns are:
+                  <back_x, back_y, back_z, thigh_x, thigh_y, thigh_z, label>
+                Where the first 6 corresponds to sensor data as floats and the last one is an
+                integer corresponding to the annotated class
+              - valid_data: list<pd.DataFrame>
+                Same as train_data, execpt usually a much shorter list.
+              - **kwargs:
+                Extra arguments found in the model's config
+        '''
+
+        config = Config.from_yaml(config_path, override_variables={})
+        # config.pretty_print()
+
         model_name = config.MODEL['name']
         model_args = dict(config.MODEL['args'].items(), **config.INFERENCE.get('extra_model_args', {}))
-        model_args['batch_size'] = 1
-
         model = models.get(model_name, model_args)
-        model.compile()
-        model.model.load_weights(lstm_models_paths[model_num]['weights'])
-        model.compile()
-        start = 0
-        end = len(sensors_windows_queue)
-        for meta in sensors_windows_queue:
-            wndo_idx, mod = meta[0], meta[1]
-            task = None
-            if mod == "1":
-                task = "Both"
-                x1 = xBack[wndo_idx].reshape(1, seq_lenght, xBack.shape[2])
-                x2 = xThigh[wndo_idx].reshape(1, seq_lenght, xThigh.shape[2])
-                target, prob = model.predict_on_one_window(window=[x1, x2])
 
-            elif mod == '2':
-                task = "Thigh"
-                x = xThigh[wndo_idx].reshape(1, seq_lenght, xThigh.shape[2])
-                target, prob = model.predict_on_one_window(window=x)
-
-            elif mod == '3':
-                task = "Back"
-                x = xBack[wndo_idx].reshape(1, seq_lenght, xBack.shape[2])
-                target, prob = model.predict_on_one_window(window=x)
-
-            # print("<<<<>>>>><<<>>>: \n", ":: " + model_num +" ::", target, prob)
-            self.printProgressBar(start, end, 20, explenation=task + " activity classification prog. :: ")
-            start += 1
-
-        self.printProgressBar(start, end, 20, explenation=task + " activity classification prog. :: ")
-        print() # create new line
-        try:
-            del model  # remove the model
-            clear_session()
-        except Exception as e:
-            print("Could not remove model from memory.")
+        # if passed in validation dataframe, give it its propper format.
+        if not validation_dataframe is None:
+            validation_dataframe = [validation_dataframe]
 
 
-    @staticmethod
-    def load_model_weights(model, weights_path):
-        model.load_weights(weights_path)
+        # potentially overwrite config variables
+        batch_size = batch_size or config.TRAINING['args']['batch_size']
+        sequence_length = sequence_length or config.TRAINING['args']['sequence_length']
+        callbacks = config.TRAINING['args']['callbacks'] or None
+
+        cols = None
+        if back_cols and thigh_cols:
+            self.num_sensors = 2
+            cols = [back_cols, thigh_cols]
+            model.train(
+                train_data=[training_dataframe],
+                valid_data=validation_dataframe,
+                epochs=config.TRAINING['args']['epochs'],
+                batch_size=batch_size, # gets this from config file when init model
+                sequence_length=sequence_length, # gets this from config file when init model
+                back_cols=back_cols,
+                thigh_cols=thigh_cols,
+                label_col=label_col,
+                shuffle=shuffle,
+            )
+        else:
+            cols = back_cols or thigh_cols
+            self.num_sensors = 1
+            model.train(
+                train_data=[training_dataframe],
+                valid_data=validation_dataframe,
+                callbacks=[],
+                epochs=config.TRAINING['args']['epochs'],
+                batch_size=batch_size,
+                sequence_length=sequence_length,
+                cols=cols,
+                label_col=label_col,
+                shuffle=shuffle
+            )
+
+        #####
+        # Save the model / weights
+        #####
+        if save_to_path and (save_weights or save_model):
+            print("Done saving: {}".format(
+                    model.save_model_andOr_weights(path=save_to_path, model=save_model, weight=save_weights)
+                )
+            )
+
+        self.config = config
+        self.batch_size = batch_size
+        self.sequence_length = sequence_length
+        self.cols = cols
+        self.model = model
+        return self.model
+
+
+    def evaluate_lstm_model(self, dataframe, label_col, num_sensors=None, model=None, back_cols=None, thigh_cols=None, cols=None, batch_size=None, sequence_length=None):
+        model = model or self.model
+        num_sensors = num_sensors or self.num_sensors
+
+        if num_sensors == 2:
+            return model.evaluate(dataframes=[dataframe],
+                          batch_size=batch_size or self.config.TRAINING['args']['batch_size'],
+                          sequence_length=sequence_length or self.config.TRAINING['args']['sequence_length'],
+                          back_cols=self.cols[0] or back_cols,
+                          thigh_cols=self.cols[1] or thigh_cols,
+                          label_col=label_col)
+        elif num_sensors == 1:
+            return model.evaluate(dataframes=[dataframe],
+                          batch_size=batch_size or self.config.TRAINING['args']['batch_size'],
+                          sequence_length=sequence_length or self.config.TRAINING['args']['sequence_length'],
+                          cols=self.cols or cols,
+                          label_col=label_col)
+        else:
+            print("Pipeline.py :: evaluate_lstm_model ::")
+            raise NotImplementedError()
+
 
 
 if __name__ == '__main__':

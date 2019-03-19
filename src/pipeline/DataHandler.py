@@ -7,6 +7,7 @@ import numpy as np
 import time
 from utils import zip_utils
 from utils import csv_loader
+from sklearn.model_selection import train_test_split
 
 
 
@@ -355,6 +356,7 @@ class DataHandler():
                                          slave_columns=['time', 'tx', 'ty', 'tz', 'ttemp'],
                                          rearrange_columns_to=None,
                                          save=True,
+                                         verbose=False,
                                          **kwargs
                                          ):
         '''
@@ -368,30 +370,34 @@ class DataHandler():
         :param slave_columns: the name to give each column in master csv
         :param rearrange_columns_to:
         :param save: default True
+        :param verbose: default False, prints out what it does
         :param **kwargs: additional keyword=value arguments, that can be used with the pandas.merge() function
         :return: None
         '''
 
         # TODO: PASS IN MASTER AND SLAVE COLUMN NAMES
         # TODO change all the pd.read_csv s to use datahandlers own load_from_csv function
-
-        print("READING MASTER CSV")
+        if verbose:
+            print("READING MASTER CSV")
         master_df = pd.read_csv(master_csv_path)
         master_df.columns = master_columns
 
-        print("READING SLAVE CSV")
+        if verbose:
+            print("READING SLAVE CSV")
         slave_df = pd.read_csv(slave_csv_path)
         slave_df.columns = slave_columns
 
         # Merge the csvs
-        print("MERGING MASTER AND SLAVE CSV")
+        if verbose:
+            print("MERGING MASTER AND SLAVE CSV")
         merged_df = master_df.merge(slave_df, on=merge_column, **kwargs)
 
         # print("MASTER SHAPE: {} \n SLAVE SHAPE: {} \n MERGED SHAPE: {}".format(master_df.shape, slave_df.shape, merged_df.shape))
 
         ## Rearrange the columns
         if not rearrange_columns_to is None:
-            print("REARRANGING CSV COLUMNS")
+            if verbose:
+                print("REARRANGING CSV COLUMNS")
             merged_df = merged_df[rearrange_columns_to]
 
         if out_path is None:
@@ -426,34 +432,40 @@ class DataHandler():
 
 
 
-    def convert_column_from_str_to_datetime_test(self, dataframe=None, column_name="time"):
+    def convert_column_from_str_to_datetime_test(self, dataframe=None, column_name="time", verbose=False):
         # TODO if dataframe is actually dataframe object, self.dataframe_iterator = dataframe
+        # TODO remove this and change all places it it called to call convert_column_from_str_to_datetime
+
+        # TODO: PERHAPS MAYBE WHO KNOWS, is this the one we should use and just pass in column names????
+
         if isinstance(dataframe, str):
             self.dataframe_iterator = pd.read_csv(dataframe)
-            print(self.dataframe_iterator.head(5))
-            print()
+            if verbose: print(self.dataframe_iterator.head(5)); print()
+
+
             self.dataframe_iterator.columns = ['time', 'bx', 'by', 'bz', 'tx', 'ty', 'tz', 'btemp', 'ttemp']
         else:
-            print("USING THE Datahandlers own dataframe-Instance")
+            if verbose: print("USING THE Datahandlers own dataframe-Instance")
+            else: pass
 
         self.dataframe_iterator[column_name] = pd.to_datetime(self.dataframe_iterator[column_name])
-        print(self.dataframe_iterator.dtypes)
+        if verbose: print(self.dataframe_iterator.dtypes)
 
-    def convert_column_from_str_to_datetime(self, column_name="time"):
+    def convert_column_from_str_to_datetime(self, column_name="time", verbose=False):
         self.dataframe_iterator[column_name] = pd.to_datetime(self.dataframe_iterator[column_name])
-        print(self.dataframe_iterator.dtypes)
+        if verbose: print(self.dataframe_iterator.dtypes)
 
-    def convert_column_from_str_to_numeric(self, column_name="ttemp"):
+    def convert_column_from_str_to_numeric(self, column_name="ttemp", verbose=False):
         self.dataframe_iterator[column_name] = pd.to_numeric(self.dataframe_iterator[column_name])
-        print(self.dataframe_iterator.dtypes)
+        if verbose: print(self.dataframe_iterator.dtypes)
 
-    def set_column_as_index(self, column_name):
+    def set_column_as_index(self, column_name, verbose=False):
         self.dataframe_iterator.set_index(column_name, inplace=True)
-        print("The dataframe index is now: ", self.dataframe_iterator.index.name)
+        if verbose: print("The dataframe index is now: ", self.dataframe_iterator.index.name)
 
-    def add_new_column(self, name='label', default_value=np.nan):
+    def add_new_column(self, name='label', default_value=np.nan, verbose=False):
         self.dataframe_iterator.insert(len(self.dataframe_iterator.columns), name, value=default_value)
-        print(self.dataframe_iterator.describe())
+        if verbose: print(self.dataframe_iterator.describe())
 
     def add_columns_based_on_csv(self, path, columns_name=['label'], join_type='outer', **kwargs_read_csv):
         df_label = pd.read_csv(path, **kwargs_read_csv)
@@ -464,7 +476,7 @@ class DataHandler():
 
 
 
-    def add_labels_file_based_on_intervals(self, intervals={}, label_mapping={}):
+    def add_labels_file_based_on_intervals(self, intervals={}, label_mapping={}, verbose=False):
         '''
         intervals = {
             'Label' : [
@@ -480,12 +492,12 @@ class DataHandler():
         '''
 
         if not intervals:
-            print("Faak off, datahandler add_labels_file_based_on_intervals")
+            if verbose: print("Faak off, datahandler add_labels_file_based_on_intervals")
 
         for label in intervals:
-            print("label", label)
+            if verbose: print("label", label)
             for interval in intervals[label]:
-                print("INTERVAL", interval)
+                if verbose: print("INTERVAL", interval)
                 date = interval[0]
                 start = interval[1]
                 end = interval[2]
@@ -495,7 +507,7 @@ class DataHandler():
                 # get indexes to add label to
                 self.dataframe_iterator.loc[start_string:end_string, 'label'] = label
 
-        print(self.dataframe_iterator)
+        if verbose: print(self.dataframe_iterator)
 
     def read_and_return_multiple_csv_iterators(self, dir_path,
                                                filenames=['back', 'thigh', "labels"],
@@ -539,14 +551,19 @@ class DataHandler():
         if dataframe is None:
             print("Faak off, datahandler get_rows_and_columns")
             # TODO fix exception
-
         if rows is None and columns is None:
             return dataframe
         elif rows is None:
+            if type(columns[0]) == str:
+                return dataframe.loc[:, columns]
             return dataframe.iloc[:, columns]
         elif columns is None:
+            if type(rows[0]) == str:
+                return dataframe.loc[rows, :]
             return dataframe.iloc[rows, :]
         else:
+            if type(rows[0] == str) and type(columns[0]) == str:
+                return dataframe.loc[rows, columns]
             return dataframe.iloc[rows, columns]
 
 
@@ -690,6 +707,116 @@ class DataHandler():
 
     def rearrange_columns(self, rearranged_columns):
         self.dataframe_iterator = self.dataframe_iterator[rearranged_columns]
+
+
+    @staticmethod
+    def split_df_into_training_and_test(data, label_col=None, split_rate=.2, shuffle=False):
+        '''
+
+        :param data:
+        :param label_col:
+        :param split_rate: how many percent hould be in the test TEST set!
+        :return: IF label_col is given, returns x_train, x_test, y_train, y_test ELSE: train, test
+        '''
+        # how_much_is_training_data = 0.8
+        # split_idx = int(dataframe.shape[0] * how_much_is_training_data)
+        # df1 = dataframe.iloc[: split_idx]
+        # df2 = dataframe.iloc[split_idx:]  # 1 - how_musch_is_training_data % of data
+        # return df1, df2
+
+        if label_col:
+            x = data.iloc[:, :label_col]
+            y = data.iloc[: , label_col]
+            return train_test_split(x, y, test_size=split_rate, shuffle=shuffle)
+        else:
+            return train_test_split(data, test_size=split_rate, shuffle=shuffle)
+
+    @staticmethod
+    def create_batches_with_seq_length(dataframes, columns, sequence_length, stateful=None, batch_size=None):
+        '''
+
+        :param self:
+        :param dataframes: list with dataframes
+        :param columns: list with columns (features) to keep in the new batch
+        :param batch_size:
+        :param sequence_length:
+        :param stateful: Only fill X with full batches
+        :return:
+        '''
+
+
+        X = np.concatenate([
+            dataframe[columns].values[: (len(dataframe) - len(dataframe) % sequence_length)] for dataframe in dataframes
+        ]).reshape( -1, sequence_length, len(columns) )
+
+        if stateful and batch_size:
+            # No half-batches are allowed if using stateful. TODO: This should probably be done very differently
+            batch_size = batch_size
+            X = X[: (len(X) - len(X) % batch_size)]
+
+        return X
+
+    @staticmethod
+    def findFilesInDirectoriesAndSubDirs(list_with_subjects, back_keywords, thigh_keywords, label_keywords, verbose=False):
+        '''
+        takes in a list with path to directories containing files to look for based on keywords,
+        the files must be at root level in the directory.
+
+        NOTE: Files must use _ and or . for delimiter in filename
+        Note: case Insensitive
+
+        :param list_with_subjects:
+        :param back_keywords:
+        :param thigh_keywords:
+        :param label_keywords:
+        :return: a dictionary {subject_dir_name: {backCSV : x, thighCSV : y, labelCSVL : z}}
+        '''
+        # check if directory contains files or another directory:
+        sub_dirs = []
+        for sub in list_with_subjects:
+            for dirpath, dirnames, filenames in os.walk(sub):
+                # if not leaf directory, but has files
+                if filenames and not dirnames == []:
+                    sub_dirs.append(dirpath)
+
+                # if leaf directory and has files, not empty directory
+                if dirnames == [] and filenames:
+                    sub_dirs.append(dirpath)
+
+        subjects = {}
+        for subject in sub_dirs:
+            if not os.path.exists(subject):
+                print("Could not find Subject at path: ", subject)
+
+            files = {}
+            for sub_files_and_dirs in os.listdir(subject):
+                # print(sub_files_and_dirs)
+                words = re.split("[_ .]", sub_files_and_dirs)
+                words = list(map(lambda x: x.lower(), words))
+
+                check_for_matching_word = lambda words, keywords: [True if keyword.lower() == word.lower() else False
+                                                                   for word in words for keyword in keywords]
+
+                if any(check_for_matching_word(words, back_keywords)):
+                    files["backCSV"] = sub_files_and_dirs
+
+                elif any(check_for_matching_word(words, thigh_keywords)):
+                    files["thighCSV"] = sub_files_and_dirs
+
+                elif any(check_for_matching_word(words, label_keywords)):
+                    files["labelCSV"] = sub_files_and_dirs
+
+            subjects[subject] = files
+        if verbose:
+            print("Found following subjects")
+            for k, _ in subjects.items():
+                print("Subject: {}".format(k))
+        return subjects
+
+
+    @staticmethod
+    def getAttributeOrReturnDefault(dict, name, default=None):
+        return dict.get(name, default)
 
 
 if __name__ == '__main__':
