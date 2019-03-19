@@ -91,34 +91,24 @@ class Pipeline:
             ttemp_txt_path=self.dh.get_unzipped_path() + '/ttemp.txt',
         )
 
-        # print('SET INDEX TO TIMESTAMP')
-        # # test that this works with a dataframe and not only path to csv
-        # # thus pre-loaded and makes it run a little faster
-        # self.dh.convert_column_from_str_to_datetime_test(
-        #     dataframe=df,
-        # )
-        #
-        # self.dh.set_column_as_index("time")
-        # print('DONE')
-        #
-        # ##########################
-        #
-        # print('MAKE NUMERIC')
-        # self.dh.convert_column_from_str_to_numeric(column_name="btemp")
-        #
-        # self.dh.convert_column_from_str_to_numeric(column_name="ttemp")
-        # print('DONE')
-        #
-        # ##########################
-        #
-        # print('ADDING LABELS')
-        # self.dh.add_new_column()
-        # print('DONE')
-        #
-        # self.dh.add_labels_file_based_on_intervals(
-        #     intervals=label_interval,
-        #     label_mapping=label_mapping
-        # )
+        print('SET INDEX TO TIMESTAMP')
+        # test that this works with a dataframe and not only path to csv
+        # thus pre-loaded and makes it run a little faster
+        self.dh.convert_column_from_str_to_datetime_test(
+            dataframe=self.dh.get_dataframe_iterator(),
+        )
+
+        self.dh.set_column_as_index("time")
+        print('DONE')
+
+        ##########################
+
+        print('MAKE NUMERIC')
+        self.dh.convert_column_from_str_to_numeric(column_name="btemp")
+
+        self.dh.convert_column_from_str_to_numeric(column_name="ttemp")
+        print('DONE')
+
 
     def get_features_and_labels(self, df, dh=None, columns_back=[0,1,2,6], columns_thigh=[3,4,5,7], column_label=[8]):
         if dh is None:

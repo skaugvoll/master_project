@@ -213,9 +213,11 @@ class DataHandler():
         print("MERGING MASTER AND SLAVE CSV")
         merged_df = pd.concat([master_df, btemp_df, ttemp_df], axis=1,)
 
+
         master_file_dir, master_filename_w_format = os.path.split(master_csv_path)
         out_path = os.path.join(master_file_dir, master_filename_w_format.split('.')[0] + '_TEMP_BT.csv')
 
+        self.dataframe_iterator = merged_df
 
         print("SAVING MERGED CSV")
         print("DONE, here is a sneak peak:\n", merged_df.head(5))
