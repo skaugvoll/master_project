@@ -19,3 +19,6 @@ Hvordan organisere pipeline koden, module, package,osv ? for aa faa robust impor
   - Lage en funksjon som bare while not
   tar filnavne og legger på en _ også teller oppover til den får ett tall som gjør den unik.
   lager temp mappen med det navnet.
+
+
+- Importere flere test dataset og lage labels på de. type 4000181, etc

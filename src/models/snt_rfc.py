@@ -36,6 +36,8 @@ class HARRandomForrest():
                                                                                     overlap=train_overlap)
 
             labels = temp_feature_util.segment_labels(labels, samples_pr_window=samples_pr_window, overlap=train_overlap)
+            if self.test_ground_truth_labels is None:
+                self.test_ground_truth_labels = labels
            
             both_features = np.hstack((back_training_feat, thigh_training_feat))
 
@@ -45,6 +47,7 @@ class HARRandomForrest():
                                  random_state=0,
                                  n_jobs=-1
                                  ).fit(both_features, labels)
+
             print("I kinda diiiid! ")
 
     def test(self, back_test_feat, thigh_test_feat, labels, samples_pr_window, train_overlap):
@@ -82,6 +85,10 @@ class HARRandomForrest():
 
 
     def calculate_accuracy(self):
+        '''
+        This cannot be called after training, only after test or classify, as .fit returnes the trained RFC object
+        :return:
+        '''
         # TODO check that object attributes are not None, raise exception
         gt = self.test_ground_truth_labels
         preds = self.predictions
