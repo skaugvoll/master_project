@@ -5,6 +5,7 @@ import pickle
 from multiprocessing import Process, Queue, Manager
 from pipeline.DataHandler import DataHandler
 import utils.temperature_segmentation_and_calculation as temp_feature_util
+from utils import progressbar
 from src.config import Config
 from src import models
 from src.utils.WindowMemory import WindowMemory
@@ -19,34 +20,9 @@ class Pipeline:
         self.dataframe = None
         self.model = None
 
-
-    def printProgressBar(self, current, totalOperations, sizeProgressBarInChars, explenation=""):
-        # try:
-        #     import sys, time
-        # except Exception as e:
-        #     print("Could not import sys and time")
-
-        fraction_completed = current / totalOperations
-        filled_bar = round(fraction_completed * sizeProgressBarInChars)
-
-        # \r means start from the beginning of the line
-        fillerChars = "#" * filled_bar
-        remains = "-" * (sizeProgressBarInChars - filled_bar)
-
-
-        sys.stdout.write('\r{} {} {} [{:>7.2%}]'.format(
-            self.colorPrinter.colorString(text=explenation, color="blue"),
-            fillerChars,
-            remains,
-            fraction_completed
-        ))
-
-        sys.stdout.flush()
-
     def unzipNsynch(self, rel_filepath, unzip_path='../../data/temp', cwa_paralell_convert=True):
         # unzip cwas from 7z arhcive
 
-        os.system("rm -rf ../../data/temp/4000181.7z/")
         self.dh.unzip_synch_cwa(rel_filepath)
 
         back_csv, thigh_csv = cwa_converter.convert_cwas_to_csv_with_temp(
@@ -260,7 +236,7 @@ class Pipeline:
         # waith for tasks_queue to become empty before sending stop signal to workers
         while not model_queue.empty():
             # print("CURRENT: {}\nQUEUE SIZE: {}".format(number_of_tasks - model_queue.qsize(), model_queue.qsize()))
-            self.printProgressBar(
+            progressbar.printProgressBar(
                 current=int(number_of_tasks - model_queue.qsize()),
                 totalOperations=number_of_tasks,
                 sizeProgressBarInChars=30,
@@ -275,7 +251,7 @@ class Pipeline:
 
         # LET ALL PROCESSES ACTUALLY TERMINATE AKA FINISH THE JOB THEIR DOING
         while any([p.is_alive() for p in processes_model]):
-            self.printProgressBar(
+            progressbar.printProgressBar(
                 current=int(number_of_tasks - model_queue.qsize()),
                 totalOperations=number_of_tasks,
                 sizeProgressBarInChars=30,
@@ -378,7 +354,7 @@ class Pipeline:
                     'target': target
                 }
                 result_df.loc[len(result_df)] = row
-                self.printProgressBar(
+                progressbar.printProgressBar(
                     current=i,
                     totalOperations=len(classifications),
                     sizeProgressBarInChars=20,
@@ -435,7 +411,7 @@ class Pipeline:
                     windowMemory.update_avg_conf_divisor()
 
                 # Feedback to user
-                self.printProgressBar(
+                progressbar.printProgressBar(
                     current=windowMemory.get_num_windows(),
                     totalOperations=len(classifications),
                     sizeProgressBarInChars=20,
@@ -529,10 +505,10 @@ class Pipeline:
                 classifications.append((wndo_idx, prob, target))
 
             # print("<<<<>>>>><<<>>>: \n", ":: " + model_num +" ::", target, prob)
-            self.printProgressBar(start, end, 20, explenation=task + " activity classification prog. :: ")
+            progressbar.printProgressBar(start, end, 20, explenation=task + " activity classification prog. :: ")
             start += 1
 
-        self.printProgressBar(start, end, 20, explenation=task + " activity classification prog. :: ")
+        progressbar.printProgressBar(start, end, 20, explenation=task + " activity classification prog. :: ")
         print("Done") # create new line
         try:
             del model  # remove the model
@@ -611,9 +587,9 @@ class Pipeline:
             merged_df = dh_stacker.vertical_stack_dataframes(merged_df, dh.get_dataframe_iterator(),
                                                              set_as_current_df=False)
 
-            self.printProgressBar(idx, len(subjects), 20, explenation='Merging datasets prog.: ')
+            progressbar.printProgressBar(idx, len(subjects), 20, explenation='Merging datasets prog.: ')
 
-        self.printProgressBar(len(subjects), len(subjects), 20, explenation='Merging datasets prog.: ')
+        progressbar.printProgressBar(len(subjects), len(subjects), 20, explenation='Merging datasets prog.: ')
         return merged_df
 
 

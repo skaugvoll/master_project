@@ -1,4 +1,3 @@
-
 import os
 import re
 import axivity
@@ -7,10 +6,8 @@ import numpy as np
 import time
 from utils import zip_utils
 from utils import csv_loader
-from sklearn.model_selection import train_test_split
-
-
-
+from utils import progressbar
+# from sklearn.model_selection import train_test_split
 
 class DataHandler():
     # TODO: change all places pd.read_csv is called to self.load_dataframe_from_csv(...)
@@ -77,10 +74,6 @@ class DataHandler():
 
         return unzipped_dir_path
 
-
-
-    # TODO: mekk 1 funksjon for å save csv!!!!
-    # TODO: bytt ut alle plasser det stpr read csv til load_csv ett eller annet drit i DH
     def merge_multiple_csvs(self, master_csv_path, slave_csv_path, slave2_csv_path, out_path=None,
                             master_columns=['time', 'bx', 'by', 'bz', 'tx', 'ty', 'tz'],
                             slave_columns=['time', 'bx1', 'by1', 'bz1', 'btemp'],
@@ -92,16 +85,16 @@ class DataHandler():
         master_df = pd.read_csv(master_csv_path, header=None)
         master_df.columns = master_columns
 
-        print("READING SLAVE CSV")
+        print("READING BACK CSV")
         slave_df = pd.read_csv(slave_csv_path, header=None)
         slave_df.columns = slave_columns
 
-        print("READING SLAVE2 CSV")
+        print("READING THINGH CSV")
         slave2_df = pd.read_csv(slave2_csv_path, header=None)
         slave2_df.columns = slave2_columns
 
         # Merge the csvs
-        print("MERGING MASTER AND SLAVE CSV")
+        print("MERGING CSVS WITH MASTER")
         merged_df = master_df.merge(slave_df, on='time', how=merge_how).merge(slave2_df, on='time', how=merge_how)
 
         ## Rearrange the columns
@@ -136,7 +129,7 @@ class DataHandler():
         # self.data_cleanup_path = os.path.abspath(out_path[:out_path.find('.7z/') + 4])
         # self.data_synched_csv_path = os.path.abspath(out_path)
         # self.name = os.path.basename(out_path)
-        # self.data_temp_folder = os.path.abspath(os.path.split(out_path)[0])
+        self.data_temp_folder = os.path.abspath(os.path.split(out_path)[0])
 
     def write_temp_to_txt(self, dataframe=None, dataframe_path=None):
 
@@ -144,24 +137,22 @@ class DataHandler():
 
         if not dataframe is None:
             df = dataframe
-        # 01
+
         elif dataframe is None and not dataframe_path is None:
             try:
                 df = pd.read_csv(dataframe_path)
             except Exception as e:
                 print("Did not give a valid csv_path")
                 raise e
-        # 00
+
         elif dataframe is None and dataframe_path is None:
             print("Need to pass either dataframe or csv_path")
             raise Exception("Need to pass either dataframe or csv_path")
-        # 11 save memory and performance
+
         elif dataframe and dataframe_path:
             df = dataframe
 
         print("STARTING weiting temp to file")
-        # TODO: change to datafram_iterator??
-        # self.dataframe_iterator = df.apply(self.find_temp, axis=0, raw=True)
 
         for i in ['btemp', 'ttemp']:
             start_time = time.time()
@@ -169,17 +160,13 @@ class DataHandler():
             nanIndex = list(df[i].index[df[i].apply(np.isnan)])
             valildIndex = list(df[i].index[df[i].notnull()])
             firstLastIndex = [nanIndex[0], nanIndex[-1]]
-            print('Validindex len:', len(valildIndex))
-            print('nanindex len:', len(nanIndex))
-            print('SUM:', int(len(nanIndex) + len(valildIndex)))
 
-            file = open('../../data/temp/4000181.7z/4000181/' + i + '.txt', 'w')
+            file = open(self.data_temp_folder + '/' + i + '.txt', 'w')
             if firstLastIndex[0] < valildIndex[0]:
                 file.write(str(str((float(df.loc[valildIndex[0], i]) * 300 / 1024) - 50) + '\n') * (valildIndex[0] - firstLastIndex[0]))
 
             for j in range(len(valildIndex) - 1):
-                if j % 1000 == 0:
-                    print(j)
+                progressbar.printProgressBar(j, len(valildIndex), 10)
                 if valildIndex[j] + 1 == valildIndex[j + 1]:
                     file.write(str((float(df.loc[valildIndex[j], i]) * 300 / 1024) - 50) + '\n')
                 else:
@@ -202,16 +189,16 @@ class DataHandler():
         master_df = pd.read_csv(master_csv_path, header=None)
         master_df.columns = ['time', 'bx', 'by', 'bz', 'tx', 'ty', 'tz']
 
-        print("READING SLAVE CSV")
+        print("READING BACK CSV")
         btemp_df = pd.read_csv(btemp_txt_path, header=None)
         btemp_df.columns = ['btemp']
 
-        print("READING SLAVE2 CSV")
+        print("READING THIGH CSV")
         ttemp_df = pd.read_csv(ttemp_txt_path, header=None)
         ttemp_df.columns = ['ttemp']
 
         # Merge the csvs
-        print("MERGING MASTER AND SLAVE CSV")
+        print("MERGING MASTER AND CSVS")
         merged_df = pd.concat([master_df, btemp_df, ttemp_df], axis=1,)
 
 
@@ -226,8 +213,6 @@ class DataHandler():
         merged_df.to_csv(out_path, index=False, float_format='%.6f')
         print("Saved synched and merged as csv to : ", os.path.abspath(out_path))
 
-
-    ##########
 
     def _check_paths(self, filepath, temp_dir):
         # Make sure zipfile exists
@@ -596,18 +581,9 @@ class DataHandler():
         print(self.dataframe_iterator.tail(n))
 
 
-    ### FOR REMOVAL! ASK SIGVER FIRST
-    #
-    #
-    #
-    #
-    ###################################
-
     def _adc_to_c(self, row, normalize=False):
-        if not np.isnan(row['btemp']):
-            row['btemp'] = (row['btemp'] * 300 / 1024) - 50
-        if not np.isnan(row['ttemp']):
-            row['ttemp'] = (row['ttemp'] * 300 / 1024) - 50
+        row['btemp'] = (row['btemp'] * 300 / 1024) - 50
+        row['ttemp'] = (row['ttemp'] * 300 / 1024) - 50
 
         if normalize:
             print("NORAMLIZATION NOT IMPLEMENTED YET")
