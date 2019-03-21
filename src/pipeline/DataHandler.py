@@ -7,7 +7,7 @@ import time
 from utils import zip_utils
 from utils import csv_loader
 from utils import progressbar
-# from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split
 
 class DataHandler():
     # TODO: change all places pd.read_csv is called to self.load_dataframe_from_csv(...)
