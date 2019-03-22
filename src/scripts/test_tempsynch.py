@@ -6,7 +6,7 @@ except: print("SAdsadsadhsa;hkldasjkd")
 import axivity
 import cwa_converter
 import pandas as pd
-from DataHandler import DataHandler
+from pipeline.DataHandler import DataHandler
 
 
 class Tempsynch:

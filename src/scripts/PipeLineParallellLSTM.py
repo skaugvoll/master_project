@@ -135,7 +135,7 @@ class PipelinePAR:
         print('SET INDEX TO TIMESTAMP')
         #test that this works with a dataframe and not only path to csv
         # thus pre-loaded and makes it run a little faster
-        self.dh.convert_column_from_str_to_datetime_test(
+        self.dh.convert_column_from_str_to_datetime(
                 dataframe=df,
         )
 

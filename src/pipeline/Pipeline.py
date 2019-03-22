@@ -49,11 +49,6 @@ class Pipeline:
             ]
         )
 
-        self.dh.write_temp_to_txt(
-            dataframe=self.dh.get_dataframe_iterator(),
-            # dataframe_path='../../data/temp/4000181.7z/4000181/4000181-34566_2017-09-19_B_4000181-26584_2017-09-19_T_timesync_output_TEMP_SYNCHED_BT.csv'
-        )
-
         self.dh.concat_timesynch_and_temp(
             master_csv_path=self.dh.get_synched_csv_path(),
             btemp_txt_path=self.dh.get_unzipped_path() + '/btemp.txt',
@@ -63,7 +58,7 @@ class Pipeline:
         print('SET INDEX TO TIMESTAMP')
         # test that this works with a dataframe and not only path to csv
         # thus pre-loaded and makes it run a little faster
-        self.dh.convert_column_from_str_to_datetime_test(
+        self.dh.convert_column_from_str_to_datetime(
             dataframe=self.dh.get_dataframe_iterator(),
         )
 

@@ -79,23 +79,25 @@ class DataHandler():
                             slave_columns=['time', 'bx1', 'by1', 'bz1', 'btemp'],
                             slave2_columns=['time', 'tx1', 'ty1', 'tz1', 'ttemp'],
                             rearrange_columns_to=None,
-                            merge_how='inner'):
+                            merge_how='inner',
+                            merge_on='time',
+                            header_value=None):
 
         print("READING MASTER CSV")
-        master_df = pd.read_csv(master_csv_path, header=None)
+        master_df = pd.read_csv(master_csv_path, header=header_value)
         master_df.columns = master_columns
 
         print("READING BACK CSV")
-        slave_df = pd.read_csv(slave_csv_path, header=None)
+        slave_df = pd.read_csv(slave_csv_path, header=header_value)
         slave_df.columns = slave_columns
 
         print("READING THINGH CSV")
-        slave2_df = pd.read_csv(slave2_csv_path, header=None)
+        slave2_df = pd.read_csv(slave2_csv_path, header=header_value)
         slave2_df.columns = slave2_columns
 
         # Merge the csvs
         print("MERGING CSVS WITH MASTER")
-        merged_df = master_df.merge(slave_df, on='time', how=merge_how).merge(slave2_df, on='time', how=merge_how)
+        merged_df = master_df.merge(slave_df, on=merge_on, how=merge_how).merge(slave2_df, on=merge_on, how=merge_how)
 
         ## Rearrange the columns
         if not rearrange_columns_to is None:
@@ -131,6 +133,11 @@ class DataHandler():
         # self.name = os.path.basename(out_path)
         self.data_temp_folder = os.path.abspath(os.path.split(out_path)[0])
 
+        #Make two temp txt files based on new merged DF
+        self.write_temp_to_txt(
+            dataframe=self.dataframe_iterator
+        )
+
     def write_temp_to_txt(self, dataframe=None, dataframe_path=None):
 
         df = None
@@ -152,8 +159,9 @@ class DataHandler():
         elif dataframe and dataframe_path:
             df = dataframe
 
-        print("STARTING weiting temp to file")
+        print("STARTING writing temp to file")
 
+        #Static list for now. maybe change later?
         for i in ['btemp', 'ttemp']:
             start_time = time.time()
             print('Creating %s txt file' % i)
@@ -183,19 +191,26 @@ class DataHandler():
 
         return self.get_dataframe_iterator()
 
-    def concat_timesynch_and_temp(self, master_csv_path, btemp_txt_path, ttemp_txt_path):
+    def concat_timesynch_and_temp(self,
+                                  master_csv_path,
+                                  btemp_txt_path,
+                                  ttemp_txt_path,
+                                  master_columns=['time', 'bx', 'by', 'bz', 'tx', 'ty', 'tz'],
+                                  back_temp_column=['btemp'],
+                                  thigh_temp_column=['ttemp'],
+                                  header_value=None):
 
         print("READING MASTER CSV")
-        master_df = pd.read_csv(master_csv_path, header=None)
-        master_df.columns = ['time', 'bx', 'by', 'bz', 'tx', 'ty', 'tz']
+        master_df = pd.read_csv(master_csv_path, header=header_value)
+        master_df.columns = master_columns
 
-        print("READING BACK CSV")
-        btemp_df = pd.read_csv(btemp_txt_path, header=None)
-        btemp_df.columns = ['btemp']
+        print("READING BACK TXT")
+        btemp_df = pd.read_csv(btemp_txt_path, header=header_value)
+        btemp_df.columns = back_temp_column
 
-        print("READING THIGH CSV")
-        ttemp_df = pd.read_csv(ttemp_txt_path, header=None)
-        ttemp_df.columns = ['ttemp']
+        print("READING THIGH TXT")
+        ttemp_df = pd.read_csv(ttemp_txt_path, header=header_value)
+        ttemp_df.columns = thigh_temp_column
 
         # Merge the csvs
         print("MERGING MASTER AND CSVS")
@@ -417,7 +432,11 @@ class DataHandler():
 
 
 
-    def convert_column_from_str_to_datetime_test(self, dataframe=None, column_name="time", verbose=False):
+    def convert_column_from_str_to_datetime(self,
+                                                 dataframe=None,
+                                                 dataframe_columns=['time', 'bx', 'by', 'bz', 'tx', 'ty', 'tz', 'btemp', 'ttemp'],
+                                                 column_name="time",
+                                                 verbose=False):
         # TODO if dataframe is actually dataframe object, self.dataframe_iterator = dataframe
         # TODO remove this and change all places it it called to call convert_column_from_str_to_datetime
 
@@ -428,15 +447,11 @@ class DataHandler():
             if verbose: print(self.dataframe_iterator.head(5)); print()
 
 
-            self.dataframe_iterator.columns = ['time', 'bx', 'by', 'bz', 'tx', 'ty', 'tz', 'btemp', 'ttemp']
+            self.dataframe_iterator.columns = dataframe_columns
         else:
             if verbose: print("USING THE Datahandlers own dataframe-Instance")
             else: pass
 
-        self.dataframe_iterator[column_name] = pd.to_datetime(self.dataframe_iterator[column_name])
-        if verbose: print(self.dataframe_iterator.dtypes)
-
-    def convert_column_from_str_to_datetime(self, column_name="time", verbose=False):
         self.dataframe_iterator[column_name] = pd.to_datetime(self.dataframe_iterator[column_name])
         if verbose: print(self.dataframe_iterator.dtypes)
 

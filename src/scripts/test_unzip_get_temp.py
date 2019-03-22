@@ -78,7 +78,7 @@ if __name__ == '__main__':
         # out_path='../data/thomas/test.csv'
     )
 
-    dh.convert_column_from_str_to_datetime_test(
+    dh.convert_column_from_str_to_datetime(
         dataframe='/app/data/temp/P2_vegar.7z/P2_vegar/P2_vegar_B_TEMP_SYNCHED_BT.csv',
     )
 
