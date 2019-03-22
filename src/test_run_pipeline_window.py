@@ -33,7 +33,7 @@ dh3.load_dataframe_from_csv(
     columns=['timestamp', 'back_x', 'back_y', 'back_z', 'thigh_x', 'thigh_y', 'thigh_z', 'btemp', 'ttemp']
 )
 
-dh3.convert_column_from_str_to_datetime_test(column_name='timestamp')
+dh3.convert_column_from_str_to_datetime(column_name='timestamp')
 dh3.set_column_as_index("timestamp")
 
 dh3.add_new_column()

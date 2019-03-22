@@ -14,7 +14,9 @@ class Plotter():
         print
 
     def plot_temperature(self, temp_dataframe):
-        temp_dataframe.plot(style=['r-', 'b--'])
+        df = pd.read_csv(temp_dataframe)
+        # df[['time', 'btemp']].plot(style=['r-'])
+        df[['time', 'btemp', 'ttemp']].plot(style=['r-', 'b--'])
         plt.savefig('Temp.png')
 
 
@@ -154,6 +156,8 @@ class Plotter():
     # create single
 if __name__ == '__main__':
     pl = Plotter()
-    pl.print_weekly_view("../../data/output/4000181_timestamped_predictions.csv")
+    # pl.plot_temperature('../../data/temp/4000181.7z/4000181/4000181-34566_2017-09-19_B_4000181-26584_2017-09-19_T_timesync_output_TEMP_SYNCHED_BT.csv')
+    # pl.plot_temperature('../../data/temp/4000181.7z/4000181/4000181-34566_2017-09-19_B.csv')
+    # pl.print_weekly_view("../../data/output/4000181_timestamped_predictions.csv")
 
 

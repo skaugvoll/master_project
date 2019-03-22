@@ -1,26 +1,232 @@
-
 import os
 import re
 import axivity
 import pandas as pd
 import numpy as np
+import time
 from utils import zip_utils
 from utils import csv_loader
+from utils import progressbar
 from sklearn.model_selection import train_test_split
-
-
 
 class DataHandler():
     # TODO: change all places pd.read_csv is called to self.load_dataframe_from_csv(...)
 
     def __init__(self):
         self.name = None
-        self.dataframe_iterator = None
+        self.data_unzipped_path = None
         self.data_synched_csv_path = None
         self.data_cleanup_path = None
         self.data_input_folder = os.getcwd() + '../../data/input'
         self.data_output_folder = os.getcwd() + '../../data/output'
-        self.data_temp_folder = os.getcwd() + '/../data/temp'
+        self.data_temp_folder = os.getcwd() + '/../../data/temp'
+        self.dataframe_iterator = None
+
+    def unzip_synch_cwa(self, filepath='filepath', temp_dir='working_dir', unzip_cleanup=False):
+        self.data_unzipped_path = self.unzip_7z_archive(
+            filepath=os.path.join(os.getcwd(), filepath),
+            unzip_to_path=self.data_temp_folder,
+            cleanup=unzip_cleanup
+        )
+        self.data_unzipped_path = os.path.relpath(self.data_unzipped_path)
+
+        with axivity.timesynched_csv(self.data_unzipped_path, clean_up=False) as synch_csv:
+            print("Saved timesynched csv")
+
+        synched_csv = list(filter(lambda x: 'timesync' in x, os.listdir(self.data_unzipped_path)))
+        self.data_synched_csv_path = (self.data_unzipped_path + '/' + synched_csv[0])
+
+        # try:
+        #
+        #     # Unzip contents of zipfile
+        #     # self.name = filepath.split('/')[-1].split('.')[0]
+        #     # unzip_to_path = os.path.join(temp_dir, os.path.basename(filepath))
+        #     # self.data_cleanup_path = unzip_to_path # store the path to the unzipped folder for easy cleanup
+        #
+        #
+        #
+        #
+        #
+        # except Exception as e:
+        #     print("could not unzipp 7z arhcive and synch it", e)
+
+
+    def unzip_7z_archive(self, filepath, unzip_to_path='../../data/temp', return_inner_dir=True, cleanup=True):
+        self._check_paths(filepath, unzip_to_path)
+        unzip_to_path = os.path.join(unzip_to_path, os.path.basename(filepath))
+        print("UNZIP to PATH inside y7a: ", unzip_to_path)
+
+        unzipped_dir_path = zip_utils.unzip_subject_data(
+            subject_zip_path=filepath,
+            unzip_to_path=unzip_to_path,
+            return_inner_dir=return_inner_dir
+        )
+
+        self.data_cleanup_path = unzip_to_path  # store the path to the unzipped folder for easy cleanup
+        if cleanup:
+            self.cleanup_temp_folder()
+        else:
+            # TODO: change this to elif and pass in a parameter with default strict or something...
+            try:
+                os.system("chmod 755 -R {}".format(unzip_to_path))
+            except Exception as e:
+                print("Could not give easy access rights")
+
+        return unzipped_dir_path
+
+    def merge_multiple_csvs(self, master_csv_path, slave_csv_path, slave2_csv_path, out_path=None,
+                            master_columns=['time', 'bx', 'by', 'bz', 'tx', 'ty', 'tz'],
+                            slave_columns=['time', 'bx1', 'by1', 'bz1', 'btemp'],
+                            slave2_columns=['time', 'tx1', 'ty1', 'tz1', 'ttemp'],
+                            rearrange_columns_to=None,
+                            merge_how='inner',
+                            merge_on='time',
+                            header_value=None):
+
+        print("READING MASTER CSV")
+        master_df = pd.read_csv(master_csv_path, header=header_value)
+        master_df.columns = master_columns
+
+        print("READING BACK CSV")
+        slave_df = pd.read_csv(slave_csv_path, header=header_value)
+        slave_df.columns = slave_columns
+
+        print("READING THINGH CSV")
+        slave2_df = pd.read_csv(slave2_csv_path, header=header_value)
+        slave2_df.columns = slave2_columns
+
+        # Merge the csvs
+        print("MERGING CSVS WITH MASTER")
+        merged_df = master_df.merge(slave_df, on=merge_on, how=merge_how).merge(slave2_df, on=merge_on, how=merge_how)
+
+        ## Rearrange the columns
+        if not rearrange_columns_to is None:
+            print("REARRANGING CSV COLUMNS")
+            merged_df = merged_df[rearrange_columns_to]
+
+        if out_path is None:
+            master_file_dir, master_filename_w_format = os.path.split(master_csv_path)
+            out_path = os.path.join(master_file_dir,
+                                    master_filename_w_format.split('.')[0] + '_TEMP_SYNCHED_BT.csv')
+
+        else:
+            out_path_dir, out_path_filename = os.path.split(out_path)
+            if out_path_filename == '':
+                out_path_filename = os.path.basename(master_csv_path).split('.')[0] + '_TEMP_SYNCHED_BT.csv'
+
+            if not os.path.exists(out_path_dir):
+                print('Creating output directory... ', out_path_dir)
+                os.makedirs(out_path_dir)
+
+            out_path = os.path.join(out_path_dir, out_path_filename)
+
+        # print("SAVING MERGED CSV")
+        # print("DONE, here is a sneak peak:\n", merged_df.head(5))
+        # print("Saving")
+        # merged_df.to_csv(out_path, index=False, float_format='%.6f')
+        # print("Saved synched and merged as csv to : ", os.path.abspath(out_path))
+
+        self.dataframe_iterator = merged_df
+
+        # self.data_cleanup_path = os.path.abspath(out_path[:out_path.find('.7z/') + 4])
+        # self.data_synched_csv_path = os.path.abspath(out_path)
+        # self.name = os.path.basename(out_path)
+        self.data_temp_folder = os.path.abspath(os.path.split(out_path)[0])
+
+        #Make two temp txt files based on new merged DF
+        self.write_temp_to_txt(
+            dataframe=self.dataframe_iterator
+        )
+
+    def write_temp_to_txt(self, dataframe=None, dataframe_path=None):
+
+        df = None
+
+        if not dataframe is None:
+            df = dataframe
+
+        elif dataframe is None and not dataframe_path is None:
+            try:
+                df = pd.read_csv(dataframe_path)
+            except Exception as e:
+                print("Did not give a valid csv_path")
+                raise e
+
+        elif dataframe is None and dataframe_path is None:
+            print("Need to pass either dataframe or csv_path")
+            raise Exception("Need to pass either dataframe or csv_path")
+
+        elif dataframe and dataframe_path:
+            df = dataframe
+
+        print("STARTING writing temp to file")
+
+        #Static list for now. maybe change later?
+        for i in ['btemp', 'ttemp']:
+            start_time = time.time()
+            print('Creating %s txt file' % i)
+            nanIndex = list(df[i].index[df[i].apply(np.isnan)])
+            valildIndex = list(df[i].index[df[i].notnull()])
+            firstLastIndex = [nanIndex[0], nanIndex[-1]]
+
+            file = open(self.data_temp_folder + '/' + i + '.txt', 'w')
+            if firstLastIndex[0] < valildIndex[0]:
+                file.write(str(str((float(df.loc[valildIndex[0], i]) * 300 / 1024) - 50) + '\n') * (valildIndex[0] - firstLastIndex[0]))
+
+            for j in range(len(valildIndex) - 1):
+                progressbar.printProgressBar(j, len(valildIndex), 10)
+                if valildIndex[j] + 1 == valildIndex[j + 1]:
+                    file.write(str((float(df.loc[valildIndex[j], i]) * 300 / 1024) - 50) + '\n')
+                else:
+                    file.write(str((float(df.loc[valildIndex[j], i]) * 300 / 1024) - 50) + '\n')
+                    file.write(str(str((float(df.loc[valildIndex[j+1], i]) * 300 / 1024) - 50) + '\n') * ((valildIndex[j + 1]) - (valildIndex[j] + 1)))
+            if firstLastIndex[1] > valildIndex[-1]:
+                file.write(str(str((float(df.loc[valildIndex[-1], i]) * 300 / 1024) - 50) + '\n') * ((firstLastIndex[-1]+1) - valildIndex[-1]))
+            else:
+                file.write(str((float(df.loc[valildIndex[-1], i]) * 300 / 1024) - 50) + '\n')
+
+
+            file.close()
+            print("---- %s seconds ---" % (time.time() - start_time))
+
+        return self.get_dataframe_iterator()
+
+    def concat_timesynch_and_temp(self,
+                                  master_csv_path,
+                                  btemp_txt_path,
+                                  ttemp_txt_path,
+                                  master_columns=['time', 'bx', 'by', 'bz', 'tx', 'ty', 'tz'],
+                                  back_temp_column=['btemp'],
+                                  thigh_temp_column=['ttemp'],
+                                  header_value=None):
+
+        print("READING MASTER CSV")
+        master_df = pd.read_csv(master_csv_path, header=header_value)
+        master_df.columns = master_columns
+
+        print("READING BACK TXT")
+        btemp_df = pd.read_csv(btemp_txt_path, header=header_value)
+        btemp_df.columns = back_temp_column
+
+        print("READING THIGH TXT")
+        ttemp_df = pd.read_csv(ttemp_txt_path, header=header_value)
+        ttemp_df.columns = thigh_temp_column
+
+        # Merge the csvs
+        print("MERGING MASTER AND CSVS")
+        merged_df = pd.concat([master_df, btemp_df, ttemp_df], axis=1,)
+
+
+        master_file_dir, master_filename_w_format = os.path.split(master_csv_path)
+        out_path = os.path.join(master_file_dir, master_filename_w_format.split('.')[0] + '_TEMP_BT.csv')
+
+        self.dataframe_iterator = merged_df
+
+        print("SAVING MERGED CSV")
+        print("DONE, here is a sneak peak:\n", merged_df.head(5))
+        print("Saving")
+        merged_df.to_csv(out_path, index=False, float_format='%.6f')
+        print("Saved synched and merged as csv to : ", os.path.abspath(out_path))
 
 
     def _check_paths(self, filepath, temp_dir):
@@ -42,29 +248,7 @@ class DataHandler():
         if not os.path.exists(self.data_output_folder):
             os.makedirs(self.data_output_folder)
 
-    def unzip_7z_archive(self, filepath, unzip_to_path='../data/temp', return_inner_dir=True, cleanup=True):
-        self._check_paths(filepath, unzip_to_path)
-        unzip_to_path = os.path.join(unzip_to_path, os.path.basename(filepath))
-        print("UNZIP to PATH inside y7a: ", unzip_to_path)
 
-        unzipped_dir_path = zip_utils.unzip_subject_data(
-            subject_zip_path=filepath,
-            unzip_to_path=unzip_to_path,
-            return_inner_dir=return_inner_dir
-        )
-
-        self.data_cleanup_path = unzip_to_path  # store the path to the unzipped folder for easy cleanup
-        if cleanup:
-            self.cleanup_temp_folder()
-        else:
-            # TODO: change this to elif and pass in a parameter with default strict or something...
-            try:
-                os.system("chmod 755 -R {}".format(unzip_to_path))
-            except Exception as e:
-                print("Could not give easy access rights")
-
-
-        return unzipped_dir_path
 
     def _get_csv_file(self, filepath):
         '''
@@ -121,32 +305,6 @@ class DataHandler():
             self.dataframe_iterator = pd.read_csv(self.data_synched_csv_path, header=header, names=columns)
 
 
-    def _get_cwa_files(self, filepath='filepath', temp_dir='working_dir'):
-        '''
-        #TODO rename to unzip, synch and return cwa files
-
-        :param filepath:
-        :param temp_dir:
-        :return:
-        '''
-        try:
-            self._check_paths(filepath, temp_dir)
-
-            # Unzip contents of zipfile
-            self.name = filepath.split('/')[-1].split('.')[0]
-            unzip_to_path = os.path.join(temp_dir, os.path.basename(filepath))
-            self.data_cleanup_path = unzip_to_path # store the path to the unzipped folder for easy cleanup
-
-            unzipped_dir = self.unzip_7z_archive(filepath, unzip_to_path)
-
-            self.data_synched_csv_path = axivity.convert_cwas_to_csv(
-                unzipped_dir,
-                out_dir=None
-            )
-
-        except Exception as e:
-            print("could not unzipp 7z arhcive and synch it", e)
-
     def load_dataframe_from_7z(self, input_arhcive_path, whole_days=False, chunk_size=20000, max_days=6):
 
         # Unzipp and synch
@@ -174,6 +332,12 @@ class DataHandler():
 
     def get_dataframe_iterator(self):
         return self.dataframe_iterator
+
+    def get_unzipped_path(self):
+        return self.data_unzipped_path
+
+    def get_synched_csv_path(self):
+        return self.data_synched_csv_path
 
     def cleanup_temp_folder(self):
         print("Cleaning {}".format(self.data_cleanup_path))
@@ -254,7 +418,9 @@ class DataHandler():
         if save:
             print("SAVING MERGED CSV")
             merged_df.to_csv(out_path, index=False)
+            # merged_df.to_csv(out_path, index=False, float_format='%.6f')
             print("Saved synched and merged as csv to : ", os.path.abspath(out_path))
+
 
         self.dataframe_iterator = merged_df
 
@@ -264,69 +430,13 @@ class DataHandler():
         self.data_temp_folder = os.path.abspath(os.path.split(out_path)[0])
         return self.get_dataframe_iterator()
 
-    def _adc_to_c(self, row, normalize=False):
-        temperature_celsius_b = (row['btemp'] * 300 / 1024) - 50
-        temperature_celsius_t = (row['ttemp'] * 300 / 1024) - 50
 
-        if normalize:
-            print("NORAMLIZATION NOT IMPLEMENTED YET")
-            # TODO IMPLEMENT NORMALIZATION
 
-        row['btemp'] = temperature_celsius_b
-        row['ttemp'] = temperature_celsius_t
-
-        return row
-
-    def convert_ADC_temp_to_C(self, dataframe=None, dataframe_path=None, normalize=False, save=False):
-        '''
-        IF passed in dataframe, sets dh objects dataframe to the converted, not inplace change on the parameter
-        The check of path and dataframe should be upgradet, but works for now.
-        Perhaps make the apply function be inplace
-
-        :param dataframe:
-        :param dataframe_path:
-        :param normalize:
-        :param save:
-        :return:
-        '''
-
-        df = None
-
-        # 10
-        if not dataframe is None:
-            df = dataframe
-        # 01
-        elif dataframe is None and not dataframe_path is None:
-            try:
-                df = pd.read_csv(dataframe_path)
-            except Exception as e:
-                print("Did not give a valid csv_path")
-                raise e
-        # 00
-        elif dataframe_path is None and dataframe_path is None:
-            print("Need to pass either dataframe or csv_path")
-            raise Exception("Need to pass either dataframe or csv_path")
-        # 11 save memory and performance
-        elif dataframe and dataframe_path:
-            # Todo this will never happen, i think because of if
-            df = dataframe
-
-        print("STARTING converting adc to celcius...")
-        self.dataframe_iterator = df.apply(self._adc_to_c, axis=1, raw=False, normalize=normalize)
-
-        print(self.dataframe_iterator.describe(), "\n")
-        print ()
-        print(self.dataframe_iterator.dtypes)
-        print()
-        print("DONE, here is a sneak peak:\n", self.dataframe_iterator.head(5))
-
-        if (dataframe_path or self.data_synched_csv_path) and save:
-            path = dataframe_path or self.data_synched_csv_path
-            self.dataframe_iterator.to_csv(path, index=False)
-
-        return self.get_dataframe_iterator()
-
-    def convert_column_from_str_to_datetime_test(self, dataframe=None, column_name="time", verbose=False):
+    def convert_column_from_str_to_datetime(self,
+                                                 dataframe=None,
+                                                 dataframe_columns=['time', 'bx', 'by', 'bz', 'tx', 'ty', 'tz', 'btemp', 'ttemp'],
+                                                 column_name="time",
+                                                 verbose=False):
         # TODO if dataframe is actually dataframe object, self.dataframe_iterator = dataframe
         # TODO remove this and change all places it it called to call convert_column_from_str_to_datetime
 
@@ -337,15 +447,11 @@ class DataHandler():
             if verbose: print(self.dataframe_iterator.head(5)); print()
 
 
-            self.dataframe_iterator.columns = ['time', 'bx', 'by', 'bz', 'tx', 'ty', 'tz', 'btemp', 'ttemp']
+            self.dataframe_iterator.columns = dataframe_columns
         else:
             if verbose: print("USING THE Datahandlers own dataframe-Instance")
             else: pass
 
-        self.dataframe_iterator[column_name] = pd.to_datetime(self.dataframe_iterator[column_name])
-        if verbose: print(self.dataframe_iterator.dtypes)
-
-    def convert_column_from_str_to_datetime(self, column_name="time", verbose=False):
         self.dataframe_iterator[column_name] = pd.to_datetime(self.dataframe_iterator[column_name])
         if verbose: print(self.dataframe_iterator.dtypes)
 
@@ -460,11 +566,7 @@ class DataHandler():
                 return dataframe.loc[rows, columns]
             return dataframe.iloc[rows, columns]
 
-    def show_dataframe(self):
-        print(self.dataframe_iterator)
 
-    def head_dataframe(self, n=5):
-        print(self.dataframe_iterator.head(n))
 
     def set_active_dataframe(self, dataframe):
         self.dataframe_iterator = dataframe
@@ -482,6 +584,81 @@ class DataHandler():
 
         df.dropna(subset=columns, inplace=True)
         self.set_active_dataframe(df)
+
+
+    def show_dataframe(self):
+        print(self.dataframe_iterator)
+
+    def head_dataframe(self, n=5):
+        print(self.dataframe_iterator.head(n))
+
+    def tail_dataframe(self, n=5):
+        print(self.dataframe_iterator.tail(n))
+
+
+    def _adc_to_c(self, row, normalize=False):
+        row['btemp'] = (row['btemp'] * 300 / 1024) - 50
+        row['ttemp'] = (row['ttemp'] * 300 / 1024) - 50
+
+        if normalize:
+            print("NORAMLIZATION NOT IMPLEMENTED YET")
+            # TODO IMPLEMENT NORMALIZATION
+
+            # temperature_celsius_b = (row['btemp'] * 300 / 1024) - 50
+            # temperature_celsius_t = (row['ttemp'] * 300 / 1024) - 50
+
+        return row
+
+    def convert_ADC_temp_to_C(self, dataframe=None, dataframe_path=None, normalize=False, save=False):
+        '''
+        IF passed in dataframe, sets dh objects dataframe to the converted, not inplace change on the parameter
+        The check of path and dataframe should be upgradet, but works for now.
+        Perhaps make the apply function be inplace
+
+        :param dataframe:
+        :param dataframe_path:
+        :param normalize:
+        :param save:
+        :return:
+        '''
+
+        df = None
+
+        # 10
+        if not dataframe is None:
+            df = dataframe
+        # 01
+        elif dataframe is None and not dataframe_path is None:
+            try:
+                df = pd.read_csv(dataframe_path)
+            except Exception as e:
+                print("Did not give a valid csv_path")
+                raise e
+        # 00
+        elif dataframe_path is None and dataframe_path is None:
+            print("Need to pass either dataframe or csv_path")
+            raise Exception("Need to pass either dataframe or csv_path")
+        # 11 save memory and performance
+        elif dataframe and dataframe_path:
+            # Todo this will never happen, i think because of if
+            df = dataframe
+
+        print("STARTING converting adc to celcius...")
+        self.dataframe_iterator = df.apply(self._adc_to_c, axis=1, raw=False, normalize=normalize)
+
+        print(self.dataframe_iterator.describe(), "\n")
+        print ()
+        print(self.dataframe_iterator.dtypes)
+        print()
+        print("DONE, here is a sneak peak:\n", self.dataframe_iterator.head(5))
+
+        if (dataframe_path or self.data_synched_csv_path) and save:
+            path = dataframe_path or self.data_synched_csv_path
+            self.dataframe_iterator.to_csv(path, index=False, float_format='%.6f')
+
+        return self.get_dataframe_iterator()
+
+
 
     def vertical_stack_dataframes(self, df1, df2, set_as_current_df=True):
         # TODO : CHECK IF THER IS MORE PATHS THAT NEEDS TO BE SET, THERE ARE!
@@ -522,8 +699,6 @@ class DataHandler():
     def rearrange_columns(self, rearranged_columns):
         self.dataframe_iterator = self.dataframe_iterator[rearranged_columns]
 
-    def tail_dataframe(self, n=5):
-        print(self.dataframe_iterator.tail(n))
 
     @staticmethod
     def split_df_into_training_and_test(data, label_col=None, split_rate=.2, shuffle=False):
@@ -633,8 +808,6 @@ class DataHandler():
     @staticmethod
     def getAttributeOrReturnDefault(dict, name, default=None):
         return dict.get(name, default)
-
-
 
 
 if __name__ == '__main__':

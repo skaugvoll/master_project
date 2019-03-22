@@ -5,6 +5,7 @@ import pickle
 from multiprocessing import Process, Queue, Manager
 from pipeline.DataHandler import DataHandler
 import utils.temperature_segmentation_and_calculation as temp_feature_util
+from utils import progressbar
 from src.config import Config
 from src import models
 from src.utils.WindowMemory import WindowMemory
@@ -19,63 +20,22 @@ class Pipeline:
         self.dataframe = None
         self.model = None
 
-
-    def printProgressBar(self, current, totalOperations, sizeProgressBarInChars, explenation=""):
-        # try:
-        #     import sys, time
-        # except Exception as e:
-        #     print("Could not import sys and time")
-
-        fraction_completed = current / totalOperations
-        filled_bar = round(fraction_completed * sizeProgressBarInChars)
-
-        # \r means start from the beginning of the line
-        fillerChars = "#" * filled_bar
-        remains = "-" * (sizeProgressBarInChars - filled_bar)
-
-
-        sys.stdout.write('\r{} {} {} [{:>7.2%}]'.format(
-            self.colorPrinter.colorString(text=explenation, color="blue"),
-            fillerChars,
-            remains,
-            fraction_completed
-        ))
-
-        sys.stdout.flush()
-
-
-    def unzip_extractNconvert_temp_merge_dataset(self, rel_filepath, label_interval, label_mapping, unzip_path='../data/temp', unzip_cleanup=False, cwa_paralell_convert=True):
+    def unzipNsynch(self, rel_filepath, unzip_path='../../data/temp', cwa_paralell_convert=True):
         # unzip cwas from 7z arhcive
-        unzipped_path = self.dh.unzip_7z_archive(
-            filepath=os.path.join(os.getcwd(), rel_filepath),
-            unzip_to_path=unzip_path,
-            cleanup=unzip_cleanup
-        )
 
-        print('UNZIPPED PATH RETURNED', unzipped_path)
+        self.dh.unzip_synch_cwa(rel_filepath)
 
-        ##########################
-        #
-        #
-        ##########################
-
-        # convert the cwas to independent csv containing timestamp xyz and temp
         back_csv, thigh_csv = cwa_converter.convert_cwas_to_csv_with_temp(
-            subject_dir=unzipped_path,
-            out_dir=unzipped_path,
+            subject_dir=self.dh.get_unzipped_path(),
+            out_dir=self.dh.get_unzipped_path(),
             paralell=cwa_paralell_convert
         )
 
-        ##########################
-        #
-        #
-        ##########################
-
-
-        # Timesynch and concate csvs
-        self.dh.merge_csvs_on_first_time_overlap(
-            master_csv_path=back_csv,
-            slave_csv_path=thigh_csv,
+        self.dh.merge_multiple_csvs(
+            master_csv_path=self.dh.get_synched_csv_path(),
+            slave_csv_path=back_csv,
+            slave2_csv_path=thigh_csv,
+            merge_how='left',
             rearrange_columns_to=[
                 'time',
                 'bx',
@@ -89,48 +49,23 @@ class Pipeline:
             ]
         )
 
-        df = self.dh.get_dataframe_iterator()
-        print(df.head(5))
-        # input("looks ok ? \n")
-
-
-        ##########################
-        #
-        #
-        ##########################
-
-        self.dh.convert_ADC_temp_to_C(
-            dataframe=df,
-            dataframe_path=None,
-            normalize=False,
-            save=True
+        self.dh.concat_timesynch_and_temp(
+            master_csv_path=self.dh.get_synched_csv_path(),
+            btemp_txt_path=self.dh.get_unzipped_path() + '/btemp.txt',
+            ttemp_txt_path=self.dh.get_unzipped_path() + '/ttemp.txt',
         )
 
-        df = self.dh.get_dataframe_iterator()
-        print(df.head(5))
-        # input("looks ok ? \n")
-
-        ##########################
-        #
-        #
-        ##########################
-
-
         print('SET INDEX TO TIMESTAMP')
-        #test that this works with a dataframe and not only path to csv
+        # test that this works with a dataframe and not only path to csv
         # thus pre-loaded and makes it run a little faster
-        self.dh.convert_column_from_str_to_datetime_test(
-                dataframe=df,
+        self.dh.convert_column_from_str_to_datetime(
+            dataframe=self.dh.get_dataframe_iterator(),
         )
 
         self.dh.set_column_as_index("time")
         print('DONE')
 
         ##########################
-        #
-        #
-        ##########################
-
 
         print('MAKE NUMERIC')
         self.dh.convert_column_from_str_to_numeric(column_name="btemp")
@@ -138,33 +73,6 @@ class Pipeline:
         self.dh.convert_column_from_str_to_numeric(column_name="ttemp")
         print('DONE')
 
-        ##########################
-        #
-        #
-        ##########################
-
-
-        print('ADDING LABELS')
-        self.dh.add_new_column()
-        print('DONE')
-
-        self.dh.add_labels_file_based_on_intervals(
-            intervals=label_interval,
-            label_mapping=label_mapping
-        )
-
-
-        # ##########################
-        # #
-        # #
-        # ##########################
-
-        # dh.show_dataframe()
-        df = self.dh.get_dataframe_iterator()
-
-        return df, self.dh
-
-    # TODO create method for unzip_extractNconvert_temp_stack_dataset() or adopt the above def..
 
     def get_features_and_labels(self, df, dh=None, back_columns=[0, 1, 2, 6], thigh_columns=[3, 4, 5, 7], label_column=[8]):
         if dh is None:
@@ -323,7 +231,7 @@ class Pipeline:
         # waith for tasks_queue to become empty before sending stop signal to workers
         while not model_queue.empty():
             # print("CURRENT: {}\nQUEUE SIZE: {}".format(number_of_tasks - model_queue.qsize(), model_queue.qsize()))
-            self.printProgressBar(
+            progressbar.printProgressBar(
                 current=int(number_of_tasks - model_queue.qsize()),
                 totalOperations=number_of_tasks,
                 sizeProgressBarInChars=30,
@@ -338,7 +246,7 @@ class Pipeline:
 
         # LET ALL PROCESSES ACTUALLY TERMINATE AKA FINISH THE JOB THEIR DOING
         while any([p.is_alive() for p in processes_model]):
-            self.printProgressBar(
+            progressbar.printProgressBar(
                 current=int(number_of_tasks - model_queue.qsize()),
                 totalOperations=number_of_tasks,
                 sizeProgressBarInChars=30,
@@ -441,7 +349,7 @@ class Pipeline:
                     'target': target
                 }
                 result_df.loc[len(result_df)] = row
-                self.printProgressBar(
+                progressbar.printProgressBar(
                     current=i,
                     totalOperations=len(classifications),
                     sizeProgressBarInChars=20,
@@ -498,7 +406,7 @@ class Pipeline:
                     windowMemory.update_avg_conf_divisor()
 
                 # Feedback to user
-                self.printProgressBar(
+                progressbar.printProgressBar(
                     current=windowMemory.get_num_windows(),
                     totalOperations=len(classifications),
                     sizeProgressBarInChars=20,
@@ -592,10 +500,10 @@ class Pipeline:
                 classifications.append((wndo_idx, prob, target))
 
             # print("<<<<>>>>><<<>>>: \n", ":: " + model_num +" ::", target, prob)
-            self.printProgressBar(start, end, 20, explenation=task + " activity classification prog. :: ")
+            progressbar.printProgressBar(start, end, 20, explenation=task + " activity classification prog. :: ")
             start += 1
 
-        self.printProgressBar(start, end, 20, explenation=task + " activity classification prog. :: ")
+        progressbar.printProgressBar(start, end, 20, explenation=task + " activity classification prog. :: ")
         print("Done") # create new line
         try:
             del model  # remove the model
@@ -674,9 +582,9 @@ class Pipeline:
             merged_df = dh_stacker.vertical_stack_dataframes(merged_df, dh.get_dataframe_iterator(),
                                                              set_as_current_df=False)
 
-            self.printProgressBar(idx, len(subjects), 20, explenation='Merging datasets prog.: ')
+            progressbar.printProgressBar(idx, len(subjects), 20, explenation='Merging datasets prog.: ')
 
-        self.printProgressBar(len(subjects), len(subjects), 20, explenation='Merging datasets prog.: ')
+        progressbar.printProgressBar(len(subjects), len(subjects), 20, explenation='Merging datasets prog.: ')
         return merged_df
 
 
