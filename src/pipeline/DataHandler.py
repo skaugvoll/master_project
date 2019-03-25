@@ -203,7 +203,8 @@ class DataHandler():
                                   master_columns=['time', 'bx', 'by', 'bz', 'tx', 'ty', 'tz'],
                                   back_temp_column=['btemp'],
                                   thigh_temp_column=['ttemp'],
-                                  header_value=None):
+                                  header_value=None,
+                                  save=False):
 
         print("READING MASTER CSV")
         master_df = pd.read_csv(master_csv_path, header=header_value)
@@ -229,9 +230,10 @@ class DataHandler():
 
         print("SAVING MERGED CSV")
         print("DONE, here is a sneak peak:\n", merged_df.head(5))
-        print("Saving")
-        merged_df.to_csv(out_path, index=False, float_format='%.6f')
-        print("Saved synched and merged as csv to : ", os.path.abspath(out_path))
+        if save:
+            print("Saving")
+            merged_df.to_csv(out_path, index=False, float_format='%.6f')
+            print("Saved synched and merged as csv to : ", os.path.abspath(out_path))
 
 
     def _check_paths(self, filepath, temp_dir):

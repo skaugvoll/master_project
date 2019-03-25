@@ -72,6 +72,7 @@ class Pipeline:
 
         self.dh.convert_column_from_str_to_numeric(column_name="ttemp")
         print('DONE')
+        return self.dh
 
 
     def get_features_and_labels(self, df, dh=None, back_columns=[0, 1, 2, 6], thigh_columns=[3, 4, 5, 7], label_column=[8]):
@@ -90,6 +91,14 @@ class Pipeline:
             labels = dh.get_rows_and_columns(dataframe=df, columns=label_column).values
 
         return back_feat, thigh_feat, labels
+
+
+    def addLables(self, intervals, column_name):
+        self.dh.add_new_column(column_name)
+        if isinstance(intervals, str):
+            # use datahandler function for reading json file with labels as dict
+            intervals = {}
+        self.dh.add_labels_file_based_on_intervals(intervals=intervals)
 
 
     ####################################################################################################################
