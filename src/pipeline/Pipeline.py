@@ -20,9 +20,8 @@ class Pipeline:
         self.dataframe = None
         self.model = None
 
-    def unzipNsynch(self, rel_filepath, unzip_path='../../data/temp', cwa_paralell_convert=True):
+    def unzipNsynch(self, rel_filepath, unzip_path='../../data/temp', cwa_paralell_convert=True, save=False):
         # unzip cwas from 7z arhcive
-
         self.dh.unzip_synch_cwa(rel_filepath)
 
         back_csv, thigh_csv = cwa_converter.convert_cwas_to_csv_with_temp(
@@ -53,7 +52,9 @@ class Pipeline:
             master_csv_path=self.dh.get_synched_csv_path(),
             btemp_txt_path=self.dh.get_unzipped_path() + '/btemp.txt',
             ttemp_txt_path=self.dh.get_unzipped_path() + '/ttemp.txt',
+            save=save
         )
+
 
         print('SET INDEX TO TIMESTAMP')
         # test that this works with a dataframe and not only path to csv
