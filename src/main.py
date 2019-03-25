@@ -7,10 +7,25 @@ from src.pipeline.DataHandler import DataHandler
 from src import models
 
 
+input_dir_rel_path = "../data/input"
+data_name = "Thomas.7z"
+labels_file = ""
+
+# if there allready is a temp folder with the same name
+# TODO get this in the unzip N Synch method, path is unzip_path + filename.7z
+if os.path.exists("../data/temp/{}".format(data_name)):
+    print("REMVOING OLD TEMP FOLDER")
+    os.system("rm -rf ../data/temp/{}".format(data_name))
+
+
 # first unzip and synch .7z folder
 pipeline = Pipeline()
-datahandler = pipeline.unzipNsynch('../data/input/Thomas2.7z') # returns datahandler
+datahandler = pipeline.unzipNsynch(os.path.join(input_dir_rel_path, data_name), save=True) # returns datahandler
 
-# add labels
-pipeline.addLables(intervals={}, column_name="label")
-
+# # add labels
+# pipeline.addLables(intervals={}, column_name="label")
+#
+#
+#
+# # Get the model
+# rfc = models.get("RFC", {})
