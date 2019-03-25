@@ -102,8 +102,6 @@ dh2.add_labels_file_based_on_intervals(
 )
 
 
-
-
 ###################################### remove rows that does not have label ###########################
 
 df1 = dh1.get_dataframe_iterator()
@@ -119,6 +117,7 @@ print(df1.shape, df2.shape)
 ############################## THEN COMBINE INTO ONE BIG TRAINING SET  AKA VERTICAL STACKING #############
 
 dataframe = dh1.vertical_stack_dataframes(df1, df2, set_as_current_df=False)
+# dataframe = dh1.vertical_stack_dataframes(dataframe, df3, set_as_current_df=False)
 print("DATAFRAME\n", dataframe.head(5), dataframe.shape)
 
 
@@ -239,12 +238,47 @@ dataframe_test = dh3.get_dataframe_iterator()
 dataframe_test.dropna(subset=['label'], inplace=True)
 
 
+##############
+# CLASSIFY (run without labels)
+##############
+
+# EXTRACT FEATURES
+back_feat_test, thigh_feat_test, label_test = pipeObj.get_features_and_labels(dataframe_test)
+
+res = RFC.classify(
+    back_test_feat=back_feat_test,
+    thigh_test_feat=thigh_feat_test,
+    samples_pr_window=samples_pr_window,
+    train_overlap=0.8
+)
+
+print("CLASSIFICATION RESULT: \nSHAPE: {}\n{}: \n".format(res.shape, res))
 
 
 
 
+##############
+# TEST (GET ACCURACY)
+##############
 
+res = RFC.test(
+    back_test_feat=back_feat_test,
+    thigh_test_feat=thigh_feat_test,
+    labels=label_test,
+    samples_pr_window=samples_pr_window,
+    train_overlap=0.8
+)
 
+preds = RFC.predictions
+ground_truth = RFC.test_ground_truth_labels
+print("Calculating accuracy...")
+acc = RFC.calculate_accuracy()
+print("Done, ACC: {:.4f}".format(acc))
+
+print("Creating confusion matrix")
+conf_mat = RFC.calculate_confusion_matrix()
+print("DONE ")
+print(conf_mat)
 
 
 
@@ -254,8 +288,8 @@ dataframe_test.dropna(subset=['label'], inplace=True)
 ###############
 
 #### save the model so that the parallelized code can lode it for each new process
-# s = input("save the trained RFC model? [y/n]: ")
-s = 'y'
+s = input("save the trained RFC model? [y/n]: ")
+# s = 'y'
 if s == 'y':
     # TODO: fix where the file is saved
     model_path = "./trained_rfc.sav"
@@ -264,76 +298,4 @@ if s == 'y':
     input("...")
     p = Pipeline()
     p.parallel_pipeline_classification_run(dataframe=dataframe_test, rfc_model_path=model_path, samples_pr_window=samples_pr_window, train_overlap=0.8)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-##############
-# CLASSIFY (run without labels)
-##############
-
-# EXTRACT FEATURES
-# back_feat_test, thigh_feat_test, label_test = pipeObj.get_features_and_labels(dataframe_test)
-#
-# res = RFC.classify(
-#     back_test_feat=back_feat_test,
-#     thigh_test_feat=thigh_feat_test,
-#     samples_pr_window=samples_pr_window,
-#     train_overlap=0.8
-# )
-#
-# print("CLASSIFICATION RESULT: \nSHAPE: {}\n{}: \n".format(res.shape, res))
-
-
-
-
-
-
-
-
-
-
-##############
-# TEST (GET ACCURACY)
-##############
-
-# res = RFC.test(
-#     back_test_feat=back_feat_test,
-#     thigh_test_feat=thigh_feat_test,
-#     labels=label_test,
-#     samples_pr_window=samples_pr_window,
-#     train_overlap=0.8
-# )
-#
-# preds = RFC.predictions
-# ground_truth = RFC.test_ground_truth_labels
-# print("Calculating accuracy...")
-# acc = RFC.calculate_accuracy()
-# print("Done, ACC: {:.4f}".format(acc))
-#
-# print("Creating confusion matrix")
-# conf_mat = RFC.calculate_confusion_matrix()
-# print("DONE ")
-# print(conf_mat)
-
 

@@ -498,6 +498,11 @@ class DataHandler():
             if verbose: print("label", label)
             for interval in intervals[label]:
                 if verbose: print("INTERVAL", interval)
+
+                # there are noe intervals with this label
+                if len(interval) == 0:
+                    continue
+
                 date = interval[0]
                 start = interval[1]
                 end = interval[2]

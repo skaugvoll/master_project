@@ -19,3 +19,17 @@ Hvordan organisere pipeline koden, module, package,osv ? for aa faa robust impor
   - Lage en funksjon som bare while not
   tar filnavne og legger på en _ også teller oppover til den får ett tall som gjør den unik.
   lager temp mappen med det navnet.
+
+
+- Importere flere test dataset og lage labels på de. type 4000181, etc
+
+øystein used subjects 006 trough 022 assuming both sensors are on!
+use 006 trough 007 respective thigh and back files for traiing the indivudal LSTMS
+
+husk å skriv antagelser om at øystein brukte begge sensorer og de gikk med gopro kamera for å fange aktivitet,
+derfor kan vi anta at thigh filen har bare valid sensor data og back file har bare valid data, altså at sensoren var på hele tiden
+og derfor kan vi trene both, thigh og back LSTM pa de dataene for å reprodusere hans resultater.
+
+Så det vi må er å gjøre RFC bedre til å se om det ikke er sensor på, og da bare drite i å klassifisere de windows med ikke sensor på.
+
+Jeg tror at vi må endre hvordan RFC klassifiserer windows til å klassifisere alle timestamps i window til en LSTM, også ta most frequent LSTM som faktisk LSTM å bruke eller ikke klassifisere at all.
