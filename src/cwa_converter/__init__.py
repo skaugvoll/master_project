@@ -57,7 +57,7 @@ def convert_cwas_to_csv_with_temp( subject_dir, out_dir=None, paralell=False ):
     if out_dir == None:
         out_dir = os.path.join(os.getcwd() + '/../data/temp', os.path.basename(subject_dir))
         if not os.path.exists(out_dir):
-            os.makedirs(outdir)
+            os.makedirs(out_dir)
 
     # Find thigh and back .cwa files
     back_cwa = find_back_cwa_file( subject_dir )
