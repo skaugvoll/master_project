@@ -4,6 +4,7 @@ import axivity
 import pandas as pd
 import numpy as np
 import time
+import json
 from utils import zip_utils
 from utils import csv_loader
 from utils import progressbar
@@ -480,8 +481,9 @@ class DataHandler():
 
         self.dataframe_iterator = pd.concat(objs=[self.dataframe_iterator, df_label], join=join_type, axis=1, sort=False)
 
-
-
+    def read_labels_from_json(self, filepath):
+        with open(filepath) as json_file:
+            return json.load(json_file)
 
     def add_labels_file_based_on_intervals(self, intervals={}, label_mapping={}, verbose=False):
         '''
