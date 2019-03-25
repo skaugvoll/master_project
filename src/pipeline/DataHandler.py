@@ -19,7 +19,7 @@ class DataHandler():
         self.data_cleanup_path = None
         self.data_input_folder = os.getcwd() + '../../data/input'
         self.data_output_folder = os.getcwd() + '../../data/output'
-        self.data_temp_folder = os.getcwd() + '/../../data/temp'
+        self.data_temp_folder = os.getcwd() + '/../data/temp'
         self.dataframe_iterator = None
 
     def unzip_synch_cwa(self, filepath='filepath', temp_dir='working_dir', unzip_cleanup=False):
@@ -51,8 +51,13 @@ class DataHandler():
         #     print("could not unzipp 7z arhcive and synch it", e)
 
 
-    def unzip_7z_archive(self, filepath, unzip_to_path='../../data/temp', return_inner_dir=True, cleanup=True):
-        self._check_paths(filepath, unzip_to_path)
+    def unzip_7z_archive(self, filepath, unzip_to_path='../data/temp', return_inner_dir=True, cleanup=True):
+        try:
+            self._check_paths(filepath, unzip_to_path)
+        except NotADirectoryError as e:
+            print("Temp directory not found.. Crating it now")
+            self.create_output_dir(unzip_to_path, '')
+
         unzip_to_path = os.path.join(unzip_to_path, os.path.basename(filepath))
         print("UNZIP to PATH inside y7a: ", unzip_to_path)
 
@@ -240,7 +245,7 @@ class DataHandler():
             raise RuntimeError('A working directory ("-w <directoy name.") must be specified when using --zip-file')
         if not os.path.exists(temp_dir):
             # print(">>>>>>>>: ", 3.3)
-            raise RuntimeError('Provided working directory "%s" does not exist' % temp_dir)
+            raise NotADirectoryError('Provided temp directory "%s" does not exist' % temp_dir)
 
     def create_output_dir(self, output_dir_path, name):
         # Create output directory if it does not exist
