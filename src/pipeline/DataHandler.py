@@ -37,19 +37,7 @@ class DataHandler():
         synched_csv = list(filter(lambda x: 'timesync' in x, os.listdir(self.data_unzipped_path)))
         self.data_synched_csv_path = (self.data_unzipped_path + '/' + synched_csv[0])
 
-        # try:
-        #
-        #     # Unzip contents of zipfile
-        #     # self.name = filepath.split('/')[-1].split('.')[0]
-        #     # unzip_to_path = os.path.join(temp_dir, os.path.basename(filepath))
-        #     # self.data_cleanup_path = unzip_to_path # store the path to the unzipped folder for easy cleanup
-        #
-        #
-        #
-        #
-        #
-        # except Exception as e:
-        #     print("could not unzipp 7z arhcive and synch it", e)
+        return self.data_unzipped_path
 
 
     def unzip_7z_archive(self, filepath, unzip_to_path='../data/temp', return_inner_dir=True, cleanup=True):
@@ -87,7 +75,8 @@ class DataHandler():
                             rearrange_columns_to=None,
                             merge_how='inner',
                             merge_on='time',
-                            header_value=None):
+                            header_value=None,
+                            save=False):
 
         print("READING MASTER CSV")
         master_df = pd.read_csv(master_csv_path, header=header_value)
@@ -126,11 +115,11 @@ class DataHandler():
 
             out_path = os.path.join(out_path_dir, out_path_filename)
 
-        # print("SAVING MERGED CSV")
-        # print("DONE, here is a sneak peak:\n", merged_df.head(5))
-        # print("Saving")
-        # merged_df.to_csv(out_path, index=False, float_format='%.6f')
-        # print("Saved synched and merged as csv to : ", os.path.abspath(out_path))
+        print("DONE, here is a sneak peak:\n", merged_df.head(5))
+        if save:
+            print("SAVING MERGED CSV")
+            merged_df.to_csv(out_path, index=False, float_format='%.6f')
+            print("Saved synched and merged as csv to : ", os.path.abspath(out_path))
 
         self.dataframe_iterator = merged_df
 
@@ -235,6 +224,8 @@ class DataHandler():
             print("Saving")
             merged_df.to_csv(out_path, index=False, float_format='%.6f')
             print("Saved synched and merged as csv to : ", os.path.abspath(out_path))
+
+        return self.dataframe_iterator
 
 
     def _check_paths(self, filepath, temp_dir):
@@ -485,7 +476,7 @@ class DataHandler():
         with open(filepath) as json_file:
             return json.load(json_file)
 
-    def add_labels_file_based_on_intervals(self, intervals={}, label_mapping={}, verbose=False):
+    def add_labels_file_based_on_intervals(self, intervals={}, label_col_name="label", label_mapping={}, verbose=False):
         '''
         intervals = {
             'Label' : [
@@ -519,7 +510,7 @@ class DataHandler():
                 start_string = '{} {}'.format(date, start)
                 end_string = '{} {}'.format(date, end)
                 # get indexes to add label to
-                self.dataframe_iterator.loc[start_string:end_string, 'label'] = label
+                self.dataframe_iterator.loc[start_string:end_string, label_col_name] = label
 
         if verbose: print(self.dataframe_iterator)
 
@@ -676,7 +667,7 @@ class DataHandler():
 
     def vertical_stack_dataframes(self, df1, df2, set_as_current_df=True):
         # TODO : CHECK IF THER IS MORE PATHS THAT NEEDS TO BE SET, THERE ARE!
-        union = pd.merge(df1, df2, how='outer')
+        union = pd.concat([df1, df2], join='outer')
         if set_as_current_df:
             self.set_active_dataframe(union)
 
@@ -762,7 +753,7 @@ class DataHandler():
         return X
 
     @staticmethod
-    def findFilesInDirectoriesAndSubDirs(list_with_subjects, back_keywords, thigh_keywords, label_keywords, verbose=False):
+    def findFilesInDirectoriesAndSubDirs(list_with_subjects, back_keywords, thigh_keywords, label_keywords, synched_keywords, verbose=False):
         '''
         takes in a list with path to directories containing files to look for based on keywords,
         the files must be at root level in the directory.
@@ -810,6 +801,8 @@ class DataHandler():
 
                 elif any(check_for_matching_word(words, label_keywords)):
                     files["labelCSV"] = sub_files_and_dirs
+                elif any(check_for_matching_word(words, synched_keywords)):
+                    files["synchedCSV"] = sub_files_and_dirs
 
             subjects[subject] = files
         if verbose:

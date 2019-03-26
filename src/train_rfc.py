@@ -17,8 +17,8 @@ list_with_subjects = [
 
 
 # unzip all data
-# pipObj.unzip_multiple_directories(list_with_subjects, zip_to="../data/temp/")
-
+unzipped_paths = pipObj.unzip_multiple_directories(list_with_subjects, zip_to="../data/temp/")
+print(unzipped_paths)
 
 list_with_subjects = [
             '../data/temp/nonshower_paul.7z',
@@ -26,15 +26,17 @@ list_with_subjects = [
         ]
 
 testDataframe = pipObj.create_large_dataframe_from_multiple_input_directories(
-    list_with_subjects,
+    unzipped_paths,
     back_keywords=['Back', "B"],
     thigh_keywords = ['Thigh', "T"],
     label_keywords = ['GoPro', "Labels", "intervals", "interval", "json"],
+    synched_keywords=["timesynched"],
     out_path=None,
     merge_column = None,
     master_columns = ['bx', 'by', 'bz'],
     slave_columns = ['tx', 'ty', 'tz'],
     rearrange_columns_to = None,
     save=False,
-    added_columns_name=["label"]
+    added_columns_name=['labels']
 )
+

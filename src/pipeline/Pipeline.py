@@ -94,19 +94,26 @@ class Pipeline:
         return back_feat, thigh_feat, labels
 
 
-    def addLables(self, intervals, column_name):
+    def addLables(self, intervals, column_name, datahandler=None):
         '''
         This needs to make sure that the pipeline Object has been used, or has been given a datahandler
         :param intervals:
         :param column_name:
+        :param datahandler:
         :return:
         '''
-        self.dh.add_new_column(column_name)
+        dh = None
+        intervals = intervals
+        if datahandler is None:
+            dh = self.dh
+        else:
+            dh = datahandler
+        dh.add_new_column(column_name)
         if isinstance(intervals, str):
             # use datahandler function for reading json file with labels as dict
-            intervals = self.dh.read_labels_from_json(filepath=intervals)
+            intervals = dh.read_labels_from_json(filepath=intervals)
 
-        self.dh.add_labels_file_based_on_intervals(intervals=intervals)
+        dh.add_labels_file_based_on_intervals(intervals=intervals, label_col_name=column_name)
 
 
     ####################################################################################################################
@@ -541,13 +548,15 @@ class Pipeline:
 
 
     def unzip_multiple_directories(self, list_with_dirs, zip_to="../data/temp/", synched_file_name="timesynched_csv.csv"):
+        unzipped_paths = []
         for path in list_with_dirs:
             dir_name = path.split("/")[-1]
             rel_path = zip_to + dir_name
             if os.path.exists(rel_path):
                 os.system("rm -rf {}".format(rel_path))
             # Now we know there is no directory with that name in the directory to
-            self.dh.unzip_synch_cwa(path, temp_dir=zip_to, timeSynchedName=synched_file_name)
+            unzipped_paths.append(self.dh.unzip_synch_cwa(path, temp_dir=zip_to, timeSynchedName=synched_file_name))
+        return unzipped_paths
 
 
     def create_large_dataframe_from_multiple_input_directories(self,
@@ -555,6 +564,7 @@ class Pipeline:
                                                                back_keywords=['Back'],
                                                                thigh_keywords = ['Thigh'],
                                                                label_keywords = ['GoPro', "Labels"],
+                                                               synched_keywords=["timesynched"],
                                                                out_path=None,
                                                                merge_column = None,
                                                                master_columns = ['bx', 'by', 'bz'],
@@ -562,39 +572,90 @@ class Pipeline:
                                                                rearrange_columns_to = None,
                                                                save=False,
                                                                added_columns_name=["new_col"],
+                                                               drop_non_labels=True,
                                                                verbose=True
                                                                ):
+
+        for subj in list_with_subjects:
+            cwa_converter.convert_cwas_to_csv_with_temp(
+                subject_dir=subj,
+                out_dir=subj,
+                paralell=True
+            )
 
 
         subjects = DataHandler.findFilesInDirectoriesAndSubDirs(list_with_subjects,
                                                          back_keywords,
                                                          thigh_keywords,
                                                          label_keywords,
+                                                         synched_keywords,
                                                          verbose=verbose)
 
-        print(subjects)
-        input(".../...")
+        # print(subjects)
         merged_df = None
         dh = DataHandler()
         dh_stacker = DataHandler()
         for idx, root_dir in enumerate(subjects):
             subject = subjects[root_dir]
-            # print("SUBJECT: \n", subject)
+            # print("SUBJECT: \n", subject, root_dir)
 
-            master = os.path.join(root_dir, subject['backCSV'])
-            slave = os.path.join(root_dir, subject['thighCSV'])
+            back = os.path.join(root_dir, subject['backCSV'])
+            thigh = os.path.join(root_dir, subject['thighCSV'])
             label = os.path.join(root_dir, subject['labelCSV'])
+            timesync = os.path.join(root_dir, subject['synchedCSV'])
 
             # dh = DataHandler()
-            dh.merge_multiple_csvs()
+            dh.merge_multiple_csvs(
+                timesync, back, thigh, out_path=None,
+                master_columns=['time', 'bx', 'by', 'bz', 'tx', 'ty', 'tz'],
+                slave_columns=['time', 'bx1', 'by1', 'bz1', 'btemp'],
+                slave2_columns=['time', 'tx1', 'ty1', 'tz1', 'ttemp'],
+                merge_how='left',
+                rearrange_columns_to=[
+                    'time',
+                    'bx',
+                    'by',
+                    'bz',
+                    'tx',
+                    'ty',
+                    'tz',
+                    'btemp',
+                    'ttemp'
+                ],
+                merge_on='time',
+                header_value=None,
+                save=False
+            )
 
-            dh.add_columns_based_on_csv(label, columns_name=added_columns_name, join_type="inner")
+            df = dh.concat_timesynch_and_temp(
+                                  timesync,
+                                  root_dir + "/btemp.txt",
+                                  root_dir + "/ttemp.txt",
+                                  master_columns=['time', 'bx', 'by', 'bz', 'tx', 'ty', 'tz'],
+                                  back_temp_column=['btemp'],
+                                  thigh_temp_column=['ttemp'],
+                                  header_value=None,
+                                  save=False)
+
+
+            dh.convert_column_from_str_to_datetime(
+                dataframe=dh.get_dataframe_iterator(),
+            )
+
+            dh.set_column_as_index("time")
+
+            for col_name in added_columns_name:
+                if col_name is "labels" or col_name is "label":
+                    self.addLables(label, column_name=col_name, datahandler=dh)
+                    if drop_non_labels:
+                        dh.get_dataframe_iterator().dropna(subset=[col_name], inplace=True)
+                else:
+                    dh.add_new_column(col_name)
 
             if idx == 0:
                 merged_df = dh.get_dataframe_iterator()
                 continue
 
-            merged_old_shape = merged_df.shape
             # vertically stack the dataframes aka add the rows from dataframe2 as rows to the dataframe1
             merged_df = dh_stacker.vertical_stack_dataframes(merged_df, dh.get_dataframe_iterator(),
                                                              set_as_current_df=False)
@@ -602,6 +663,7 @@ class Pipeline:
             progressbar.printProgressBar(idx, len(subjects), 20, explenation='Merging datasets prog.: ')
 
         progressbar.printProgressBar(len(subjects), len(subjects), 20, explenation='Merging datasets prog.: ')
+        print()
         return merged_df
 
 
