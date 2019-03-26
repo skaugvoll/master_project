@@ -23,7 +23,7 @@ class DataHandler():
         self.data_temp_folder = os.getcwd() + '/../data/temp'
         self.dataframe_iterator = None
 
-    def unzip_synch_cwa(self, filepath='filepath', temp_dir='working_dir', unzip_cleanup=False):
+    def unzip_synch_cwa(self, filepath='filepath', temp_dir='working_dir', unzip_cleanup=False, timeSynchedName=None):
         self.data_unzipped_path = self.unzip_7z_archive(
             filepath=os.path.join(os.getcwd(), filepath),
             unzip_to_path=self.data_temp_folder,
@@ -31,7 +31,7 @@ class DataHandler():
         )
         self.data_unzipped_path = os.path.relpath(self.data_unzipped_path)
 
-        with axivity.timesynched_csv(self.data_unzipped_path, clean_up=False) as synch_csv:
+        with axivity.timesynched_csv(self.data_unzipped_path, clean_up=False, synched_filename=timeSynchedName) as synch_csv:
             print("Saved timesynched csv")
 
         synched_csv = list(filter(lambda x: 'timesync' in x, os.listdir(self.data_unzipped_path)))

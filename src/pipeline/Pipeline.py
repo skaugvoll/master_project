@@ -539,6 +539,17 @@ class Pipeline:
     #                                   ^PARALLELL PIPELINE EXECUTE WINDOW BY WINDOW CODE^                             #
     ####################################################################################################################
 
+
+    def unzip_multiple_directories(self, list_with_dirs, zip_to="../data/temp/", synched_file_name="timesynched_csv.csv"):
+        for path in list_with_dirs:
+            dir_name = path.split("/")[-1]
+            rel_path = zip_to + dir_name
+            if os.path.exists(rel_path):
+                os.system("rm -rf {}".format(rel_path))
+            # Now we know there is no directory with that name in the directory to
+            self.dh.unzip_synch_cwa(path, temp_dir=zip_to, timeSynchedName=synched_file_name)
+
+
     def create_large_dataframe_from_multiple_input_directories(self,
                                                                list_with_subjects,
                                                                back_keywords=['Back'],
@@ -561,7 +572,8 @@ class Pipeline:
                                                          label_keywords,
                                                          verbose=verbose)
 
-        # print(subjects)
+        print(subjects)
+        input(".../...")
         merged_df = None
         dh = DataHandler()
         dh_stacker = DataHandler()
@@ -574,19 +586,7 @@ class Pipeline:
             label = os.path.join(root_dir, subject['labelCSV'])
 
             # dh = DataHandler()
-            dh.merge_csvs_on_first_time_overlap(
-                master,
-                slave,
-                out_path=out_path,
-                merge_column=merge_column,
-                master_columns=master_columns,
-                slave_columns=slave_columns,
-                rearrange_columns_to=rearrange_columns_to,
-                save=save,
-                left_index=True,
-                right_index=True,
-                verbose=verbose
-            )
+            dh.merge_multiple_csvs()
 
             dh.add_columns_based_on_csv(label, columns_name=added_columns_name, join_type="inner")
 
