@@ -95,10 +95,17 @@ class Pipeline:
 
 
     def addLables(self, intervals, column_name):
+        '''
+        This needs to make sure that the pipeline Object has been used, or has been given a datahandler
+        :param intervals:
+        :param column_name:
+        :return:
+        '''
         self.dh.add_new_column(column_name)
         if isinstance(intervals, str):
             # use datahandler function for reading json file with labels as dict
-            intervals = {}
+            intervals = self.dh.read_labels_from_json(filepath=intervals)
+
         self.dh.add_labels_file_based_on_intervals(intervals=intervals)
 
 
