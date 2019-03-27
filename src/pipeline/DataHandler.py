@@ -614,7 +614,7 @@ class DataHandler():
 
         return row
 
-    def convert_ADC_temp_to_C(self, dataframe=None, dataframe_path=None, normalize=False, save=False):
+    def convert_ADC_temp_to_C(self, dataframe=None, dataframe_path=None, normalize=False, save=False, verbose=False):
         '''
         IF passed in dataframe, sets dh objects dataframe to the converted, not inplace change on the parameter
         The check of path and dataframe should be upgradet, but works for now.
@@ -648,11 +648,11 @@ class DataHandler():
             # Todo this will never happen, i think because of if
             df = dataframe
 
-        print("STARTING converting adc to celcius...")
+        if verbose: print("STARTING converting adc to celcius...")
         self.dataframe_iterator = df.apply(self._adc_to_c, axis=1, raw=False, normalize=normalize)
 
         print(self.dataframe_iterator.describe(), "\n")
-        print ()
+        print()
         print(self.dataframe_iterator.dtypes)
         print()
         print("DONE, here is a sneak peak:\n", self.dataframe_iterator.head(5))
@@ -801,6 +801,7 @@ class DataHandler():
 
                 elif any(check_for_matching_word(words, label_keywords)):
                     files["labelCSV"] = sub_files_and_dirs
+
                 elif any(check_for_matching_word(words, synched_keywords)):
                     files["synchedCSV"] = sub_files_and_dirs
 

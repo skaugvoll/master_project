@@ -561,20 +561,65 @@ class Pipeline:
 
     def create_large_dataframe_from_multiple_input_directories(self,
                                                                list_with_subjects,
-                                                               back_keywords=['Back'],
-                                                               thigh_keywords = ['Thigh'],
-                                                               label_keywords = ['GoPro', "Labels"],
+                                                               merge_column,
+                                                               back_keywords=['Back', "B"],
+                                                               thigh_keywords=['Thigh', "T"],
+                                                               label_keywords=['GoPro', "Labels", "interval", "intervals", "json"],
                                                                synched_keywords=["timesynched"],
                                                                out_path=None,
-                                                               merge_column = None,
-                                                               master_columns = ['bx', 'by', 'bz'],
-                                                               slave_columns = ['tx', 'ty', 'tz'],
-                                                               rearrange_columns_to = None,
+                                                               master_columns=['bx', 'by', 'bz'],
+                                                               slave_columns=['tx', 'ty', 'tz'],
+                                                               slave2_columns=['tx', 'ty', 'tz'],
+                                                               rearrange_columns_to=None,
                                                                save=False,
-                                                               added_columns_name=["new_col"],
+                                                               added_columns_name=["labels"],
                                                                drop_non_labels=True,
                                                                verbose=True
                                                                ):
+        '''
+
+        Example of call:
+        list_with_subjects=["../data/input/test.7z],
+        back_keywords=['Back', "B"],
+        thigh_keywords = ['Thigh', "T"],
+        label_keywords = ['GoPro', "Labels", "intervals", "interval", "json"],
+        synched_keywords=["timesynched"],
+        out_path=None,
+        merge_column='time',
+        master_columns=['time', 'bx', 'by', 'bz', 'tx', 'ty', 'tz'],
+        slave_columns=['time', 'bx1', 'by1', 'bz1', 'btemp'],
+        slave2_columns=['time', 'tx1', 'ty1', 'tz1', 'ttemp'],
+        rearrange_columns_to=[
+                        'time',
+                        'bx',
+                        'by',
+                        'bz',
+                        'tx',
+                        'ty',
+                        'tz',
+                        'btemp',
+                        'ttemp'
+                    ],
+        save=False,
+        added_columns_name=['labels']
+
+        :param list_with_subjects:
+        :param back_keywords:
+        :param thigh_keywords:
+        :param label_keywords:
+        :param synched_keywords:
+        :param out_path:
+        :param merge_column:
+        :param master_columns:
+        :param slave_columns:
+        :param slave2_columns:
+        :param rearrange_columns_to:
+        :param save:
+        :param added_columns_name:
+        :param drop_non_labels:
+        :param verbose:
+        :return:
+        '''
 
         for subj in list_with_subjects:
             cwa_converter.convert_cwas_to_csv_with_temp(
@@ -598,7 +643,6 @@ class Pipeline:
         for idx, root_dir in enumerate(subjects):
             subject = subjects[root_dir]
             # print("SUBJECT: \n", subject, root_dir)
-
             back = os.path.join(root_dir, subject['backCSV'])
             thigh = os.path.join(root_dir, subject['thighCSV'])
             label = os.path.join(root_dir, subject['labelCSV'])
@@ -606,36 +650,27 @@ class Pipeline:
 
             # dh = DataHandler()
             dh.merge_multiple_csvs(
-                timesync, back, thigh, out_path=None,
-                master_columns=['time', 'bx', 'by', 'bz', 'tx', 'ty', 'tz'],
-                slave_columns=['time', 'bx1', 'by1', 'bz1', 'btemp'],
-                slave2_columns=['time', 'tx1', 'ty1', 'tz1', 'ttemp'],
+                timesync, back, thigh,
+                out_path=out_path,
+                master_columns=master_columns,
+                slave_columns=slave_columns,
+                slave2_columns=slave2_columns,
                 merge_how='left',
-                rearrange_columns_to=[
-                    'time',
-                    'bx',
-                    'by',
-                    'bz',
-                    'tx',
-                    'ty',
-                    'tz',
-                    'btemp',
-                    'ttemp'
-                ],
-                merge_on='time',
+                rearrange_columns_to=rearrange_columns_to,
+                merge_on=merge_column,
                 header_value=None,
-                save=False
+                save=save
             )
 
             df = dh.concat_timesynch_and_temp(
                                   timesync,
                                   root_dir + "/btemp.txt",
                                   root_dir + "/ttemp.txt",
-                                  master_columns=['time', 'bx', 'by', 'bz', 'tx', 'ty', 'tz'],
-                                  back_temp_column=['btemp'],
-                                  thigh_temp_column=['ttemp'],
+                                  master_columns=master_columns,
+                                  back_temp_column=['btemp'],  # should probably be set snz we can specify temp_col_name
+                                  thigh_temp_column=['ttemp'],  # should probably be set snz we can specify temp_cl_name
                                   header_value=None,
-                                  save=False)
+                                  save=save)
 
 
             dh.convert_column_from_str_to_datetime(

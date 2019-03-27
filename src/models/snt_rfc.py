@@ -22,10 +22,11 @@ class HARRandomForrest():
               labels,
               samples_pr_window,
               train_overlap,
-              number_of_trees=100
+              number_of_trees=100,
+              verbose=2
               ):
 
-            print("RFC TRAIN BTF: ", back_training_feat)
+            # print("RFC TRAIN BTF: ", back_training_feat)
 
             back_training_feat = temp_feature_util.segment_acceleration_and_calculate_features(back_training_feat,
                                                                                   samples_pr_window=samples_pr_window,
@@ -45,14 +46,15 @@ class HARRandomForrest():
             self.RFC_classifier = RFC(n_estimators=number_of_trees,
                                  class_weight="balanced",
                                  random_state=0,
-                                 n_jobs=-1
+                                 n_jobs=-1,
+                                 verbose=verbose
                                  ).fit(both_features, labels)
 
             print("I kinda diiiid! ")
 
     def test(self, back_test_feat, thigh_test_feat, labels, samples_pr_window, train_overlap):
 
-        print("RFC TEST BTF: ", back_test_feat)
+        # print("RFC TEST BTF: ", back_test_feat)
 
         back_test_feat = temp_feature_util.segment_acceleration_and_calculate_features(back_test_feat,
                                                                           samples_pr_window=samples_pr_window,
@@ -70,6 +72,7 @@ class HARRandomForrest():
         self.predictions = self.RFC_classifier.predict(both_features)
         print("I kinda diiiid! ")
         print("PREDICTIONS: \n{}".format(self.predictions))
+        return self.predictions
 
     def classify(self, back_test_feat, thigh_test_feat, samples_pr_window, train_overlap):
         back_test_feat = temp_feature_util.segment_acceleration_and_calculate_features(back_test_feat,
