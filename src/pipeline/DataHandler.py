@@ -86,7 +86,7 @@ class DataHandler():
         slave_df = pd.read_csv(slave_csv_path, header=header_value)
         slave_df.columns = slave_columns
 
-        print("READING THINGH CSV")
+        print("READING THIGH CSV")
         slave2_df = pd.read_csv(slave2_csv_path, header=header_value)
         slave2_df.columns = slave2_columns
 
@@ -788,6 +788,9 @@ class DataHandler():
             for sub_files_and_dirs in os.listdir(subject):
                 # print(sub_files_and_dirs)
                 words = re.split("[_ .]", sub_files_and_dirs)
+                if "cwa" in words:
+                    continue
+
                 words = list(map(lambda x: x.lower(), words))
 
                 check_for_matching_word = lambda words, keywords: [True if keyword.lower() == word.lower() else False

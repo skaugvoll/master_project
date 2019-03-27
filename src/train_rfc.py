@@ -12,7 +12,7 @@ pipObj = Pipeline()
 list_with_subjects = [
     '../data/input/shower_atle.7z',
     '../data/input/nonshower_paul.7z',
-    # '../data/input/Thomas.7z',  # funker ikke av en eller annen rar grunn
+    '../data/input/Thomas.7z',
     # '../data/input/Thomas2.7z',  # mangler labels fil
 ]
 
@@ -77,9 +77,9 @@ RFC.train(
 # TEST THE MODEL
 ####
 
-unzipped_paths = pipObj.unzip_multiple_directories(['../data/input/Sigve.7z'], zip_to="../data/temp/")
+unzipped_test_paths = pipObj.unzip_multiple_directories(['../data/input/Sigve.7z'], zip_to="../data/temp/")
 testDataframe = pipObj.create_large_dataframe_from_multiple_input_directories(
-    list_with_subjects=unzipped_paths,
+    list_with_subjects=unzipped_test_paths,
     merge_column='time',
     master_columns=['time', 'bx', 'by', 'bz', 'tx', 'ty', 'tz'],
     slave_columns=['time', 'bx1', 'by1', 'bz1', 'btemp'],
@@ -106,3 +106,6 @@ RFC.test(back, thigh, labels, samples_pr_window, train_overlap)
 
 acc = RFC.calculate_accuracy()
 print("ACC: ", acc)
+
+unzipped_paths += unzipped_test_paths
+pipObj.remove_files_or_dirs_form(unzipped_paths)

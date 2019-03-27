@@ -833,7 +833,13 @@ class Pipeline:
             print("Pipeline.py :: evaluate_lstm_model ::")
             raise NotImplementedError()
 
-
+    @staticmethod
+    def remove_files_or_dirs_form(list_with_paths):
+        for f in list_with_paths:
+            try:
+                os.system("rm -rf {}".format(f))
+            except:
+                print("Could not remove file {}".format(f))
 
 if __name__ == '__main__':
     p = Pipeline()
