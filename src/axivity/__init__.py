@@ -13,7 +13,7 @@ TIMESYNC_LOCATION = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                   "timesync", "timesync")
 
 @contextlib.contextmanager 
-def timesynched_csv( subject_dir, out_dir=None, clean_up=True ):
+def timesynched_csv( subject_dir, out_dir=None, clean_up=True, synched_filename=None ):
     '''
     Context for converting .cwa files to .csv and timesyching
     while cleaning up everything afterwards
@@ -22,7 +22,7 @@ def timesynched_csv( subject_dir, out_dir=None, clean_up=True ):
 
     try:
         # Convert & synch
-        synched_csv = convert_cwas_to_csv( subject_dir, out_dir=out_dir )
+        synched_csv = convert_cwas_to_csv( subject_dir, out_dir=out_dir, filename=synched_filename )
         yield synched_csv
 
     finally:
@@ -36,7 +36,7 @@ def timesynched_csv( subject_dir, out_dir=None, clean_up=True ):
 
 
 
-def convert_cwas_to_csv( subject_dir, out_dir=None ):
+def convert_cwas_to_csv( subject_dir, out_dir=None, filename=None ):
 
   # Default to exporing to same directory as where the subject .cwa files are stored
   out_dir = out_dir or subject_dir 
@@ -50,7 +50,7 @@ def convert_cwas_to_csv( subject_dir, out_dir=None ):
   # TODO: Consider whether the .md5 checksum often found in the zipped files should be used
 
   # Run conversion and synchronization program
-  synched_csv = timesync_from_cwa( back_cwa, thigh_cwa, out_dir=out_dir, clean_up=True )
+  synched_csv = timesync_from_cwa( back_cwa, thigh_cwa, out_dir=out_dir, clean_up=True, out_file=filename )
 
   return synched_csv
 

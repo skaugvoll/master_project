@@ -4,6 +4,7 @@ import axivity
 import pandas as pd
 import numpy as np
 import time
+import json
 from utils import zip_utils
 from utils import csv_loader
 from utils import progressbar
@@ -22,7 +23,7 @@ class DataHandler():
         self.data_temp_folder = os.getcwd() + '/../data/temp'
         self.dataframe_iterator = None
 
-    def unzip_synch_cwa(self, filepath='filepath', temp_dir='working_dir', unzip_cleanup=False):
+    def unzip_synch_cwa(self, filepath='filepath', temp_dir='working_dir', unzip_cleanup=False, timeSynchedName=None):
         self.data_unzipped_path = self.unzip_7z_archive(
             filepath=os.path.join(os.getcwd(), filepath),
             unzip_to_path=self.data_temp_folder,
@@ -30,25 +31,13 @@ class DataHandler():
         )
         self.data_unzipped_path = os.path.relpath(self.data_unzipped_path)
 
-        with axivity.timesynched_csv(self.data_unzipped_path, clean_up=False) as synch_csv:
+        with axivity.timesynched_csv(self.data_unzipped_path, clean_up=False, synched_filename=timeSynchedName) as synch_csv:
             print("Saved timesynched csv")
 
         synched_csv = list(filter(lambda x: 'timesync' in x, os.listdir(self.data_unzipped_path)))
         self.data_synched_csv_path = (self.data_unzipped_path + '/' + synched_csv[0])
 
-        # try:
-        #
-        #     # Unzip contents of zipfile
-        #     # self.name = filepath.split('/')[-1].split('.')[0]
-        #     # unzip_to_path = os.path.join(temp_dir, os.path.basename(filepath))
-        #     # self.data_cleanup_path = unzip_to_path # store the path to the unzipped folder for easy cleanup
-        #
-        #
-        #
-        #
-        #
-        # except Exception as e:
-        #     print("could not unzipp 7z arhcive and synch it", e)
+        return self.data_unzipped_path
 
 
     def unzip_7z_archive(self, filepath, unzip_to_path='../data/temp', return_inner_dir=True, cleanup=True):
@@ -73,7 +62,10 @@ class DataHandler():
         else:
             # TODO: change this to elif and pass in a parameter with default strict or something...
             try:
-                os.system("chmod 755 -R {}".format(unzip_to_path))
+                p = "/".join(unzipped_dir_path.split("/")[:-1])
+                pwd = os.getcwd()
+                p = os.path.join(pwd, p)
+                os.system("chmod 777 -R {}".format(p))
             except Exception as e:
                 print("Could not give easy access rights")
 
@@ -86,7 +78,8 @@ class DataHandler():
                             rearrange_columns_to=None,
                             merge_how='inner',
                             merge_on='time',
-                            header_value=None):
+                            header_value=None,
+                            save=False):
 
         print("READING MASTER CSV")
         master_df = pd.read_csv(master_csv_path, header=header_value)
@@ -96,7 +89,7 @@ class DataHandler():
         slave_df = pd.read_csv(slave_csv_path, header=header_value)
         slave_df.columns = slave_columns
 
-        print("READING THINGH CSV")
+        print("READING THIGH CSV")
         slave2_df = pd.read_csv(slave2_csv_path, header=header_value)
         slave2_df.columns = slave2_columns
 
@@ -125,11 +118,11 @@ class DataHandler():
 
             out_path = os.path.join(out_path_dir, out_path_filename)
 
-        # print("SAVING MERGED CSV")
-        # print("DONE, here is a sneak peak:\n", merged_df.head(5))
-        # print("Saving")
-        # merged_df.to_csv(out_path, index=False, float_format='%.6f')
-        # print("Saved synched and merged as csv to : ", os.path.abspath(out_path))
+        print("DONE, here is a sneak peak:\n", merged_df.head(5))
+        if save:
+            print("SAVING MERGED CSV")
+            merged_df.to_csv(out_path, index=False, float_format='%.6f')
+            print("Saved synched and merged as csv to : ", os.path.abspath(out_path))
 
         self.dataframe_iterator = merged_df
 
@@ -203,7 +196,8 @@ class DataHandler():
                                   master_columns=['time', 'bx', 'by', 'bz', 'tx', 'ty', 'tz'],
                                   back_temp_column=['btemp'],
                                   thigh_temp_column=['ttemp'],
-                                  header_value=None):
+                                  header_value=None,
+                                  save=False):
 
         print("READING MASTER CSV")
         master_df = pd.read_csv(master_csv_path, header=header_value)
@@ -229,9 +223,12 @@ class DataHandler():
 
         print("SAVING MERGED CSV")
         print("DONE, here is a sneak peak:\n", merged_df.head(5))
-        print("Saving")
-        merged_df.to_csv(out_path, index=False, float_format='%.6f')
-        print("Saved synched and merged as csv to : ", os.path.abspath(out_path))
+        if save:
+            print("Saving")
+            merged_df.to_csv(out_path, index=False, float_format='%.6f')
+            print("Saved synched and merged as csv to : ", os.path.abspath(out_path))
+
+        return self.dataframe_iterator
 
 
     def _check_paths(self, filepath, temp_dir):
@@ -478,10 +475,11 @@ class DataHandler():
 
         self.dataframe_iterator = pd.concat(objs=[self.dataframe_iterator, df_label], join=join_type, axis=1, sort=False)
 
+    def read_labels_from_json(self, filepath):
+        with open(filepath) as json_file:
+            return json.load(json_file)
 
-
-
-    def add_labels_file_based_on_intervals(self, intervals={}, label_mapping={}, verbose=False):
+    def add_labels_file_based_on_intervals(self, intervals={}, label_col_name="label", label_mapping={}, verbose=False):
         '''
         intervals = {
             'Label' : [
@@ -515,7 +513,7 @@ class DataHandler():
                 start_string = '{} {}'.format(date, start)
                 end_string = '{} {}'.format(date, end)
                 # get indexes to add label to
-                self.dataframe_iterator.loc[start_string:end_string, 'label'] = label
+                self.dataframe_iterator.loc[start_string:end_string, label_col_name] = label
 
         if verbose: print(self.dataframe_iterator)
 
@@ -619,7 +617,7 @@ class DataHandler():
 
         return row
 
-    def convert_ADC_temp_to_C(self, dataframe=None, dataframe_path=None, normalize=False, save=False):
+    def convert_ADC_temp_to_C(self, dataframe=None, dataframe_path=None, normalize=False, save=False, verbose=False):
         '''
         IF passed in dataframe, sets dh objects dataframe to the converted, not inplace change on the parameter
         The check of path and dataframe should be upgradet, but works for now.
@@ -653,11 +651,11 @@ class DataHandler():
             # Todo this will never happen, i think because of if
             df = dataframe
 
-        print("STARTING converting adc to celcius...")
+        if verbose: print("STARTING converting adc to celcius...")
         self.dataframe_iterator = df.apply(self._adc_to_c, axis=1, raw=False, normalize=normalize)
 
         print(self.dataframe_iterator.describe(), "\n")
-        print ()
+        print()
         print(self.dataframe_iterator.dtypes)
         print()
         print("DONE, here is a sneak peak:\n", self.dataframe_iterator.head(5))
@@ -672,7 +670,7 @@ class DataHandler():
 
     def vertical_stack_dataframes(self, df1, df2, set_as_current_df=True):
         # TODO : CHECK IF THER IS MORE PATHS THAT NEEDS TO BE SET, THERE ARE!
-        union = pd.merge(df1, df2, how='outer')
+        union = pd.concat([df1, df2], join='outer')
         if set_as_current_df:
             self.set_active_dataframe(union)
 
@@ -758,7 +756,7 @@ class DataHandler():
         return X
 
     @staticmethod
-    def findFilesInDirectoriesAndSubDirs(list_with_subjects, back_keywords, thigh_keywords, label_keywords, verbose=False):
+    def findFilesInDirectoriesAndSubDirs(list_with_subjects, back_keywords, thigh_keywords, label_keywords, synched_keywords, verbose=False):
         '''
         takes in a list with path to directories containing files to look for based on keywords,
         the files must be at root level in the directory.
@@ -793,6 +791,9 @@ class DataHandler():
             for sub_files_and_dirs in os.listdir(subject):
                 # print(sub_files_and_dirs)
                 words = re.split("[_ .]", sub_files_and_dirs)
+                if "cwa" in words:
+                    continue
+
                 words = list(map(lambda x: x.lower(), words))
 
                 check_for_matching_word = lambda words, keywords: [True if keyword.lower() == word.lower() else False
@@ -806,6 +807,9 @@ class DataHandler():
 
                 elif any(check_for_matching_word(words, label_keywords)):
                     files["labelCSV"] = sub_files_and_dirs
+
+                elif any(check_for_matching_word(words, synched_keywords)):
+                    files["synchedCSV"] = sub_files_and_dirs
 
             subjects[subject] = files
         if verbose:

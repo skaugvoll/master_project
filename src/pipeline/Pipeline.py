@@ -20,9 +20,8 @@ class Pipeline:
         self.dataframe = None
         self.model = None
 
-    def unzipNsynch(self, rel_filepath, unzip_path='../../data/temp', cwa_paralell_convert=True):
+    def unzipNsynch(self, rel_filepath, unzip_path='../../data/temp', cwa_paralell_convert=True, save=False):
         # unzip cwas from 7z arhcive
-
         self.dh.unzip_synch_cwa(rel_filepath)
 
         back_csv, thigh_csv = cwa_converter.convert_cwas_to_csv_with_temp(
@@ -53,7 +52,9 @@ class Pipeline:
             master_csv_path=self.dh.get_synched_csv_path(),
             btemp_txt_path=self.dh.get_unzipped_path() + '/btemp.txt',
             ttemp_txt_path=self.dh.get_unzipped_path() + '/ttemp.txt',
+            save=save
         )
+
 
         print('SET INDEX TO TIMESTAMP')
         # test that this works with a dataframe and not only path to csv
@@ -72,6 +73,7 @@ class Pipeline:
 
         self.dh.convert_column_from_str_to_numeric(column_name="ttemp")
         print('DONE')
+        return self.dh
 
 
     def get_features_and_labels(self, df, dh=None, back_columns=[0, 1, 2, 6], thigh_columns=[3, 4, 5, 7], label_column=[8]):
@@ -90,6 +92,28 @@ class Pipeline:
             labels = dh.get_rows_and_columns(dataframe=df, columns=label_column).values
 
         return back_feat, thigh_feat, labels
+
+
+    def addLables(self, intervals, column_name, datahandler=None):
+        '''
+        This needs to make sure that the pipeline Object has been used, or has been given a datahandler
+        :param intervals:
+        :param column_name:
+        :param datahandler:
+        :return:
+        '''
+        dh = None
+        intervals = intervals
+        if datahandler is None:
+            dh = self.dh
+        else:
+            dh = datahandler
+        dh.add_new_column(column_name)
+        if isinstance(intervals, str):
+            # use datahandler function for reading json file with labels as dict
+            intervals = dh.read_labels_from_json(filepath=intervals)
+
+        dh.add_labels_file_based_on_intervals(intervals=intervals, label_col_name=column_name)
 
 
     ####################################################################################################################
@@ -522,26 +546,95 @@ class Pipeline:
     #                                   ^PARALLELL PIPELINE EXECUTE WINDOW BY WINDOW CODE^                             #
     ####################################################################################################################
 
+
+    def unzip_multiple_directories(self, list_with_dirs, zip_to="../data/temp/", synched_file_name="timesynched_csv.csv"):
+        unzipped_paths = []
+        for path in list_with_dirs:
+            dir_name = path.split("/")[-1]
+            rel_path = zip_to + dir_name
+            if os.path.exists(rel_path):
+                os.system("rm -rf {}".format(rel_path))
+            # Now we know there is no directory with that name in the directory to
+            unzipped_paths.append(self.dh.unzip_synch_cwa(path, temp_dir=zip_to, timeSynchedName=synched_file_name))
+
+        return unzipped_paths
+
+
     def create_large_dataframe_from_multiple_input_directories(self,
                                                                list_with_subjects,
-                                                               back_keywords=['Back'],
-                                                               thigh_keywords = ['Thigh'],
-                                                               label_keywords = ['GoPro', "Labels"],
+                                                               merge_column,
+                                                               back_keywords=['Back', "B"],
+                                                               thigh_keywords=['Thigh', "T"],
+                                                               label_keywords=['GoPro', "Labels", "interval", "intervals", "json"],
+                                                               synched_keywords=["timesynched"],
                                                                out_path=None,
-                                                               merge_column = None,
-                                                               master_columns = ['bx', 'by', 'bz'],
-                                                               slave_columns = ['tx', 'ty', 'tz'],
-                                                               rearrange_columns_to = None,
+                                                               master_columns=['bx', 'by', 'bz'],
+                                                               slave_columns=['tx', 'ty', 'tz'],
+                                                               slave2_columns=['tx', 'ty', 'tz'],
+                                                               rearrange_columns_to=None,
                                                                save=False,
-                                                               added_columns_name=["new_col"],
+                                                               added_columns_name=["labels"],
+                                                               drop_non_labels=True,
                                                                verbose=True
                                                                ):
+        '''
+
+        Example of call:
+        list_with_subjects=["../data/input/test.7z],
+        back_keywords=['Back', "B"],
+        thigh_keywords = ['Thigh', "T"],
+        label_keywords = ['GoPro', "Labels", "intervals", "interval", "json"],
+        synched_keywords=["timesynched"],
+        out_path=None,
+        merge_column='time',
+        master_columns=['time', 'bx', 'by', 'bz', 'tx', 'ty', 'tz'],
+        slave_columns=['time', 'bx1', 'by1', 'bz1', 'btemp'],
+        slave2_columns=['time', 'tx1', 'ty1', 'tz1', 'ttemp'],
+        rearrange_columns_to=[
+                        'time',
+                        'bx',
+                        'by',
+                        'bz',
+                        'tx',
+                        'ty',
+                        'tz',
+                        'btemp',
+                        'ttemp'
+                    ],
+        save=False,
+        added_columns_name=['labels']
+
+        :param list_with_subjects:
+        :param back_keywords:
+        :param thigh_keywords:
+        :param label_keywords:
+        :param synched_keywords:
+        :param out_path:
+        :param merge_column:
+        :param master_columns:
+        :param slave_columns:
+        :param slave2_columns:
+        :param rearrange_columns_to:
+        :param save:
+        :param added_columns_name:
+        :param drop_non_labels:
+        :param verbose:
+        :return:
+        '''
+
+        for subj in list_with_subjects:
+            cwa_converter.convert_cwas_to_csv_with_temp(
+                subject_dir=subj,
+                out_dir=subj,
+                paralell=True
+            )
 
 
         subjects = DataHandler.findFilesInDirectoriesAndSubDirs(list_with_subjects,
                                                          back_keywords,
                                                          thigh_keywords,
                                                          label_keywords,
+                                                         synched_keywords,
                                                          verbose=verbose)
 
         # print(subjects)
@@ -550,34 +643,55 @@ class Pipeline:
         dh_stacker = DataHandler()
         for idx, root_dir in enumerate(subjects):
             subject = subjects[root_dir]
-            # print("SUBJECT: \n", subject)
-
-            master = os.path.join(root_dir, subject['backCSV'])
-            slave = os.path.join(root_dir, subject['thighCSV'])
+            # print("SUBJECT: \n", subject, root_dir)
+            back = os.path.join(root_dir, subject['backCSV'])
+            thigh = os.path.join(root_dir, subject['thighCSV'])
             label = os.path.join(root_dir, subject['labelCSV'])
+            timesync = os.path.join(root_dir, subject['synchedCSV'])
 
             # dh = DataHandler()
-            dh.merge_csvs_on_first_time_overlap(
-                master,
-                slave,
+            dh.merge_multiple_csvs(
+                timesync, back, thigh,
                 out_path=out_path,
-                merge_column=merge_column,
                 master_columns=master_columns,
                 slave_columns=slave_columns,
+                slave2_columns=slave2_columns,
+                merge_how='left',
                 rearrange_columns_to=rearrange_columns_to,
-                save=save,
-                left_index=True,
-                right_index=True,
-                verbose=verbose
+                merge_on=merge_column,
+                header_value=None,
+                save=save
             )
 
-            dh.add_columns_based_on_csv(label, columns_name=added_columns_name, join_type="inner")
+            df = dh.concat_timesynch_and_temp(
+                                  timesync,
+                                  root_dir + "/btemp.txt",
+                                  root_dir + "/ttemp.txt",
+                                  master_columns=master_columns,
+                                  back_temp_column=['btemp'],  # should probably be set snz we can specify temp_col_name
+                                  thigh_temp_column=['ttemp'],  # should probably be set snz we can specify temp_cl_name
+                                  header_value=None,
+                                  save=save)
+
+
+            dh.convert_column_from_str_to_datetime(
+                dataframe=dh.get_dataframe_iterator(),
+            )
+
+            dh.set_column_as_index("time")
+
+            for col_name in added_columns_name:
+                if col_name is "labels" or col_name is "label":
+                    self.addLables(label, column_name=col_name, datahandler=dh)
+                    if drop_non_labels:
+                        dh.get_dataframe_iterator().dropna(subset=[col_name], inplace=True)
+                else:
+                    dh.add_new_column(col_name)
 
             if idx == 0:
                 merged_df = dh.get_dataframe_iterator()
                 continue
 
-            merged_old_shape = merged_df.shape
             # vertically stack the dataframes aka add the rows from dataframe2 as rows to the dataframe1
             merged_df = dh_stacker.vertical_stack_dataframes(merged_df, dh.get_dataframe_iterator(),
                                                              set_as_current_df=False)
@@ -585,6 +699,7 @@ class Pipeline:
             progressbar.printProgressBar(idx, len(subjects), 20, explenation='Merging datasets prog.: ')
 
         progressbar.printProgressBar(len(subjects), len(subjects), 20, explenation='Merging datasets prog.: ')
+        print()
         return merged_df
 
 
@@ -719,7 +834,13 @@ class Pipeline:
             print("Pipeline.py :: evaluate_lstm_model ::")
             raise NotImplementedError()
 
-
+    @staticmethod
+    def remove_files_or_dirs_from(list_with_paths):
+        for f in list_with_paths:
+            try:
+                os.system("rm -rf {}".format(f))
+            except:
+                print("Could not remove file {}".format(f))
 
 if __name__ == '__main__':
     p = Pipeline()
