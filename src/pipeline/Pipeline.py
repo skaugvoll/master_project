@@ -699,7 +699,7 @@ class Pipeline:
             progressbar.printProgressBar(idx, len(subjects), 20, explenation='Merging datasets prog.: ')
 
         progressbar.printProgressBar(len(subjects), len(subjects), 20, explenation='Merging datasets prog.: ')
-        print()
+        print("DONE")
         return merged_df
 
 

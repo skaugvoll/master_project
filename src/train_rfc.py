@@ -13,7 +13,7 @@ list_with_subjects = [
     '../data/input/shower_atle.7z',
     '../data/input/nonshower_paul.7z',
     '../data/input/Thomas.7z',
-    # '../data/input/Thomas2.7z',  # mangler labels fil
+    '../data/input/Thomas2.7z',  # mangler labels fil
 ]
 
 
@@ -50,7 +50,7 @@ tempearture_reading_rate = 120
 samples_pr_second = 1/(tempearture_reading_rate/sampling_frequency)
 samples_pr_window = int(window_length*samples_pr_second)
 train_overlap = .8
-number_of_trees_in_forest = 100
+number_of_trees_in_forest = 200
 
 
 # extract the features
@@ -134,4 +134,4 @@ print("ACC: ", acc)
 
 unzipped_paths += unzipped_test_paths
 paths = [ "/".join(p.split("/")[:-1]) for p in unzipped_paths]
-# pipObj.remove_files_or_dirs_from(paths)
+pipObj.remove_files_or_dirs_from(paths)
