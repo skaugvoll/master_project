@@ -62,7 +62,10 @@ class DataHandler():
         else:
             # TODO: change this to elif and pass in a parameter with default strict or something...
             try:
-                os.system("chmod 755 -R {}".format(unzip_to_path))
+                p = "/".join(unzipped_dir_path.split("/")[:-1])
+                pwd = os.getcwd()
+                p = os.path.join(pwd, p)
+                os.system("chmod 777 -R {}".format(p))
             except Exception as e:
                 print("Could not give easy access rights")
 

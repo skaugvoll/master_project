@@ -556,6 +556,7 @@ class Pipeline:
                 os.system("rm -rf {}".format(rel_path))
             # Now we know there is no directory with that name in the directory to
             unzipped_paths.append(self.dh.unzip_synch_cwa(path, temp_dir=zip_to, timeSynchedName=synched_file_name))
+
         return unzipped_paths
 
 
@@ -834,7 +835,7 @@ class Pipeline:
             raise NotImplementedError()
 
     @staticmethod
-    def remove_files_or_dirs_form(list_with_paths):
+    def remove_files_or_dirs_from(list_with_paths):
         for f in list_with_paths:
             try:
                 os.system("rm -rf {}".format(f))
