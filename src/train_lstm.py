@@ -14,7 +14,7 @@ list_with_subjects = [
     '../data/input/009',
 ]
 
-
+# os.system("rm -rf {}".format("trained_models/"))
 
 trainDataframe = pipObj.create_large_dataframe_from_multiple_training_directories(
     list_with_subjects,
