@@ -54,7 +54,7 @@ number_of_trees_in_forest = 100
 
 
 # extract the features
-back, thigh, labels = pipObj.get_features_and_labels(trainDataframe)
+back, thigh, labels = pipObj.get_features_and_labels_as_np_array(trainDataframe)
 
 
 # Get the model

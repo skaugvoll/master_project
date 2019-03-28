@@ -76,7 +76,7 @@ class Pipeline:
         return self.dh
 
 
-    def get_features_and_labels(self, df, dh=None, back_columns=[0, 1, 2, 6], thigh_columns=[3, 4, 5, 7], label_column=[8]):
+    def get_features_and_labels_as_np_array(self, df, dh=None, back_columns=[0, 1, 2, 6], thigh_columns=[3, 4, 5, 7], label_column=[8]):
         if dh is None:
             dh = DataHandler()
 
@@ -196,7 +196,7 @@ class Pipeline:
         }
 
         # extract back, thigh and labels
-        back_feat, thigh_feat, label = self.get_features_and_labels(self.dataframe, **args)  # returns numpy arrays
+        back_feat, thigh_feat, label = self.get_features_and_labels_as_np_array(self.dataframe, **args)  # returns numpy arrays
 
         # calculate temperature features
         back_feat = temp_feature_util.segment_acceleration_and_calculate_features(back_feat,

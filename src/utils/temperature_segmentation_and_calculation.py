@@ -20,9 +20,9 @@ def min(array):
 
 
 def first_last_delta(array):
-    temperature_first_sample_in_window = array[0]
-    temperature_last_sample_in_window = array[-1]
-    return (temperature_last_sample_in_window - temperature_first_sample_in_window)
+    temperature_first_sample_in_window = array.item(0)
+    temperature_last_sample_in_window = array.item(-1)
+    return temperature_last_sample_in_window - temperature_first_sample_in_window
 
 
 def max_min_delta(array):
@@ -36,7 +36,7 @@ def max_min_delta(array):
 
     max_temp = np.amax(array)
     min_temp = np.amin(array)
-    return (max_temp - min_temp)
+    return max_temp - min_temp
 
 
 def segment_acceleration_and_calculate_features(sensor_data,
