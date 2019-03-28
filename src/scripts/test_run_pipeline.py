@@ -143,7 +143,7 @@ samples_pr_second = 1/(tempearture_reading_rate/sampling_frequency)
 samples_pr_window = int(window_length*samples_pr_second)
 
 # pass to the model, for training
-RFC.train(
+RFC.train_old(
     back_training_feat=back_feat_train,
     thigh_training_feat=thigh_feat_train,
     labels=label_train,

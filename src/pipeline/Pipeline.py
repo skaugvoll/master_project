@@ -770,7 +770,7 @@ class Pipeline:
         if back_cols and thigh_cols:
             self.num_sensors = 2
             cols = [back_cols, thigh_cols]
-            model.train(
+            model.train_old(
                 train_data=[training_dataframe],
                 valid_data=validation_dataframe,
                 epochs=config.TRAINING['args']['epochs'],
@@ -784,7 +784,7 @@ class Pipeline:
         else:
             cols = back_cols or thigh_cols
             self.num_sensors = 1
-            model.train(
+            model.train_old(
                 train_data=[training_dataframe],
                 valid_data=validation_dataframe,
                 callbacks=[],

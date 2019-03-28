@@ -96,7 +96,7 @@ RFC = models.get("RFC", {})
 ####
 # Train the model
 ####
-RFC.train(
+RFC.train_old(
     back_training_feat=back,
     thigh_training_feat=thigh,
     labels=labels,

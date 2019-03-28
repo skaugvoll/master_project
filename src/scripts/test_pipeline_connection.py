@@ -267,13 +267,13 @@ if __name__ == '__main__':
     ##########################
 
     # pass to the model, for training
-    model.train(back_training_feat=back_feat_train,
-                thigh_training_feat=thigh_feat_train,
-                labels=label_train,
-                samples_pr_window=samples_pr_window,
-                train_overlap=0.8,
-                number_of_trees=100
-                )
+    model.train_old(back_training_feat=back_feat_train,
+                    thigh_training_feat=thigh_feat_train,
+                    labels=label_train,
+                    samples_pr_window=samples_pr_window,
+                    train_overlap=0.8,
+                    number_of_trees=100
+                    )
 
 
     ##########################

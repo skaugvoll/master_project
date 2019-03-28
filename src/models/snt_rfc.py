@@ -16,23 +16,23 @@ class HARRandomForrest():
         self.accuracy = None
         self.confusion_matrix = None
 
-    def train(self,
-              back_training_feat,
-              thigh_training_feat,
-              labels,
-              samples_pr_window,
-              train_overlap,
-              number_of_trees=100,
-              verbose=2
-              ):
+    def train_old(self,
+                  back_training_feat,
+                  thigh_training_feat,
+                  labels,
+                  samples_pr_window,
+                  train_overlap,
+                  number_of_trees=100,
+                  verbose=2
+                  ):
 
             # print("RFC TRAIN BTF: ", back_training_feat)
 
-            back_training_feat = temp_feature_util.segment_acceleration_and_calculate_features(back_training_feat,
+            back_training_feat = temp_feature_util.segment_acceleration_and_calculate_features_old(back_training_feat,
                                                                                   samples_pr_window=samples_pr_window,
                                                                                   overlap=train_overlap)
 
-            thigh_training_feat = temp_feature_util.segment_acceleration_and_calculate_features(thigh_training_feat,
+            thigh_training_feat = temp_feature_util.segment_acceleration_and_calculate_features_old(thigh_training_feat,
                                                                                     samples_pr_window=samples_pr_window,
                                                                                     overlap=train_overlap)
 
@@ -51,6 +51,46 @@ class HARRandomForrest():
                                  ).fit(both_features, labels)
 
             print("I kinda diiiid! ")
+
+    def train(self,
+              back_training_feat,
+              thigh_training_feat,
+              back_temp,
+              thigh_temp,
+              labels,
+              samples_pr_window,
+              train_overlap,
+              number_of_trees=100,
+              verbose=2
+              ):
+
+        # print("RFC TRAIN BTF: ", back_training_feat)
+
+        back_training_feat = temp_feature_util.segment_acceleration_and_calculate_features(back_training_feat,
+                                                                                           temp=back_temp,
+                                                                                           samples_pr_window=samples_pr_window,
+                                                                                           overlap=train_overlap)
+
+        thigh_training_feat = temp_feature_util.segment_acceleration_and_calculate_features(thigh_training_feat,
+                                                                                            temp=thigh_temp,
+                                                                                            samples_pr_window=samples_pr_window,
+                                                                                            overlap=train_overlap)
+
+        labels = temp_feature_util.segment_labels(labels, samples_pr_window=samples_pr_window, overlap=train_overlap)
+        if self.test_ground_truth_labels is None:
+            self.test_ground_truth_labels = labels
+
+        both_features = np.hstack((back_training_feat, thigh_training_feat))
+
+
+        self.RFC_classifier = RFC(n_estimators=number_of_trees,
+                                  class_weight="balanced",
+                                  random_state=0,
+                                  n_jobs=-1,
+                                  verbose=verbose
+                                  ).fit(both_features, labels)
+
+
 
     def test(self, back_test_feat, thigh_test_feat, labels, samples_pr_window, train_overlap):
 

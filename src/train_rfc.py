@@ -45,7 +45,7 @@ trainDataframe = pipObj.create_large_dataframe_from_multiple_input_directories(
 
 # # Do some magic numbering
 sampling_frequency = 50
-window_length = 120
+window_length = 250
 tempearture_reading_rate = 120
 samples_pr_second = 1/(tempearture_reading_rate/sampling_frequency)
 samples_pr_window = int(window_length*samples_pr_second)
@@ -54,8 +54,19 @@ number_of_trees_in_forest = 100
 
 
 # extract the features
-back, thigh, labels = pipObj.get_features_and_labels_as_np_array(trainDataframe)
+back, thigh, labels = pipObj.get_features_and_labels_as_np_array(
+    df=trainDataframe,
+    back_columns=[0,1,2],
+    thigh_columns=[3,4,5],
+    label_column=[8]
+)
 
+btemp, ttemp, _ = pipObj.get_features_and_labels_as_np_array(
+    df=trainDataframe,
+    back_columns=[6],
+    thigh_columns=[7],
+    label_column=None
+)
 
 # Get the model
 RFC = models.get("RFC", {})
@@ -66,6 +77,8 @@ RFC = models.get("RFC", {})
 RFC.train(
     back_training_feat=back,
     thigh_training_feat=thigh,
+    back_temp=btemp,
+    thigh_temp=ttemp,
     labels=labels,
     samples_pr_window=samples_pr_window,
     train_overlap=train_overlap,
@@ -76,37 +89,37 @@ RFC.train(
 #####
 # TEST THE MODEL
 ####
-
-unzipped_test_paths = pipObj.unzip_multiple_directories(['../data/input/nonshower_paul.7z'], zip_to="../data/temp/")
-testDataframe = pipObj.create_large_dataframe_from_multiple_input_directories(
-    list_with_subjects=unzipped_test_paths,
-    merge_column='time',
-    master_columns=['time', 'bx', 'by', 'bz', 'tx', 'ty', 'tz'],
-    slave_columns=['time', 'bx1', 'by1', 'bz1', 'btemp'],
-    slave2_columns=['time', 'tx1', 'ty1', 'tz1', 'ttemp'],
-    rearrange_columns_to=[
-                        'time',
-                        'bx',
-                        'by',
-                        'bz',
-                        'tx',
-                        'ty',
-                        'tz',
-                        'btemp',
-                        'ttemp'
-                    ],
-    save=False,
-    added_columns_name=['labels']
-
-)
-
-back, thigh, labels = pipObj.get_features_and_labels(testDataframe)
-
-RFC.test(back, thigh, labels, samples_pr_window, train_overlap)
-
-acc = RFC.calculate_accuracy()
-print("ACC: ", acc)
-
-unzipped_paths += unzipped_test_paths
-paths = [ "/".join(p.split("/")[:-1]) for p in unzipped_paths]
+#
+# unzipped_test_paths = pipObj.unzip_multiple_directories(['../data/input/nonshower_paul.7z'], zip_to="../data/temp/")
+# testDataframe = pipObj.create_large_dataframe_from_multiple_input_directories(
+#     list_with_subjects=unzipped_test_paths,
+#     merge_column='time',
+#     master_columns=['time', 'bx', 'by', 'bz', 'tx', 'ty', 'tz'],
+#     slave_columns=['time', 'bx1', 'by1', 'bz1', 'btemp'],
+#     slave2_columns=['time', 'tx1', 'ty1', 'tz1', 'ttemp'],
+#     rearrange_columns_to=[
+#                         'time',
+#                         'bx',
+#                         'by',
+#                         'bz',
+#                         'tx',
+#                         'ty',
+#                         'tz',
+#                         'btemp',
+#                         'ttemp'
+#                     ],
+#     save=False,
+#     added_columns_name=['labels']
+#
+# )
+#
+# back, thigh, labels = pipObj.get_features_and_labels(testDataframe)
+#
+# RFC.test(back, thigh, labels, samples_pr_window, train_overlap)
+#
+# acc = RFC.calculate_accuracy()
+# print("ACC: ", acc)
+#
+# unzipped_paths += unzipped_test_paths
+# paths = [ "/".join(p.split("/")[:-1]) for p in unzipped_paths]
 # pipObj.remove_files_or_dirs_from(paths)
