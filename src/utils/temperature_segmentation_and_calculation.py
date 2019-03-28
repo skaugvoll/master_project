@@ -125,7 +125,10 @@ def segment_acceleration_and_calculate_features(sensor_data,
     ]
 
     acceleration_functions = [
-        max_min_delta
+        max,
+        min,
+        max_min_delta,
+        first_last_delta,
     ]
 
     # window_samples = int(sampling_rate * window_length)

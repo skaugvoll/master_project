@@ -92,15 +92,17 @@ class HARRandomForrest():
 
 
 
-    def test(self, back_test_feat, thigh_test_feat, labels, samples_pr_window, train_overlap):
+    def test(self, back_test_feat, thigh_test_feat, temps, labels, samples_pr_window, train_overlap):
 
         # print("RFC TEST BTF: ", back_test_feat)
 
         back_test_feat = temp_feature_util.segment_acceleration_and_calculate_features(back_test_feat,
                                                                           samples_pr_window=samples_pr_window,
+                                                                          temp=temps[0],
                                                                           overlap=train_overlap)
 
         thigh_test_feat = temp_feature_util.segment_acceleration_and_calculate_features(thigh_test_feat,
+                                                                           temp=temps[1],
                                                                            samples_pr_window=samples_pr_window,
                                                                            overlap=train_overlap)
 
