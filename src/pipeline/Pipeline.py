@@ -834,6 +834,78 @@ class Pipeline:
             print("Pipeline.py :: evaluate_lstm_model ::")
             raise NotImplementedError()
 
+
+
+
+    def create_large_dataframe_from_multiple_training_directories(self,
+                                                               list_with_subjects,
+                                                               back_keywords=['Back', "B"],
+                                                               thigh_keywords=['Thigh', "T"],
+                                                               label_keywords=['GoPro', "Labels", "interval", "intervals", "json"],
+                                                               synched_keywords=["timesynched"],
+                                                               out_path=None,
+                                                               columns_to=None,
+                                                               save=False,
+                                                               added_columns_name=["labels"],
+                                                               drop_non_labels=True,
+                                                               verbose=True
+                                                               ):
+
+        subjects = DataHandler.findFilesInDirectoriesAndSubDirs(list_with_subjects,
+                                                         back_keywords,
+                                                         thigh_keywords,
+                                                         label_keywords,
+                                                         synched_keywords,
+                                                         verbose=verbose)
+
+        # print(subjects)
+        merged_df = None
+        dh = DataHandler()
+        dh_stacker = DataHandler()
+        for idx, root_dir in enumerate(subjects):
+            subject = subjects[root_dir]
+            # print("SUBJECT: \n", subject, root_dir)
+            back = os.path.join(root_dir, subject['backCSV'])
+            thigh = os.path.join(root_dir, subject['thighCSV'])
+            label = os.path.join(root_dir, subject['labelCSV'])
+
+            df = dh.concat_timesynch_and_temp(
+                back,
+                thigh,
+                label,
+                master_columns=['bx', 'by', 'bz'],
+                back_temp_column=['tx', 'ty', 'tz'],  # should probably be set snz we can specify temp_col_name
+                thigh_temp_column=['label'],  # should probably be set snz we can specify temp_cl_name
+                header_value=None)
+
+            # TRENGER VI å GJØRE DETTE FOR DE MED LABEL SOM CSV??
+            # for col_name in added_columns_name:
+            #     if col_name is "labels" or col_name is "label":
+            #         self.addLables(label, column_name=col_name, datahandler=dh)
+            #         if drop_non_labels:
+            #             dh.get_dataframe_iterator().dropna(subset=[col_name], inplace=True)
+            #     else:
+            #         dh.add_new_column(col_name)
+
+            if idx == 0:
+                merged_df = dh.get_dataframe_iterator()
+                continue
+
+            # vertically stack the dataframes aka add the rows from dataframe2 as rows to the dataframe1
+            merged_df = dh_stacker.vertical_stack_dataframes(merged_df, dh.get_dataframe_iterator(),
+                                                             set_as_current_df=False)
+
+            progressbar.printProgressBar(idx, len(subjects), 20, explenation='Merging datasets prog.: ')
+
+        progressbar.printProgressBar(len(subjects), len(subjects), 20, explenation='Merging datasets prog.: ')
+        print()
+        return merged_df
+
+
+
+
+
+
     @staticmethod
     def remove_files_or_dirs_from(list_with_paths):
         for f in list_with_paths:

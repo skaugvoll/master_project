@@ -189,6 +189,7 @@ class DataHandler():
 
         return self.get_dataframe_iterator()
 
+    # TODO: Change to be more general
     def concat_timesynch_and_temp(self,
                                   master_csv_path,
                                   btemp_txt_path,
@@ -215,16 +216,14 @@ class DataHandler():
         print("MERGING MASTER AND CSVS")
         merged_df = pd.concat([master_df, btemp_df, ttemp_df], axis=1,)
 
-
-        master_file_dir, master_filename_w_format = os.path.split(master_csv_path)
-        out_path = os.path.join(master_file_dir, master_filename_w_format.split('.')[0] + '_TEMP_BT.csv')
-
         self.dataframe_iterator = merged_df
 
         print("SAVING MERGED CSV")
         print("DONE, here is a sneak peak:\n", merged_df.head(5))
         if save:
             print("Saving")
+            master_file_dir, master_filename_w_format = os.path.split(master_csv_path)
+            out_path = os.path.join(master_file_dir, master_filename_w_format.split('.')[0] + '_TEMP_BT.csv')
             merged_df.to_csv(out_path, index=False, float_format='%.6f')
             print("Saved synched and merged as csv to : ", os.path.abspath(out_path))
 
