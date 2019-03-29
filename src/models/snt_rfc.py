@@ -116,14 +116,16 @@ class HARRandomForrest():
         print("PREDICTIONS: \n{}".format(self.predictions))
         return self.predictions
 
-    def classify(self, back_test_feat, thigh_test_feat, samples_pr_window, train_overlap):
+    def classify(self, back_test_feat, thigh_test_feat, temps, samples_pr_window, train_overlap):
         back_test_feat = temp_feature_util.segment_acceleration_and_calculate_features(back_test_feat,
-                                                                          samples_pr_window=samples_pr_window,
-                                                                          overlap=train_overlap)
+                                                                                       samples_pr_window=samples_pr_window,
+                                                                                       temp=temps[0],
+                                                                                       overlap=train_overlap)
 
         thigh_test_feat = temp_feature_util.segment_acceleration_and_calculate_features(thigh_test_feat,
-                                                                           samples_pr_window=samples_pr_window,
-                                                                           overlap=train_overlap)
+                                                                                        temp=temps[1],
+                                                                                        samples_pr_window=samples_pr_window,
+                                                                                        overlap=train_overlap)
         both_features = np.hstack((back_test_feat, thigh_test_feat))
         self.predictions = self.RFC_classifier.predict(both_features)
         return self.predictions

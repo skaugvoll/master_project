@@ -11,9 +11,9 @@ pipObj = Pipeline()
 
 list_with_subjects = [
     '../data/input/shower_atle.7z',
-    '../data/input/nonshower_paul.7z',
-    '../data/input/Thomas.7z',
-    '../data/input/Thomas2.7z',  # mangler labels fil
+    # '../data/input/nonshower_paul.7z',
+    # '../data/input/Thomas.7z',
+    # '../data/input/Thomas2.7z',  # mangler labels fil
 ]
 
 
@@ -68,22 +68,24 @@ btemp, ttemp, _ = pipObj.get_features_and_labels_as_np_array(
     label_column=None
 )
 
-# Get the model
-RFC = models.get("RFC", {})
 
-####
-# Train the model
-####
-RFC.train(
-    back_training_feat=back,
-    thigh_training_feat=thigh,
-    back_temp=btemp,
-    thigh_temp=ttemp,
-    labels=labels,
-    samples_pr_window=samples_pr_window,
-    train_overlap=train_overlap,
-    number_of_trees=number_of_trees_in_forest
-)
+# ####
+# # Train the model
+# ####
+# Get the model
+# RFC = models.get("RFC", {})
+#
+# RFC.train(
+#     back_training_feat=back,
+#     thigh_training_feat=thigh,
+#     back_temp=btemp,
+#     thigh_temp=ttemp,
+#     labels=labels,
+#     samples_pr_window=samples_pr_window,
+#     train_overlap=train_overlap,
+#     number_of_trees=number_of_trees_in_forest
+# )
+pipObj.train_rfc_model(back,thigh,btemp,ttemp,labels)
 
 
 #####
@@ -127,9 +129,11 @@ btemp, ttemp, _ = pipObj.get_features_and_labels_as_np_array(
     label_column=None
 )
 
-RFC.test(back, thigh,[btemp, ttemp], labels, samples_pr_window, train_overlap)
+acc = pipObj.evaluate_rfc_model(back, thigh, btemp, ttemp, labels)
 
-acc = RFC.calculate_accuracy()
+# RFC.test(back, thigh,[btemp, ttemp], labels, samples_pr_window, train_overlap)
+#
+# acc = RFC.calculate_accuracy()
 print("ACC: ", acc)
 
 unzipped_paths += unzipped_test_paths

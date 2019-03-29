@@ -834,6 +834,91 @@ class Pipeline:
             print("Pipeline.py :: evaluate_lstm_model ::")
             raise NotImplementedError()
 
+
+
+    def instansiate_model(self, model_name, model_args):
+        return models.get(model_name, model_args)
+
+    def train_rfc_model(self,
+                        back,
+                        thigh,
+                        btemp,
+                        ttemp,
+                        labels,
+                        model=None,
+                        sampling_frequency=50,
+                        window_length=250,
+                        tempearture_reading_rate=120,
+                        train_overlap=.8,
+                        number_of_trees_in_forest=100
+                        ):
+
+        samples_pr_second = 1 / (tempearture_reading_rate / sampling_frequency)
+        samples_pr_window = int(window_length * samples_pr_second)
+
+
+        self.RFC = model or models.get("RFC", {})
+
+        self.RFC.train(
+            back_training_feat=back,
+            thigh_training_feat=thigh,
+            back_temp=btemp,
+            thigh_temp=ttemp,
+            labels=labels,
+            samples_pr_window=samples_pr_window,
+            train_overlap=train_overlap,
+            number_of_trees=number_of_trees_in_forest
+        )
+
+        return self.RFC
+
+
+    def evaluate_rfc_model(self,
+                           back,
+                           thigh,
+                           btemp,
+                           ttemp,
+                           labels,
+                           model=None,
+                           sampling_frequency=50,
+                           window_length=250,
+                           tempearture_reading_rate=120,
+                           train_overlap=.8):
+
+        RFC = model or self.RFC
+
+        samples_pr_second = 1 / (tempearture_reading_rate / sampling_frequency)
+        samples_pr_window = int(window_length * samples_pr_second)
+
+        RFC.test(back, thigh, [btemp, ttemp], labels, samples_pr_window, train_overlap)
+
+        acc = RFC.calculate_accuracy()
+        return acc
+
+
+    def classify_rfc(self,
+                     back,
+                     thigh,
+                     btemp,
+                     ttemp,
+                     labels,
+                     model=None,
+                     sampling_frequency=50,
+                     tempearture_reading_rate=120,
+                     train_overlap=.8):
+
+        RFC = model or self.RFC
+
+        samples_pr_second = 1 / (tempearture_reading_rate / sampling_frequency)
+        samples_pr_window = int(window_length * samples_pr_second)
+
+        return RFC.classify(back, thigh, [btemp, ttemp], labels, samples_pr_window, train_overlap)
+
+
+
+
+
+
     @staticmethod
     def remove_files_or_dirs_from(list_with_paths):
         for f in list_with_paths:
