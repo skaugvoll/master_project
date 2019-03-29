@@ -1,4 +1,4 @@
-import multiprocessing
+import multiprocessing, pickle
 import numpy as np
 import utils.temperature_segmentation_and_calculation as temp_feature_util
 # from collections import Counter
@@ -15,6 +15,16 @@ class HARRandomForrest():
         self.test_ground_truth_labels = None
         self.accuracy = None
         self.confusion_matrix = None
+        self.model_path= None
+
+
+    def save_model(self, path="./trained_rfc.save"):
+        self.model_path = path
+        pickle.dump(self.RFC_classifier, open(self.model_path, 'wb'))
+
+    def get_model_path(self):
+        return self.model_path
+
 
     def train_old(self,
                   back_training_feat,

@@ -85,7 +85,9 @@ btemp, ttemp, _ = pipObj.get_features_and_labels_as_np_array(
 #     train_overlap=train_overlap,
 #     number_of_trees=number_of_trees_in_forest
 # )
-pipObj.train_rfc_model(back,thigh,btemp,ttemp,labels)
+
+
+RFC = pipObj.train_rfc_model(back,thigh,btemp,ttemp,labels)
 
 
 #####
@@ -135,6 +137,9 @@ acc = pipObj.evaluate_rfc_model(back, thigh, btemp, ttemp, labels)
 #
 # acc = RFC.calculate_accuracy()
 print("ACC: ", acc)
+
+pipObj.save_model(RFC, "./trained_rfc_2.save")
+
 
 unzipped_paths += unzipped_test_paths
 paths = [ "/".join(p.split("/")[:-1]) for p in unzipped_paths]

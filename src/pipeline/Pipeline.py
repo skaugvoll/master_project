@@ -917,7 +917,19 @@ class Pipeline:
 
 
 
-
+    def save_model(self, model, path):
+        s = ""
+        while s not in ["y", "n"]:
+            try:
+                s = input("save model ? [y | n]")
+                if s == "y":
+                    model.save_model(path=path)
+            except:
+                print("Something went wrong. Could not save")
+        if s == "y":
+            print("Done saving")
+        else:
+            print("Did not save")
 
     @staticmethod
     def remove_files_or_dirs_from(list_with_paths):
