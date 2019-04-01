@@ -4,7 +4,7 @@ import utils.temperature_segmentation_and_calculation as temp_feature_util
 # from collections import Counter
 from sklearn.ensemble import RandomForestClassifier as RFC
 from sklearn.metrics import accuracy_score, confusion_matrix
-
+import pickle
 
 
 
@@ -21,6 +21,9 @@ class HARRandomForrest():
     def save_model(self, path="./trained_rfc.save"):
         self.model_path = path
         pickle.dump(self.RFC_classifier, open(self.model_path, 'wb'))
+
+    def load_model(self, path="./trained_rfc.save"):
+        self.RFC_classifier = pickle.load(open(path, 'rb'))
 
     def get_model_path(self):
         return self.model_path

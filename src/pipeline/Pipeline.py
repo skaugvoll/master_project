@@ -129,7 +129,7 @@ class Pipeline:
             # Vil ha in ett ferdig window, aka windows maa lages utenfor her og addes til queue
             # TODO: enten velge ut x antall av window, predikere de og ta avg result som LSTM (den med flest forekomster)
             # TODO: eller bare ett random row in window og predikerer den og bruker res som LSTM
-            res = model.window_classification(window[0])[0]
+            res = model.window_classification(window)[0]
             # print("RESSS: >>>>>> :: ", res, type(res))
 
             # output_queue.put((idx, window, res))
@@ -185,51 +185,85 @@ class Pipeline:
 
         # Build arguments for get_features_and_labels function
 
-        b_clm = DataHandler.getAttributeOrReturnDefault(dataframe_columns, 'back_features') + DataHandler.getAttributeOrReturnDefault(dataframe_columns, 'back_temp')
-        t_clm = DataHandler.getAttributeOrReturnDefault(dataframe_columns, 'thigh_features') + DataHandler.getAttributeOrReturnDefault(dataframe_columns, 'thigh_temp')
+        b_clm = DataHandler.getAttributeOrReturnDefault(dataframe_columns, 'back_features')
+        t_clm = DataHandler.getAttributeOrReturnDefault(dataframe_columns, 'thigh_features')
         l_clm = DataHandler.getAttributeOrReturnDefault(dataframe_columns, 'label_column')
+
+        btemp = DataHandler.getAttributeOrReturnDefault(dataframe_columns, 'back_temp')
+        ttemp = DataHandler.getAttributeOrReturnDefault(dataframe_columns, 'thigh_temp')
 
         args = {
             'back_columns': b_clm,
             'thigh_columns': t_clm,
-            'label_column': l_clm
+            'label_column': l_clm,
         }
 
         # extract back, thigh and labels
-        back_feat, thigh_feat, label = self.get_features_and_labels_as_np_array(self.dataframe, **args)  # returns numpy arrays
+        back_feat, thigh_feat, labels = self.get_features_and_labels_as_np_array(
+            df=self.dataframe,
+            **args
+        )
+
+        print(back_feat.shape)
+        input("...")
+
+        btemp, ttemp, _ = self.get_features_and_labels_as_np_array(
+            df=self.dataframe,
+            back_columns=btemp,
+            thigh_columns=ttemp,
+            label_column=None
+        )
+
+        print(btemp.shape)
+        input("...")
+
+
 
         # calculate temperature features
         back_feat = temp_feature_util.segment_acceleration_and_calculate_features(back_feat,
+                                                                    temp=btemp,
                                                                     samples_pr_window=samples_pr_window,
                                                                     overlap=train_overlap)
 
         thigh_feat = temp_feature_util.segment_acceleration_and_calculate_features(thigh_feat,
+                                                                    temp=ttemp,
                                                                     samples_pr_window=samples_pr_window,
                                                                     overlap=train_overlap)
+
+        print(back_feat.shape)
+        input("...")
 
         # concatinates example : [[1,2,3],[4,5,6]] og [[a,b,c], [d,e,f]] --> [[1,2,3,a,b,c], [4,5,6,d,e,f]]
         # akas rebuild the dataframe shape
         both_features = np.hstack((back_feat, thigh_feat))
 
 
-        # print("BOTH FEATURES SHAPE : ", both_features.shape)
-        # TODO: EXTRACT THE CONVERTION INTO WINDOWS INTO OWN FUNC
-        num_rows_in_window = 1
-        if seq_lenght:
-            num_rows = both_features.shape[0]
-            num_rows_in_window = int(num_rows / seq_lenght)
-
-
-        feature_windows = []
-        last_index = 0
-
-        for _ in range(num_rows_in_window):
-            feature_windows.append(both_features[last_index:last_index + seq_lenght])
-            last_index = last_index + seq_lenght
-
-        both_features = np.array(feature_windows)
+        # # print("BOTH FEATURES SHAPE : ", both_features.shape)
+        # # TODO: EXTRACT THE CONVERTION INTO WINDOWS INTO OWN FUNC
+        # num_rows_in_window = 1
+        # if seq_lenght:
+        #     num_rows = both_features.shape[0]
+        #     print("numR: ", num_rows)
+        #     num_rows_in_window = int(num_rows / seq_lenght)
+        #     print("num rows in window: ", num_rows_in_window)
+        #     input("....")
+        #
+        #
+        # feature_windows = []
+        # last_index = 0
+        #
+        # print(num_rows_in_window)
+        # input("...")
+        #
+        # for _ in range(num_rows_in_window):
+        #     feature_windows.append(both_features[last_index:last_index + seq_lenght])
+        #     last_index = last_index + seq_lenght
+        #
+        # both_features = np.array(feature_windows)
+        #
         # print(both_features.shape)
-
+        # input("...")
+        #
         number_of_tasks = both_features.shape[0]
 
         for idx, window in enumerate(both_features):
@@ -241,7 +275,12 @@ class Pipeline:
 
         # CREATE a worker processes on model klassifisering
         for _ in range(NUMBER_OF_PROCESSES_models):
-            RFC = pickle.load(open(rfc_model_path, 'rb'))
+            # RFC = pickle.load(open(rfc_model_path, 'rb'))
+            RFC = self.instansiate_model("RFC", {})
+            RFC.load_model(rfc_model_path)
+            # print(RFC, dir(RFC))
+            # input("....")
+
             processes_model.append(Process(target=self.model_classification_worker,
                                            args=(model_queue,
                                                  output_classification_windows,
@@ -356,7 +395,15 @@ class Pipeline:
         result_df['target'] = pd.to_numeric(result_df['target'])
 
         # combine all windows for saving
-        classifications = np.concatenate((bth_class, thigh_class, back_class))
+        # classifications = np.concatenate((bth_class, thigh_class, back_class))
+
+        classifications = np.array([]).reshape(-1, 3)
+        if bth_class.shape[0] > 0 and bth_class.shape[1] == 3:
+            classifications = np.vstack((classifications, bth_class))
+        if thigh_class.shape[0] > 0 and thigh_class.shape[1] == 3:
+            classifications = np.vstack((classifications, thigh_class))
+        if back_class.shape[0] > 0 and back_class.shape[1] == 3:
+            classifications = np.vstack((classifications, back_class))
 
         if not minimize_result:  # do not minimize result
             i = 1
@@ -380,22 +427,17 @@ class Pipeline:
                     explenation='Creating result dataframe')
         else:  # minizime result
             windowMemory = WindowMemory()
+            counter = 0
+            counter_target = len(classifications)
             for idx, conf, target in classifications:
+
                 timestart = timestap_windows[idx][0][0]
                 timeend = timestap_windows[idx][0][-1]
                 conf = conf[0]
                 target = target[0]
 
-                # row = {
-                #     'timestart': timestart,
-                #     'timeend': timeend,
-                #     'confidence': conf,
-                #     'target': target
-                # }
-                # result_df.loc[len(result_df)] = row
-
                 # TODO: do some logic that finds timestart and timeend for sequences of same target, take avg, conf and then thats the row we want to add to dataframe, not all windows!
-                if windowMemory.get_last_target() is None:
+                if windowMemory.get_last_target() is None: # if the first window to classify
                     # this can be done outside the loop, to not check each time, use classifiaction.pop() on var init
                     # last_target = target
                     windowMemory.update_last_target(target)
@@ -406,7 +448,7 @@ class Pipeline:
                     # avg_conf += conf
                     windowMemory.update_avg_conf_nominator(conf)
 
-                elif not windowMemory.check_targets(target):
+                elif not windowMemory.check_targets(target): # not same target as last window, thus write last window to mem.
                     # add to result_df
                     row = {
                         'timestart': windowMemory.get_last_start(),
@@ -414,6 +456,7 @@ class Pipeline:
                         'confidence': windowMemory.get_avg_conf(),
                         'target': windowMemory.get_last_target()
                     }
+
                     result_df.loc[len(result_df)] = row
 
                     # keep track of new windows with same result
@@ -423,11 +466,22 @@ class Pipeline:
                     windowMemory.update_last_start(timestart)
                     windowMemory.update_last_end(timeend)
                     windowMemory.reset_divisor()
-                else:
+
+                elif counter == counter_target-1: # if last window to classify
+                    row = {
+                        'timestart': windowMemory.get_last_start(),
+                        'timeend': windowMemory.get_last_end(),
+                        'confidence': windowMemory.get_avg_conf(),
+                        'target': windowMemory.get_last_target()
+                    }
+                    result_df.loc[len(result_df)] = row
+
+                else: # same target as last window and just in the middle of classification
                     # upate memory_variables
                     windowMemory.update_last_end(timeend)
                     windowMemory.update_avg_conf_nominator(conf)
                     windowMemory.update_avg_conf_divisor()
+
 
                 # Feedback to user
                 progressbar.printProgressBar(
@@ -439,9 +493,11 @@ class Pipeline:
                 # Controll feedback to user
                 windowMemory.update_num_windows()
 
+                counter += 1
+
             print("DONE")
 
-        return bth_class, thigh_class, back_class
+        return bth_class, thigh_class, back_class, result_df
 
         # classifiers = {}
         # for key in lstm_models_paths.keys():
@@ -527,7 +583,7 @@ class Pipeline:
             progressbar.printProgressBar(start, end, 20, explenation=task + " activity classification prog. :: ")
             start += 1
 
-        progressbar.printProgressBar(start, end, 20, explenation=task + " activity classification prog. :: ")
+        progressbar.printProgressBar(start, end, 20, explenation="Activity classification prog. :: ")
         print("Done") # create new line
         try:
             del model  # remove the model

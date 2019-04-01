@@ -159,7 +159,7 @@ if s == 'y':
         'time': []
     }
 
-    a, t, b = p.parallel_pipeline_classification_run(
+    a, t, b, r = p.parallel_pipeline_classification_run(
         dataframe=dataframe_test,
         dataframe_columns=dataframe_columns,
         rfc_model_path=rfc_model_path,

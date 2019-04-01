@@ -39,6 +39,20 @@ def max_min_delta(array):
     return max_temp - min_temp
 
 
+def find_distance_moved(array, sampling_frequency):
+    equation = lambda InitialSpeed, time, avg_acc: (InitialSpeed * time) + .5 * avg_acc * (time ** 2)
+    distance = []
+    last_acc = 0
+    time_pr_reading = 1 / sampling_frequency
+    for acc in array:
+        distance.append(equation(last_acc, time_pr_reading, acc))
+        last_acc = acc
+
+    distance = np.array(distance)
+    return distance.sum()
+
+
+
 
 def segment_acceleration_and_calculate_features_old(sensor_data,
                                                 samples_pr_window=50,
@@ -66,6 +80,7 @@ def segment_acceleration_and_calculate_features_old(sensor_data,
 
     # print("Windows samples ", window_samples)
     step_size = int(round(window_samples * (1.0 - overlap)))
+
 
     all_features = []
 
@@ -103,6 +118,7 @@ def segment_acceleration_and_calculate_features_old(sensor_data,
 def segment_acceleration_and_calculate_features(sensor_data,
                                                 temp,
                                                 samples_pr_window=50,
+                                                sampling_frequency=50,
                                                 overlap=0.0,
                                                 remove_sign_after_calculation=True):
     '''
@@ -125,17 +141,19 @@ def segment_acceleration_and_calculate_features(sensor_data,
     ]
 
     acceleration_functions = [
-        max,
-        min,
-        max_min_delta,
-        first_last_delta,
+        # max,
+        # min,
+        # max_min_delta,
+        # first_last_delta,
+        find_distance_moved
     ]
 
     # window_samples = int(sampling_rate * window_length)
     window_samples = samples_pr_window
 
     # print("Windows samples ", window_samples)
-    step_size = int(round(window_samples * (1.0 - overlap)))
+    # step_size = int(round(window_samples * (1.0 - overlap)))
+    step_size = window_samples
 
     all_features = []
 
@@ -172,7 +190,12 @@ def segment_acceleration_and_calculate_features(sensor_data,
             for feature in range(window.shape[1]):
                 # get all the values in that "column"
                 features = np.take(window, feature, axis=1)
-                value = func(features)
+                value = None
+                if func == find_distance_moved:
+                    value = func(features, sampling_frequency)
+                else:
+                    value = func(features)
+
                 extracted_features.append(value)
 
 

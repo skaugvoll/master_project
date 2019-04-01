@@ -11,19 +11,30 @@ pipObj = Pipeline()
 
 list_with_subjects = [
     '../data/input/shower_atle.7z',
-    # '../data/input/nonshower_paul.7z',
-    # '../data/input/Thomas.7z',
-    # '../data/input/Thomas2.7z',  # mangler labels fil
+    '../data/input/nonshower_paul.7z',
+    '../data/input/Thomas.7z',
+    '../data/input/Thomas2.7z',
+    '../data/input/Sigve.7z'
 ]
 
 
+train = ['../data/temp/shower_atle.7z/shower_atle',
+    '../data/temp/nonshower_paul.7z/nonshower_paul',
+    # '../data/temp/Thomas.7z/Thomas',
+    # '../data/temp/Thomas2.7z/Thomas2'
+    ]
+
+test = [
+    '../data/temp/shower_atle.7z/shower_atle'
+]
+
 # unzip all data
-unzipped_paths = pipObj.unzip_multiple_directories(list_with_subjects, zip_to="../data/temp/")
-print(unzipped_paths)
+# unzipped_paths = pipObj.unzip_multiple_directories(list_with_subjects, zip_to="../data/temp/")
+# print(unzipped_paths)
 
 
 trainDataframe = pipObj.create_large_dataframe_from_multiple_input_directories(
-    unzipped_paths,
+    train,
     merge_column='time',
     master_columns=['time', 'bx', 'by', 'bz', 'tx', 'ty', 'tz'],
     slave_columns=['time', 'bx1', 'by1', 'bz1', 'btemp'],
@@ -42,8 +53,8 @@ trainDataframe = pipObj.create_large_dataframe_from_multiple_input_directories(
     save=False,
     added_columns_name=['labels']
 )
-
-# # Do some magic numbering
+#
+# # Do some magic numbering since the temperature is recorded at a different speed then accelerometer
 sampling_frequency = 50
 window_length = 250
 tempearture_reading_rate = 120
@@ -69,12 +80,12 @@ btemp, ttemp, _ = pipObj.get_features_and_labels_as_np_array(
 )
 
 
-# ####
-# # Train the model
-# ####
+####
+# Train the model
+####
 # Get the model
-# RFC = models.get("RFC", {})
-#
+RFC = models.get("RFC", {})
+
 # RFC.train(
 #     back_training_feat=back,
 #     thigh_training_feat=thigh,
@@ -93,10 +104,10 @@ RFC = pipObj.train_rfc_model(back,thigh,btemp,ttemp,labels)
 #####
 # TEST THE MODEL
 ####
-
-unzipped_test_paths = pipObj.unzip_multiple_directories(['../data/input/Sigve.7z'], zip_to="../data/temp/")
+#
+# unzipped_test_paths = pipObj.unzip_multiple_directories(test, zip_to="../data/temp/")
 testDataframe = pipObj.create_large_dataframe_from_multiple_input_directories(
-    list_with_subjects=unzipped_test_paths,
+    list_with_subjects=test,
     merge_column='time',
     master_columns=['time', 'bx', 'by', 'bz', 'tx', 'ty', 'tz'],
     slave_columns=['time', 'bx1', 'by1', 'bz1', 'btemp'],
@@ -138,9 +149,9 @@ acc = pipObj.evaluate_rfc_model(back, thigh, btemp, ttemp, labels)
 # acc = RFC.calculate_accuracy()
 print("ACC: ", acc)
 
-pipObj.save_model(RFC, "./trained_rfc_2.save")
+pipObj.save_model(RFC, "./trained_rfc_shower_atle.save")
 
 
-unzipped_paths += unzipped_test_paths
-paths = [ "/".join(p.split("/")[:-1]) for p in unzipped_paths]
-pipObj.remove_files_or_dirs_from(paths)
+# unzipped_paths += unzipped_test_paths
+# paths = [ "/".join(p.split("/")[:-1]) for p in unzipped_paths]
+# pipObj.remove_files_or_dirs_from(paths)
