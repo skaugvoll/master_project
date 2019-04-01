@@ -162,11 +162,24 @@ class OneSensorLSTM( HARModel ):
     x1 = self.get_features( dataframes, cols, batch_size=batch_size, sequence_length=sequence_length )
     y = self.get_labels( dataframes, label_col, batch_size=batch_size, sequence_length=sequence_length )
 
-    return self.model.evaluate(
+    res = self.model.evaluate(
       x=x1,
       y=y,
       batch_size=batch_size,
     )
+
+    ret_labels = self.model.metrics_names
+    return_object = {}
+    for i, l in enumerate(ret_labels):
+      return_object[l] = res[i]
+
+    return return_object
+    #
+    # return self.model.evaluate(
+    #   x=x1,
+    #   y=y,
+    #   batch_size=batch_size,
+    # )
 
   def predict_on_one_window(self, window):
     '''

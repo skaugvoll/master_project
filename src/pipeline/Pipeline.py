@@ -869,6 +869,7 @@ class Pipeline:
             thigh = os.path.join(root_dir, subject['thighCSV'])
             label = os.path.join(root_dir, subject['labelCSV'])
 
+
             df = dh.concat_timesynch_and_temp(
                 back,
                 thigh,
