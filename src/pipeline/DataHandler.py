@@ -99,7 +99,7 @@ class DataHandler():
 
         ## Rearrange the columns
         if not rearrange_columns_to is None:
-            print("REARRANGING CSV COLUMNS")
+            print("RE-ARRANGING CSV COLUMNS")
             merged_df = merged_df[rearrange_columns_to]
 
         if out_path is None:

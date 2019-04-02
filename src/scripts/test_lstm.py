@@ -216,7 +216,7 @@ __init__.py states:
 
 
 ########################### dual_sensor_lstm
-model.train(
+model.train_old(
     train_data=[training_dataframe],
     valid_data=[validation_dataframe],
     back_cols=['bx', 'by', 'bz'],
