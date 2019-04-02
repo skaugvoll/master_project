@@ -1,4 +1,4 @@
-import multiprocessing, pickle
+import multiprocessing
 import numpy as np
 import utils.temperature_segmentation_and_calculation as temp_feature_util
 # from collections import Counter

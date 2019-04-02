@@ -204,8 +204,6 @@ class Pipeline:
             **args
         )
 
-        print(back_feat.shape)
-        input("...")
 
         btemp, ttemp, _ = self.get_features_and_labels_as_np_array(
             df=self.dataframe,
@@ -213,10 +211,6 @@ class Pipeline:
             thigh_columns=ttemp,
             label_column=None
         )
-
-        print(btemp.shape)
-        input("...")
-
 
 
         # calculate temperature features
@@ -230,40 +224,11 @@ class Pipeline:
                                                                     samples_pr_window=samples_pr_window,
                                                                     overlap=train_overlap)
 
-        print(back_feat.shape)
-        input("...")
 
         # concatinates example : [[1,2,3],[4,5,6]] og [[a,b,c], [d,e,f]] --> [[1,2,3,a,b,c], [4,5,6,d,e,f]]
         # akas rebuild the dataframe shape
         both_features = np.hstack((back_feat, thigh_feat))
 
-
-        # # print("BOTH FEATURES SHAPE : ", both_features.shape)
-        # # TODO: EXTRACT THE CONVERTION INTO WINDOWS INTO OWN FUNC
-        # num_rows_in_window = 1
-        # if seq_lenght:
-        #     num_rows = both_features.shape[0]
-        #     print("numR: ", num_rows)
-        #     num_rows_in_window = int(num_rows / seq_lenght)
-        #     print("num rows in window: ", num_rows_in_window)
-        #     input("....")
-        #
-        #
-        # feature_windows = []
-        # last_index = 0
-        #
-        # print(num_rows_in_window)
-        # input("...")
-        #
-        # for _ in range(num_rows_in_window):
-        #     feature_windows.append(both_features[last_index:last_index + seq_lenght])
-        #     last_index = last_index + seq_lenght
-        #
-        # both_features = np.array(feature_windows)
-        #
-        # print(both_features.shape)
-        # input("...")
-        #
         number_of_tasks = both_features.shape[0]
 
         for idx, window in enumerate(both_features):
