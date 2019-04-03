@@ -48,10 +48,10 @@ class Pipeline:
             ]
         )
 
-        self.dh.concat_timesynch_and_temp(
-            master_csv_path=self.dh.get_synched_csv_path(),
-            btemp_txt_path=self.dh.get_unzipped_path() + '/btemp.txt',
-            ttemp_txt_path=self.dh.get_unzipped_path() + '/ttemp.txt',
+        self.dh.concat_dataframes(
+            master_path=self.dh.get_synched_csv_path(),
+            slave_path=self.dh.get_unzipped_path() + '/btemp.txt',
+            slave2_path=self.dh.get_unzipped_path() + '/ttemp.txt',
             save=save
         )
 
@@ -663,15 +663,15 @@ class Pipeline:
                 save=save
             )
 
-            df = dh.concat_timesynch_and_temp(
-                                  timesync,
-                                  root_dir + "/btemp.txt",
-                                  root_dir + "/ttemp.txt",
-                                  master_columns=master_columns,
-                                  back_temp_column=['btemp'],  # should probably be set snz we can specify temp_col_name
-                                  thigh_temp_column=['ttemp'],  # should probably be set snz we can specify temp_cl_name
-                                  header_value=None,
-                                  save=save)
+            df = dh.concat_dataframes(
+                timesync,
+                root_dir + "/btemp.txt",
+                root_dir + "/ttemp.txt",
+                master_columns=master_columns,
+                slave_column=['btemp'],  # should probably be set snz we can specify temp_col_name
+                slave2_column=['ttemp'],  # should probably be set snz we can specify temp_cl_name
+                header_value=None,
+                save=save)
 
 
             dh.convert_column_from_str_to_datetime(
@@ -870,13 +870,13 @@ class Pipeline:
             label = os.path.join(root_dir, subject['labelCSV'])
 
 
-            df = dh.concat_timesynch_and_temp(
+            df = dh.concat_dataframes(
                 back,
                 thigh,
                 label,
                 master_columns=['bx', 'by', 'bz'],
-                back_temp_column=['tx', 'ty', 'tz'],  # should probably be set snz we can specify temp_col_name
-                thigh_temp_column=['label'],  # should probably be set snz we can specify temp_cl_name
+                slave_column=['tx', 'ty', 'tz'],  # should probably be set snz we can specify temp_col_name
+                slave2_column=['label'],  # should probably be set snz we can specify temp_cl_name
                 header_value=None)
 
             # TRENGER VI å GJØRE DETTE FOR DE MED LABEL SOM CSV??
