@@ -117,7 +117,7 @@ def segment_acceleration_and_calculate_features_old(sensor_data,
 
 def segment_acceleration_and_calculate_features(sensor_data,
                                                 temp,
-                                                samples_pr_window=50,
+                                                samples_pr_window=250,
                                                 sampling_frequency=50,
                                                 overlap=0.0,
                                                 remove_sign_after_calculation=True):
@@ -145,19 +145,15 @@ def segment_acceleration_and_calculate_features(sensor_data,
         # min,
         # max_min_delta,
         # first_last_delta,
-        find_distance_moved
+        # find_distance_moved
     ]
 
     # window_samples = int(sampling_rate * window_length)
     window_samples = samples_pr_window
-
-    # print("Windows samples ", window_samples)
-    # step_size = int(round(window_samples * (1.0 - overlap)))
     step_size = window_samples
 
     all_features = []
 
-    # temp_data = np.concatenate((btemp, ttemp), axis=1)
     temp_data = temp
 
     for window_start in np.arange(0, sensor_data.shape[0], step_size):
@@ -179,11 +175,7 @@ def segment_acceleration_and_calculate_features(sensor_data,
         # do the temperature features stuff
         for func in temp_functions:
             value = func(temp_window)
-            # print("VALUE", value, type(value))
-            # input("...")
             extracted_features.append(value)
-            # print("EF: ", extracted_features)
-            # input("...")
 
         for func in acceleration_functions:
             # iterate trough x, y and z
@@ -213,7 +205,7 @@ def segment_acceleration_and_calculate_features(sensor_data,
 def segment_labels(label_data, overlap=0.0, samples_pr_window=50):
     # window_samples = int(sampling_rate * window_length)
     window_samples = samples_pr_window
-    step_size = int(round(window_samples * (1.0 - overlap)))
+    step_size = window_samples
 
     labels = []
 

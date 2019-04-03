@@ -78,13 +78,10 @@ dataframe = pipObj.create_large_dataframe_from_multiple_input_directories(
 
 
 # Define the Meta classifier path
-RFC_PATH = './trained_rfc_shower_atle.save'
+RFC_PATH = './trained_jaeveligBra_rfc.save'
 # Do some magic numbering for the Meta classifier, since temperature is recorded at a different speed
 sampling_frequency = 50
 window_length = 250
-tempearture_reading_rate = 120
-samples_pr_second = 1/(tempearture_reading_rate/sampling_frequency)
-# samples_pr_window = int(window_length*samples_pr_second)
 samples_pr_window = 250
 
 
@@ -138,6 +135,7 @@ _, _, _, result_df = pipObj.parallel_pipeline_classification_run(
     rfc_model_path=RFC_PATH,
     lstm_models_paths=lstm_models_path,
     samples_pr_window=samples_pr_window,
+    sampling_freq=50,
     train_overlap=0.8,
     seq_lenght=250,
     num_proc_mod=cpus,
