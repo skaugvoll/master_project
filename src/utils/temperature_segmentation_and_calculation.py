@@ -1,5 +1,7 @@
 import numpy as np
 from collections import Counter
+from .TemperatureMemory import TemperatureMemory
+from .progressbar import printProgressBar
 
 def max(array):
     '''
@@ -84,6 +86,7 @@ def segment_acceleration_and_calculate_features_old(sensor_data,
 
     all_features = []
 
+
     for window_start in np.arange(0, sensor_data.shape[0], step_size):
         # print("Window start: ", window_start, "Sensor_data.shape[0]: ", sensor_data.shape[0], step_size)
         window_start = int(round(window_start))
@@ -156,6 +159,16 @@ def segment_acceleration_and_calculate_features(sensor_data,
 
     temp_data = temp
 
+    temperatureMemory_max_min_delta = TemperatureMemory(
+        memory_length_seconds=600,  # 10 minutes
+        window_length_in_seconds=samples_pr_window / sampling_frequency,
+    )
+
+    temperatureMemory_first_last_delta = TemperatureMemory(
+        memory_length_seconds=600,  # 10 minutes
+        window_length_in_seconds=samples_pr_window / sampling_frequency,
+    )
+
     for window_start in np.arange(0, sensor_data.shape[0], step_size):
         # print("Window start: ", window_start, "Sensor_data.shape[0]: ", sensor_data.shape[0], step_size)
         window_start = int(round(window_start))
@@ -177,6 +190,17 @@ def segment_acceleration_and_calculate_features(sensor_data,
             value = func(temp_window)
             extracted_features.append(value)
 
+            if func == max_min_delta:
+                temperatureMemory_max_min_delta.add_to_memory(value)
+
+            elif func == first_last_delta:
+                temperatureMemory_first_last_delta.add_to_memory(value)
+
+
+        # TODO: I think this makes more sense or the next TODO placement
+        # if remove_sign_after_calculation:
+        #     np.absolute(extracted_features, extracted_features)
+
         for func in acceleration_functions:
             # iterate trough x, y and z
             for feature in range(window.shape[1]):
@@ -190,14 +214,32 @@ def segment_acceleration_and_calculate_features(sensor_data,
 
                 extracted_features.append(value)
 
+            # TODO: I think this makes more sense
+            # if remove_sign_after_calculation:
+            #     np.absolute(extracted_features, extracted_features)
 
+        # add the temperature memory to window as feature
+        # print("NUM memories: ", temperatureMemory_max_min_delta.get_num_memories(),
+        #       "\nMem Length in s: ", temperatureMemory_max_min_delta.get_memory_length())
+
+        max_min_delta_in_memory = max_min_delta(temperatureMemory_max_min_delta.get_memory())
+        first_last_delta_in_memory = first_last_delta(temperatureMemory_first_last_delta.get_memory())
+
+        extracted_features.append(max_min_delta_in_memory)
+        extracted_features.append(first_last_delta_in_memory)
+
+        # add all the extracted features to represent this window
         all_features.append(np.hstack(extracted_features))
 
-    one_large_array = np.vstack(all_features)
+        printProgressBar(window_start, sensor_data.shape[0], 20, explenation="Extracting features : ")
 
+    one_large_array = np.vstack(all_features)
+    # TODO: remove this, as we want to have sign on temperature features and not distance moved and memory features?
     if remove_sign_after_calculation:
         np.absolute(one_large_array, one_large_array)
 
+    printProgressBar(sensor_data.shape[0], sensor_data.shape[0], 20, explenation="Extracting features : ")
+    print("DONE")
     return one_large_array
 
 
