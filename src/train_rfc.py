@@ -24,14 +24,14 @@ pipObj = Pipeline()
 
 train = ['../data/temp/shower_atle.7z/shower_atle',
     '../data/temp/nonshower_paul.7z/nonshower_paul',
-    '../data/temp/Thomas.7z/Thomas',
+    # '../data/temp/Thomas.7z/Thomas',
     '../data/temp/Thomas2.7z/Thomas2',
-    # '../data/temp/Sigve.7z/Sigve'
+    '../data/temp/Sigve.7z/Sigve'
     ]
 
 test = [
-    # '../data/temp/Thomas.7z/Thomas',
-    '../data/temp/Sigve.7z/Sigve'
+    '../data/temp/Thomas.7z/Thomas',
+    # '../data/temp/Sigve.7z/Sigve'
     # '../data/temp/nonshower_paul.7z/nonshower_paul',
 ]
 

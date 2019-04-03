@@ -145,7 +145,7 @@ def segment_acceleration_and_calculate_features(sensor_data,
         # min,
         # max_min_delta,
         # first_last_delta,
-        # find_distance_moved
+        find_distance_moved
     ]
 
     # window_samples = int(sampling_rate * window_length)
