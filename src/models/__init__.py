@@ -87,10 +87,12 @@ from .two_sensor_lstm import TwoSensorLSTM
 from .one_sensor_lstm import OneSensorLSTM
 from .snt_rfc import HARRandomForrest
 from .testLSTM import LSTMTEST
+from .xgbooster import MetaXGBooster
 
 _MODELS = {
   'TWO_SENSOR_LSTM' : TwoSensorLSTM,
   'ONE_SENSOR_LSTM' : OneSensorLSTM,
   'RFC': HARRandomForrest,
-  'LSTMTEST': LSTMTEST
+  'LSTMTEST': LSTMTEST,
+  'XGB': MetaXGBooster
 }
