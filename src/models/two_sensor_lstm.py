@@ -104,7 +104,6 @@ class TwoSensorLSTM( HARModel ):
     # Get design matrices of training data
     train_x1 = self.get_features( train_data, back_cols, batch_size=batch_size, sequence_length=sequence_length )
     train_x2 = self.get_features( train_data, thigh_cols, batch_size=batch_size, sequence_length=sequence_length )
-
     train_y = self.get_labels( train_data, label_col, batch_size=batch_size, sequence_length=sequence_length )
 
     if shuffle:

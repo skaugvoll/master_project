@@ -16,7 +16,8 @@ list_with_subjects = [
 trainDataframe = pipObj.create_large_dataframe_from_multiple_training_directories(
     list_with_subjects,
     save=False,
-    added_columns_name=['labels']
+    added_columns_name=['labels'],
+    list=True
 )
 
 train, validation = DataHandler.split_df_into_training_and_test(trainDataframe, split_rate=.2, shuffle=False)
@@ -34,7 +35,7 @@ pipObj.train_lstm_model(
     label_col='label',
     validation_dataframe=validation,
     save_to_path="trained_models/back_sensor_" + str(now.day) + "_" + str(now.month),
-    save_weights=True,
+    save_weights=False,
     shuffle=False
 )
 

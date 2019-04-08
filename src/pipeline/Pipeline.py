@@ -2,6 +2,7 @@ import sys, os
 import numpy as np
 import cwa_converter
 import pickle
+import pandas as pd
 from multiprocessing import Process, Queue, Manager
 from pipeline.DataHandler import DataHandler
 import utils.temperature_segmentation_and_calculation as temp_feature_util
@@ -757,9 +758,8 @@ class Pipeline:
         model = models.get(model_name, model_args)
 
         # if passed in validation dataframe, give it its propper format.
-        if not validation_dataframe is None:
+        if not validation_dataframe is None and type(validation_dataframe) == pd.DataFrame:
             validation_dataframe = [validation_dataframe]
-
 
         # potentially overwrite config variables
         batch_size = batch_size or config.TRAINING['args']['batch_size']
@@ -767,11 +767,16 @@ class Pipeline:
         callbacks = config.TRAINING['args']['callbacks'] or None
 
         cols = None
+
+
+        if type(training_dataframe) == pd.DataFrame:
+           training_dataframe = [training_dataframe]
+
         if back_cols and thigh_cols:
             self.num_sensors = 2
             cols = [back_cols, thigh_cols]
             model.train(
-                train_data=[training_dataframe],
+                train_data=training_dataframe,
                 valid_data=validation_dataframe,
                 epochs=config.TRAINING['args']['epochs'],
                 batch_size=batch_size, # gets this from config file when init model
@@ -785,7 +790,7 @@ class Pipeline:
             cols = back_cols or thigh_cols
             self.num_sensors = 1
             model.train(
-                train_data=[training_dataframe],
+                train_data=training_dataframe,
                 valid_data=validation_dataframe,
                 callbacks=[],
                 epochs=config.TRAINING['args']['epochs'],
@@ -817,15 +822,20 @@ class Pipeline:
         model = model or self.model
         num_sensors = num_sensors or self.num_sensors
 
+        if type(dataframe) == pd.DataFrame:
+           dataframe = [dataframe]
+
         if num_sensors == 2:
-            return model.evaluate(dataframes=[dataframe],
+            return model.evaluate(
+                          dataframes=dataframe,
                           batch_size=batch_size or self.config.TRAINING['args']['batch_size'],
                           sequence_length=sequence_length or self.config.TRAINING['args']['sequence_length'],
                           back_cols=self.cols[0] or back_cols,
                           thigh_cols=self.cols[1] or thigh_cols,
                           label_col=label_col)
         elif num_sensors == 1:
-            return model.evaluate(dataframes=[dataframe],
+            return model.evaluate(
+                          dataframes=dataframe,
                           batch_size=batch_size or self.config.TRAINING['args']['batch_size'],
                           sequence_length=sequence_length or self.config.TRAINING['args']['sequence_length'],
                           cols=self.cols or cols,
@@ -848,7 +858,8 @@ class Pipeline:
                                                                save=False,
                                                                added_columns_name=["labels"],
                                                                drop_non_labels=True,
-                                                               verbose=True
+                                                               verbose=True,
+                                                               list=False
                                                                ):
 
         subjects = DataHandler.findFilesInDirectoriesAndSubDirs(list_with_subjects,
@@ -860,6 +871,9 @@ class Pipeline:
 
         # print(subjects)
         merged_df = None
+        if list:
+            merged_df = []
+
         dh = DataHandler()
         dh_stacker = DataHandler()
         for idx, root_dir in enumerate(subjects):
@@ -888,12 +902,15 @@ class Pipeline:
             #     else:
             #         dh.add_new_column(col_name)
 
-            if idx == 0:
-                merged_df = dh.get_dataframe_iterator()
-                continue
 
-            # vertically stack the dataframes aka add the rows from dataframe2 as rows to the dataframe1
-            merged_df = dh_stacker.vertical_stack_dataframes(merged_df, dh.get_dataframe_iterator(),
+            if list:
+                merged_df.append(df)
+            else:
+                if idx == 0:
+                    merged_df = dh.get_dataframe_iterator()
+                    continue
+                # vertically stack the dataframes aka add the rows from dataframe2 as rows to the dataframe1
+                merged_df = dh_stacker.vertical_stack_dataframes(merged_df, dh.get_dataframe_iterator(),
                                                              set_as_current_df=False)
 
             progressbar.printProgressBar(idx, len(subjects), 20, explenation='Merging datasets prog.: ')

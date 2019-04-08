@@ -276,6 +276,7 @@ class OneSensorLSTM( HARModel ):
     # >> 598807 57
 
     # NB THE len(dataframe) - len(dataframe) % sequence_length) is what assures that the reshape is valid and can be done!
+
     X = np.concatenate([
         dataframe[columns].values[ : (len(dataframe) - len(dataframe) % sequence_length) ] for dataframe in dataframes
       ]) #.reshape( -1, sequence_length, len(columns) )
