@@ -123,6 +123,8 @@ def segment_acceleration_and_calculate_features(sensor_data,
                                                 samples_pr_window=250,
                                                 sampling_frequency=50,
                                                 overlap=0.0,
+                                                seconds_to_remember=600,
+                                                use_acc_data=True,
                                                 remove_sign_after_calculation=True):
     '''
 
@@ -131,6 +133,8 @@ def segment_acceleration_and_calculate_features(sensor_data,
     :param ttemp: [ [t1], [t2], ... [tn] ]
     :param samples_pr_window:
     :param overlap:
+    :param seconds_to_remember: if 0, no memory.
+    :param use_acc_data:
     :param remove_sign_after_calculation:
     :return:
     '''
@@ -160,12 +164,12 @@ def segment_acceleration_and_calculate_features(sensor_data,
     temp_data = temp
 
     temperatureMemory_max_min_delta = TemperatureMemory(
-        memory_length_seconds=600,  # 10 minutes
+        memory_length_seconds=seconds_to_remember,
         window_length_in_seconds=samples_pr_window / sampling_frequency,
     )
 
     temperatureMemory_first_last_delta = TemperatureMemory(
-        memory_length_seconds=600,  # 10 minutes
+        memory_length_seconds=seconds_to_remember,
         window_length_in_seconds=samples_pr_window / sampling_frequency,
     )
 
@@ -201,18 +205,19 @@ def segment_acceleration_and_calculate_features(sensor_data,
         # if remove_sign_after_calculation:
         #     np.absolute(extracted_features, extracted_features)
 
-        for func in acceleration_functions:
-            # iterate trough x, y and z
-            for feature in range(window.shape[1]):
-                # get all the values in that "column"
-                features = np.take(window, feature, axis=1)
-                value = None
-                if func == find_distance_moved:
-                    value = func(features, sampling_frequency)
-                else:
-                    value = func(features)
+        if use_acc_data:
+            for func in acceleration_functions:
+                # iterate trough x, y and z
+                for feature in range(window.shape[1]):
+                    # get all the values in that "column"
+                    features = np.take(window, feature, axis=1)
+                    value = None
+                    if func == find_distance_moved:
+                        value = func(features, sampling_frequency)
+                    else:
+                        value = func(features)
 
-                extracted_features.append(value)
+                    extracted_features.append(value)
 
             # TODO: I think this makes more sense
             # if remove_sign_after_calculation:
@@ -225,8 +230,15 @@ def segment_acceleration_and_calculate_features(sensor_data,
         max_min_delta_in_memory = max_min_delta(temperatureMemory_max_min_delta.get_memory())
         first_last_delta_in_memory = first_last_delta(temperatureMemory_first_last_delta.get_memory())
 
-        extracted_features.append(max_min_delta_in_memory)
-        extracted_features.append(first_last_delta_in_memory)
+
+        # If we want to add temperature memory
+        if seconds_to_remember > 0 or seconds_to_remember:
+            extracted_features.append(max_min_delta_in_memory)
+            extracted_features.append(first_last_delta_in_memory)
+
+
+
+
 
         # add all the extracted features to represent this window
         all_features.append(np.hstack(extracted_features))

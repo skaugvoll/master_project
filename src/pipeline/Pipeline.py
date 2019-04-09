@@ -874,7 +874,9 @@ class Pipeline:
                         window_length=250,
                         sampling_freq=50,
                         train_overlap=.8,
-                        number_of_trees_in_forest=100
+                        number_of_trees_in_forest=100,
+                        snt_memory_seconds=600,
+                        use_acc_data=True,
                         ):
 
 
@@ -890,7 +892,10 @@ class Pipeline:
             samples_pr_window=window_length,
             sampling_freq=sampling_freq,
             train_overlap=train_overlap,
-            number_of_trees=number_of_trees_in_forest
+            number_of_trees=number_of_trees_in_forest,
+            snt_memory_seconds=snt_memory_seconds,
+            use_acc_data=use_acc_data
+
         )
 
         return self.RFC
@@ -905,6 +910,8 @@ class Pipeline:
                            model=None,
                            sampling_frequency=50,
                            window_length=250,
+                           snt_memory_seconds=600,
+                           use_acc_data=True,
                            train_overlap=.8):
 
         RFC = model or self.RFC
@@ -915,6 +922,8 @@ class Pipeline:
                  labels,
                  samples_pr_window=window_length,
                  sampling_freq=sampling_frequency,
+                 snt_memory_seconds=snt_memory_seconds,
+                 use_acc_data=use_acc_data,
                  train_overlap=train_overlap)
 
         acc = RFC.calculate_accuracy()
@@ -930,6 +939,8 @@ class Pipeline:
                      model=None,
                      sampling_frequency=50,
                      window_lenght=250,
+                     snt_memory_seconds=600,
+                     use_acc_data=True,
                      train_overlap=.8):
 
         RFC = model or self.RFC
@@ -942,6 +953,8 @@ class Pipeline:
             labels,
             samples_pr_window=window_lenght,
             sampling_freq=sampling_frequency,
+            snt_memory_seconds=snt_memory_seconds,
+            use_acc_data=use_acc_data,
             train_overlap=train_overlap)
 
 
