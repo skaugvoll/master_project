@@ -7,6 +7,10 @@ from src.utils import temperature_segmentation_and_calculation as temp_feature_u
 from sklearn.preprocessing import LabelEncoder
 from sklearn.preprocessing import OneHotEncoder
 
+
+# https://xgboost.readthedocs.io/en/latest/python/python_api.html (functions)
+# https://xgboost.readthedocs.io/en/latest/parameter.html (parameters)
+
 class MetaXGBooster:
     def __init__(self):
         self.classifier = None
@@ -111,9 +115,9 @@ class MetaXGBooster:
         # input("...")
 
         params = {
-            # 'objective': 'multi:softmax',
-            # 'num_class': num_classes,
-            'max_depth': 15,
+            'objective': 'multi:softmax', # defaults to reg:squarederror
+            'num_class': num_classes,
+            'max_depth': 10,
             'eta': 0.7, # is learning rate
             "verbosity": 2,
         }
@@ -121,9 +125,10 @@ class MetaXGBooster:
         # params['num_class'] = num_classes
 
         # params['nthread'] = 4 # deafults to max num available
-        params['eval_metric'] = ['auc']
+        # params['eval_metric'] = ['auc'] # auc can not be used with multi class classification "auc" expects prediction size to be the same as label size, while your multiclass prediction size would be 45001*1161. Use either "mlogloss" or "merror" multiclass metrics.
+        params['eval_metric'] = ['merror']
 
-        num_rounds = 300
+        num_rounds = 5000
 
         bst = None
         if not evaluation:
