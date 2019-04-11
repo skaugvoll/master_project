@@ -7,8 +7,16 @@ from src import models
 
 pipObj = Pipeline()
 
-# Create a dataframe
-train = ['../data/temp/shower_atle.7z/shower_atle']
+# Create a TRAINING dataframe
+
+train = [
+    '../data/temp/shower_atle.7z/shower_atle',
+    # '../data/temp/nonshower_paul.7z/nonshower_paul',
+    # '../data/temp/Thomas.7z/Thomas',
+    # '../data/temp/Thomas2.7z/Thomas2',
+    # '../data/temp/Sigve.7z/Sigve'
+]
+
 trainDataframe = pipObj.create_large_dataframe_from_multiple_input_directories(
     train,
     merge_column='time',
@@ -33,8 +41,8 @@ trainDataframe = pipObj.create_large_dataframe_from_multiple_input_directories(
 # extract the features
 back, thigh, labels = pipObj.get_features_and_labels_as_np_array(
     df=trainDataframe,
-    back_columns=[0,1,2],
-    thigh_columns=[3,4,5],
+    back_columns=[0, 1, 2],
+    thigh_columns=[3, 4, 5],
     label_column=[8]
 )
 
@@ -45,17 +53,15 @@ btemp, ttemp, _ = pipObj.get_features_and_labels_as_np_array(
     label_column=None
 )
 
-####
-# Train the model
-####
-# Get the model
-XGB = models.get("XGB", {})
-XGB.train(back, thigh, btemp, ttemp, labels)
 
 
+# Create a TEST dataframe
+test = [
+    # '../data/temp/Thomas.7z/Thomas',
+    # '../data/temp/Sigve.7z/Sigve'
+    '../data/temp/nonshower_paul.7z/nonshower_paul',
+]
 
-# #
-test = ['../data/temp/nonshower_paul.7z/nonshower_paul']
 testDataframe = pipObj.create_large_dataframe_from_multiple_input_directories(
     test,
     merge_column='time',
@@ -78,18 +84,27 @@ testDataframe = pipObj.create_large_dataframe_from_multiple_input_directories(
 )
 
 # extract the features
-back, thigh, labels = pipObj.get_features_and_labels_as_np_array(
+testback, testthigh, testlabels = pipObj.get_features_and_labels_as_np_array(
     df=testDataframe,
-    back_columns=[0,1,2],
-    thigh_columns=[3,4,5],
+    back_columns=[0, 1, 2],
+    thigh_columns=[3, 4, 5],
     label_column=[8]
 )
 
-btemp, ttemp, _ = pipObj.get_features_and_labels_as_np_array(
+testbtemp, testttemp, _ = pipObj.get_features_and_labels_as_np_array(
     df=testDataframe,
     back_columns=[6],
     thigh_columns=[7],
     label_column=None
 )
 
-XGB.test(back, thigh, btemp, ttemp, labels)
+evaluation = [testback, testthigh, testbtemp, testttemp, testlabels]
+
+####
+# Train the model
+####
+# Get the model
+XGB = models.get("XGB", {})
+XGB.train(back, thigh, btemp, ttemp, labels, evaluation=evaluation)
+
+
