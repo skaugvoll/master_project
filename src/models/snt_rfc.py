@@ -73,7 +73,10 @@ class HARRandomForrest():
               labels,
               samples_pr_window,
               train_overlap,
+              sampling_freq=50,
               number_of_trees=100,
+              snt_memory_seconds=600,
+              use_acc_data=True,
               verbose=2
               ):
 
@@ -82,12 +85,19 @@ class HARRandomForrest():
         back_training_feat = temp_feature_util.segment_acceleration_and_calculate_features(back_training_feat,
                                                                                            temp=back_temp,
                                                                                            samples_pr_window=samples_pr_window,
-                                                                                           overlap=train_overlap)
+                                                                                           sampling_frequency=sampling_freq,
+                                                                                           overlap=train_overlap,
+                                                                                           seconds_to_remember=snt_memory_seconds,
+                                                                                           use_acc_data=use_acc_data)
 
         thigh_training_feat = temp_feature_util.segment_acceleration_and_calculate_features(thigh_training_feat,
                                                                                             temp=thigh_temp,
                                                                                             samples_pr_window=samples_pr_window,
-                                                                                            overlap=train_overlap)
+                                                                                            sampling_frequency=sampling_freq,
+                                                                                            overlap=train_overlap,
+                                                                                            seconds_to_remember=snt_memory_seconds,
+                                                                                            use_acc_data=use_acc_data)
+
 
         labels = temp_feature_util.segment_labels(labels, samples_pr_window=samples_pr_window, overlap=train_overlap)
         if self.test_ground_truth_labels is None:
@@ -105,19 +115,34 @@ class HARRandomForrest():
 
 
 
-    def test(self, back_test_feat, thigh_test_feat, temps, labels, samples_pr_window, train_overlap):
+    def test(self,
+             back_test_feat,
+             thigh_test_feat,
+             temps,
+             labels,
+             samples_pr_window,
+             sampling_freq=50,
+             snt_memory_seconds=600,
+             use_acc_data=True,
+             train_overlap=.8):
 
         # print("RFC TEST BTF: ", back_test_feat)
 
         back_test_feat = temp_feature_util.segment_acceleration_and_calculate_features(back_test_feat,
-                                                                          samples_pr_window=samples_pr_window,
-                                                                          temp=temps[0],
-                                                                          overlap=train_overlap)
+                                                                                       samples_pr_window=samples_pr_window,
+                                                                                       sampling_frequency=sampling_freq,
+                                                                                       temp=temps[0],
+                                                                                       overlap=train_overlap,
+                                                                                       seconds_to_remember=snt_memory_seconds,
+                                                                                       use_acc_data=use_acc_data)
 
         thigh_test_feat = temp_feature_util.segment_acceleration_and_calculate_features(thigh_test_feat,
-                                                                           temp=temps[1],
-                                                                           samples_pr_window=samples_pr_window,
-                                                                           overlap=train_overlap)
+                                                                                        temp=temps[1],
+                                                                                        samples_pr_window=samples_pr_window,
+                                                                                        sampling_frequency=sampling_freq,
+                                                                                        overlap=train_overlap,
+                                                                                        seconds_to_remember=snt_memory_seconds,
+                                                                                        use_acc_data=use_acc_data)
 
         self.test_ground_truth_labels = temp_feature_util.segment_labels(labels, samples_pr_window=samples_pr_window, overlap=train_overlap)
 
@@ -129,16 +154,31 @@ class HARRandomForrest():
         print("PREDICTIONS: \n{}".format(self.predictions))
         return self.predictions
 
-    def classify(self, back_test_feat, thigh_test_feat, temps, samples_pr_window, train_overlap):
+    def classify(self,
+                 back_test_feat,
+                 thigh_test_feat,
+                 temps,
+                 samples_pr_window,
+                 sampling_freq,
+                 snt_memory_seconds,
+                 use_acc_data,
+                 train_overlap):
+
         back_test_feat = temp_feature_util.segment_acceleration_and_calculate_features(back_test_feat,
-                                                                                       samples_pr_window=samples_pr_window,
                                                                                        temp=temps[0],
-                                                                                       overlap=train_overlap)
+                                                                                       samples_pr_window=samples_pr_window,
+                                                                                       sampling_frequency=sampling_freq,
+                                                                                       overlap=train_overlap,
+                                                                                       seconds_to_remember=snt_memory_seconds,
+                                                                                       use_acc_data=use_acc_data)
 
         thigh_test_feat = temp_feature_util.segment_acceleration_and_calculate_features(thigh_test_feat,
                                                                                         temp=temps[1],
                                                                                         samples_pr_window=samples_pr_window,
-                                                                                        overlap=train_overlap)
+                                                                                        sampling_frequency=sampling_freq,
+                                                                                        overlap=train_overlap,
+                                                                                        seconds_to_remember=snt_memory_seconds,
+                                                                                        use_acc_data=use_acc_data)
         both_features = np.hstack((back_test_feat, thigh_test_feat))
         self.predictions = self.RFC_classifier.predict(both_features)
         return self.predictions

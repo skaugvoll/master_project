@@ -9,28 +9,31 @@ from src import models
 pipObj = Pipeline()
 
 
-list_with_subjects = [
-    '../data/input/shower_atle.7z',
-    '../data/input/nonshower_paul.7z',
-    '../data/input/Thomas.7z',
-    '../data/input/Thomas2.7z',
-    '../data/input/Sigve.7z'
-]
-
-
-train = ['../data/temp/shower_atle.7z/shower_atle',
-    '../data/temp/nonshower_paul.7z/nonshower_paul',
-    # '../data/temp/Thomas.7z/Thomas',
-    # '../data/temp/Thomas2.7z/Thomas2'
-    ]
-
-test = [
-    '../data/temp/shower_atle.7z/shower_atle'
-]
+# list_with_subjects = [
+#     '../data/input/shower_atle.7z',
+    # '../data/input/nonshower_paul.7z',
+#     '../data/input/Thomas.7z',
+#     '../data/input/Thomas2.7z',
+    # '../data/input/Sigve.7z'
+# ]
 
 # unzip all data
 # unzipped_paths = pipObj.unzip_multiple_directories(list_with_subjects, zip_to="../data/temp/")
 # print(unzipped_paths)
+
+
+train = ['../data/temp/shower_atle.7z/shower_atle',
+    '../data/temp/nonshower_paul.7z/nonshower_paul',
+    '../data/temp/Thomas.7z/Thomas',
+    '../data/temp/Thomas2.7z/Thomas2',
+    # '../data/temp/Sigve.7z/Sigve'
+    ]
+
+test = [
+    # '../data/temp/Thomas.7z/Thomas',
+    '../data/temp/Sigve.7z/Sigve'
+    # '../data/temp/nonshower_paul.7z/nonshower_paul',
+]
 
 
 trainDataframe = pipObj.create_large_dataframe_from_multiple_input_directories(
@@ -53,16 +56,6 @@ trainDataframe = pipObj.create_large_dataframe_from_multiple_input_directories(
     save=False,
     added_columns_name=['labels']
 )
-#
-# # Do some magic numbering since the temperature is recorded at a different speed then accelerometer
-sampling_frequency = 50
-window_length = 250
-tempearture_reading_rate = 120
-samples_pr_second = 1/(tempearture_reading_rate/sampling_frequency)
-samples_pr_window = int(window_length*samples_pr_second)
-train_overlap = .8
-number_of_trees_in_forest = 200
-
 
 # extract the features
 back, thigh, labels = pipObj.get_features_and_labels_as_np_array(
@@ -79,26 +72,15 @@ btemp, ttemp, _ = pipObj.get_features_and_labels_as_np_array(
     label_column=None
 )
 
-
 ####
 # Train the model
 ####
 # Get the model
 RFC = models.get("RFC", {})
+rfc_memory_in_seconds = 600
+rfc_use_acc_data = True
 
-# RFC.train(
-#     back_training_feat=back,
-#     thigh_training_feat=thigh,
-#     back_temp=btemp,
-#     thigh_temp=ttemp,
-#     labels=labels,
-#     samples_pr_window=samples_pr_window,
-#     train_overlap=train_overlap,
-#     number_of_trees=number_of_trees_in_forest
-# )
-
-
-RFC = pipObj.train_rfc_model(back,thigh,btemp,ttemp,labels)
+RFC = pipObj.train_rfc_model(back,thigh,btemp,ttemp,labels,snt_memory_seconds=rfc_memory_in_seconds, use_acc_data=rfc_use_acc_data)
 
 
 #####
@@ -142,14 +124,15 @@ btemp, ttemp, _ = pipObj.get_features_and_labels_as_np_array(
     label_column=None
 )
 
-acc = pipObj.evaluate_rfc_model(back, thigh, btemp, ttemp, labels)
+
+acc = pipObj.evaluate_rfc_model(back, thigh, btemp, ttemp, labels, snt_memory_seconds=rfc_memory_in_seconds, use_acc_data=rfc_use_acc_data)
 
 # RFC.test(back, thigh,[btemp, ttemp], labels, samples_pr_window, train_overlap)
 #
 # acc = RFC.calculate_accuracy()
 print("ACC: ", acc)
 
-pipObj.save_model(RFC, "./trained_rfc_shower_atle.save")
+pipObj.save_model(RFC, "./trained_jaeveligBra_rfc.save")
 
 
 # unzipped_paths += unzipped_test_paths

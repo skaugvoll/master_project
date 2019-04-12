@@ -1,5 +1,7 @@
 import numpy as np
 from collections import Counter
+from .TemperatureMemory import TemperatureMemory
+from .progressbar import printProgressBar
 
 def max(array):
     '''
@@ -84,6 +86,7 @@ def segment_acceleration_and_calculate_features_old(sensor_data,
 
     all_features = []
 
+
     for window_start in np.arange(0, sensor_data.shape[0], step_size):
         # print("Window start: ", window_start, "Sensor_data.shape[0]: ", sensor_data.shape[0], step_size)
         window_start = int(round(window_start))
@@ -117,9 +120,11 @@ def segment_acceleration_and_calculate_features_old(sensor_data,
 
 def segment_acceleration_and_calculate_features(sensor_data,
                                                 temp,
-                                                samples_pr_window=50,
+                                                samples_pr_window=250,
                                                 sampling_frequency=50,
                                                 overlap=0.0,
+                                                seconds_to_remember=600,
+                                                use_acc_data=True,
                                                 remove_sign_after_calculation=True):
     '''
 
@@ -128,6 +133,8 @@ def segment_acceleration_and_calculate_features(sensor_data,
     :param ttemp: [ [t1], [t2], ... [tn] ]
     :param samples_pr_window:
     :param overlap:
+    :param seconds_to_remember: if 0, no memory.
+    :param use_acc_data:
     :param remove_sign_after_calculation:
     :return:
     '''
@@ -150,15 +157,21 @@ def segment_acceleration_and_calculate_features(sensor_data,
 
     # window_samples = int(sampling_rate * window_length)
     window_samples = samples_pr_window
-
-    # print("Windows samples ", window_samples)
-    # step_size = int(round(window_samples * (1.0 - overlap)))
     step_size = window_samples
 
     all_features = []
 
-    # temp_data = np.concatenate((btemp, ttemp), axis=1)
     temp_data = temp
+
+    temperatureMemory_max_min_delta = TemperatureMemory(
+        memory_length_seconds=seconds_to_remember,
+        window_length_in_seconds=samples_pr_window / sampling_frequency,
+    )
+
+    temperatureMemory_first_last_delta = TemperatureMemory(
+        memory_length_seconds=seconds_to_remember,
+        window_length_in_seconds=samples_pr_window / sampling_frequency,
+    )
 
     for window_start in np.arange(0, sensor_data.shape[0], step_size):
         # print("Window start: ", window_start, "Sensor_data.shape[0]: ", sensor_data.shape[0], step_size)
@@ -179,33 +192,66 @@ def segment_acceleration_and_calculate_features(sensor_data,
         # do the temperature features stuff
         for func in temp_functions:
             value = func(temp_window)
-            # print("VALUE", value, type(value))
-            # input("...")
             extracted_features.append(value)
-            # print("EF: ", extracted_features)
-            # input("...")
 
-        for func in acceleration_functions:
-            # iterate trough x, y and z
-            for feature in range(window.shape[1]):
-                # get all the values in that "column"
-                features = np.take(window, feature, axis=1)
-                value = None
-                if func == find_distance_moved:
-                    value = func(features, sampling_frequency)
-                else:
-                    value = func(features)
+            if func == max_min_delta:
+                temperatureMemory_max_min_delta.add_to_memory(value)
 
-                extracted_features.append(value)
+            elif func == first_last_delta:
+                temperatureMemory_first_last_delta.add_to_memory(value)
 
 
+        # TODO: I think this makes more sense or the next TODO placement
+        # if remove_sign_after_calculation:
+        #     np.absolute(extracted_features, extracted_features)
+
+        if use_acc_data:
+            for func in acceleration_functions:
+                # iterate trough x, y and z
+                for feature in range(window.shape[1]):
+                    # get all the values in that "column"
+                    features = np.take(window, feature, axis=1)
+                    value = None
+                    if func == find_distance_moved:
+                        value = func(features, sampling_frequency)
+                    else:
+                        value = func(features)
+
+                    extracted_features.append(value)
+
+            # TODO: I think this makes more sense
+            # if remove_sign_after_calculation:
+            #     np.absolute(extracted_features, extracted_features)
+
+        # add the temperature memory to window as feature
+        # print("NUM memories: ", temperatureMemory_max_min_delta.get_num_memories(),
+        #       "\nMem Length in s: ", temperatureMemory_max_min_delta.get_memory_length())
+
+        max_min_delta_in_memory = max_min_delta(temperatureMemory_max_min_delta.get_memory())
+        first_last_delta_in_memory = first_last_delta(temperatureMemory_first_last_delta.get_memory())
+
+
+        # If we want to add temperature memory
+        if seconds_to_remember > 0 or seconds_to_remember:
+            extracted_features.append(max_min_delta_in_memory)
+            extracted_features.append(first_last_delta_in_memory)
+
+
+
+
+
+        # add all the extracted features to represent this window
         all_features.append(np.hstack(extracted_features))
 
-    one_large_array = np.vstack(all_features)
+        printProgressBar(window_start, sensor_data.shape[0], 20, explenation="Extracting features : ")
 
+    one_large_array = np.vstack(all_features)
+    # TODO: remove this, as we want to have sign on temperature features and not distance moved and memory features?
     if remove_sign_after_calculation:
         np.absolute(one_large_array, one_large_array)
 
+    printProgressBar(sensor_data.shape[0], sensor_data.shape[0], 20, explenation="Extracting features : ")
+    print("DONE")
     return one_large_array
 
 
@@ -213,7 +259,7 @@ def segment_acceleration_and_calculate_features(sensor_data,
 def segment_labels(label_data, overlap=0.0, samples_pr_window=50):
     # window_samples = int(sampling_rate * window_length)
     window_samples = samples_pr_window
-    step_size = int(round(window_samples * (1.0 - overlap)))
+    step_size = window_samples
 
     labels = []
 

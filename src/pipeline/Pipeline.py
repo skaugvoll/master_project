@@ -145,6 +145,7 @@ class Pipeline:
                                              rfc_model_path,
                                              lstm_models_paths,
                                              samples_pr_window,
+                                             sampling_freq=50,
                                              train_overlap=0.8,
                                              num_proc_mod=1,
                                              seq_lenght=None,
@@ -157,7 +158,8 @@ class Pipeline:
                 ['back_features', 'thigh_features', 'back_temp', 'thigh_temp', 'label_column']
         :param rfc_model_path: str with path to saved RFC
         :param lstm_models_paths: dictionary containing lstm_mapping and path {rfc_result_number : model_path}
-        :param samples_pr_window:
+        :param samples_pr_window: 250 frames = 50second
+        :param sampling_freq: Hz the dataset was recorded at :: 50hz DEFAULT ::
         :param train_overlap: :: DEFAULT 0.8 ::
         :param num_proc_mod: :: DEFAULT 1 ::
         :param seq_lenght: :: DEFAULT None ::
@@ -215,14 +217,16 @@ class Pipeline:
 
         # calculate temperature features
         back_feat = temp_feature_util.segment_acceleration_and_calculate_features(back_feat,
-                                                                    temp=btemp,
-                                                                    samples_pr_window=samples_pr_window,
-                                                                    overlap=train_overlap)
+                                                                  temp=btemp,
+                                                                  samples_pr_window=samples_pr_window,
+                                                                  sampling_frequency=sampling_freq,
+                                                                  overlap=train_overlap)
 
         thigh_feat = temp_feature_util.segment_acceleration_and_calculate_features(thigh_feat,
-                                                                    temp=ttemp,
-                                                                    samples_pr_window=samples_pr_window,
-                                                                    overlap=train_overlap)
+                                                                   temp=ttemp,
+                                                                   samples_pr_window=samples_pr_window,
+                                                                   sampling_frequency=sampling_freq,
+                                                                   overlap=train_overlap)
 
 
         # concatinates example : [[1,2,3],[4,5,6]] og [[a,b,c], [d,e,f]] --> [[1,2,3,a,b,c], [4,5,6,d,e,f]]
@@ -867,15 +871,14 @@ class Pipeline:
                         ttemp,
                         labels,
                         model=None,
-                        sampling_frequency=50,
                         window_length=250,
-                        tempearture_reading_rate=120,
+                        sampling_freq=50,
                         train_overlap=.8,
-                        number_of_trees_in_forest=100
+                        number_of_trees_in_forest=100,
+                        snt_memory_seconds=600,
+                        use_acc_data=True,
                         ):
 
-        samples_pr_second = 1 / (tempearture_reading_rate / sampling_frequency)
-        samples_pr_window = int(window_length * samples_pr_second)
 
 
         self.RFC = model or models.get("RFC", {})
@@ -886,9 +889,13 @@ class Pipeline:
             back_temp=btemp,
             thigh_temp=ttemp,
             labels=labels,
-            samples_pr_window=samples_pr_window,
+            samples_pr_window=window_length,
+            sampling_freq=sampling_freq,
             train_overlap=train_overlap,
-            number_of_trees=number_of_trees_in_forest
+            number_of_trees=number_of_trees_in_forest,
+            snt_memory_seconds=snt_memory_seconds,
+            use_acc_data=use_acc_data
+
         )
 
         return self.RFC
@@ -903,15 +910,21 @@ class Pipeline:
                            model=None,
                            sampling_frequency=50,
                            window_length=250,
-                           tempearture_reading_rate=120,
+                           snt_memory_seconds=600,
+                           use_acc_data=True,
                            train_overlap=.8):
 
         RFC = model or self.RFC
 
-        samples_pr_second = 1 / (tempearture_reading_rate / sampling_frequency)
-        samples_pr_window = int(window_length * samples_pr_second)
-
-        RFC.test(back, thigh, [btemp, ttemp], labels, samples_pr_window, train_overlap)
+        RFC.test(back,
+                 thigh,
+                 [btemp, ttemp],
+                 labels,
+                 samples_pr_window=window_length,
+                 sampling_freq=sampling_frequency,
+                 snt_memory_seconds=snt_memory_seconds,
+                 use_acc_data=use_acc_data,
+                 train_overlap=train_overlap)
 
         acc = RFC.calculate_accuracy()
         return acc
@@ -925,15 +938,24 @@ class Pipeline:
                      labels,
                      model=None,
                      sampling_frequency=50,
-                     tempearture_reading_rate=120,
+                     window_lenght=250,
+                     snt_memory_seconds=600,
+                     use_acc_data=True,
                      train_overlap=.8):
 
         RFC = model or self.RFC
 
-        samples_pr_second = 1 / (tempearture_reading_rate / sampling_frequency)
-        samples_pr_window = int(window_length * samples_pr_second)
 
-        return RFC.classify(back, thigh, [btemp, ttemp], labels, samples_pr_window, train_overlap)
+        return RFC.classify(
+            back,
+            thigh,
+            [btemp, ttemp],
+            labels,
+            samples_pr_window=window_lenght,
+            sampling_freq=sampling_frequency,
+            snt_memory_seconds=snt_memory_seconds,
+            use_acc_data=use_acc_data,
+            train_overlap=train_overlap)
 
 
 
