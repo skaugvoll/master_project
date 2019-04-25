@@ -41,7 +41,7 @@ class TwoSensorLSTM( HARModel ):
     self.build()
 
 
-  def save_model_andOr_weights(self, path=False, model=False, weight=False):
+  def save_model(self, path=False, model=False, weight=False):
     '''
 
     :param model_path: rel path from the "src/" including filename, excluding format. E.g  inside the src/ dir: "trained_models/twosensorlstm", makes a new directory /src/trained_models/twosensorlstm

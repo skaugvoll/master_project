@@ -86,7 +86,7 @@ number_of_trees_in_forest=100
 
 
 # extract the features
-back, thigh, labels = pipeline.get_features_and_labels(df)
+back, thigh, labels = pipeline.get_features_and_labels_as_np_array(df)
 
 
 
@@ -96,7 +96,7 @@ RFC = models.get("RFC", {})
 ####
 # Train the model
 ####
-RFC.train(
+RFC.train_old(
     back_training_feat=back,
     thigh_training_feat=thigh,
     labels=labels,
@@ -133,7 +133,7 @@ print(df.head(10))
 print()
 print(df.dtypes)
 
-back, thigh, labels = pipeline.get_features_and_labels(df)
+back, thigh, labels = pipeline.get_features_and_labels_as_np_array(df)
 
 RFC.test(back, thigh, labels, samples_pr_window, train_overlap)
 

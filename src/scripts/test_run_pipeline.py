@@ -124,7 +124,7 @@ print("DATAFRAME\n", dataframe.head(5), dataframe.shape)
 ############################## THEN WE MUST EXTRACT FEATURES N LABELS ######################################
 
 pipeObj = Pipeline()
-back_feat_train, thigh_feat_train, label_train = pipeObj.get_features_and_labels(dataframe)
+back_feat_train, thigh_feat_train, label_train = pipeObj.get_features_and_labels_as_np_array(dataframe)
 
 ############################## THEN WE MUST TRAIN THE CLASSIFIER ######################################
 
@@ -143,7 +143,7 @@ samples_pr_second = 1/(tempearture_reading_rate/sampling_frequency)
 samples_pr_window = int(window_length*samples_pr_second)
 
 # pass to the model, for training
-RFC.train(
+RFC.train_old(
     back_training_feat=back_feat_train,
     thigh_training_feat=thigh_feat_train,
     labels=label_train,
@@ -243,7 +243,7 @@ dataframe_test.dropna(subset=['label'], inplace=True)
 ##############
 
 # EXTRACT FEATURES
-back_feat_test, thigh_feat_test, label_test = pipeObj.get_features_and_labels(dataframe_test)
+back_feat_test, thigh_feat_test, label_test = pipeObj.get_features_and_labels_as_np_array(dataframe_test)
 
 res = RFC.classify(
     back_test_feat=back_feat_test,

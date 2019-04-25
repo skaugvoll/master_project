@@ -8,6 +8,9 @@ def printProgressBar(current, totalOperations, sizeProgressBarInChars, explenati
     # except Exception as e:
     #     print("Could not import sys and time")
 
+    if totalOperations == 0:
+        totalOperations = 1  # to avoid division by zero in progressbar
+
     fraction_completed = current / totalOperations
     filled_bar = round(fraction_completed * sizeProgressBarInChars)
 
