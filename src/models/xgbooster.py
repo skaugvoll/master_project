@@ -114,11 +114,13 @@ class MetaXGBooster:
         # print("num classes", num_classes, num_eval_classes)
         # input("...")
 
+
+
         params = {
             'objective': 'multi:softmax', # defaults to reg:squarederror
             'num_class': num_classes,
-            'max_depth': 10,
-            'eta': 0.7, # is learning rate
+            'max_depth': 5,
+            'eta': 0.3, # is learning rate  # deafult .3
             "verbosity": 2,
         }
 
@@ -128,6 +130,8 @@ class MetaXGBooster:
         # params['eval_metric'] = ['auc'] # auc can not be used with multi class classification "auc" expects prediction size to be the same as label size, while your multiclass prediction size would be 45001*1161. Use either "mlogloss" or "merror" multiclass metrics.
         params['eval_metric'] = ['merror']
 
+        params['booster'] = 'gblinear'  # 'gbtree' or 'dart' or 'gblinear'
+
         num_rounds = 5000
 
         bst = None
@@ -135,7 +139,7 @@ class MetaXGBooster:
             bst = xgb.train(params, dtrain, num_rounds)
         else:
             evallist = [(dtest, 'eval'), (dtrain, 'train')]
-            bst = xgb.train(params, dtrain, num_rounds, evallist, early_stopping_rounds=10)
+            bst = xgb.train(params, dtrain, num_rounds, evallist, early_stopping_rounds=20)
 
 
         print("BST : ", bst)
