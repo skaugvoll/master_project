@@ -189,42 +189,37 @@ class DataHandler():
 
         return self.get_dataframe_iterator()
 
-    def concat_timesynch_and_temp(self,
-                                  master_csv_path,
-                                  btemp_txt_path,
-                                  ttemp_txt_path,
+    def concat_dataframes(self,
+                                  master_path,
+                                  slave_path,
+                                  slave2_path,
                                   master_columns=['time', 'bx', 'by', 'bz', 'tx', 'ty', 'tz'],
-                                  back_temp_column=['btemp'],
-                                  thigh_temp_column=['ttemp'],
+                                  slave_column=['btemp'],
+                                  slave2_column=['ttemp'],
                                   header_value=None,
                                   save=False):
 
-        print("READING MASTER CSV")
-        master_df = pd.read_csv(master_csv_path, header=header_value)
+        print("READING CSV'S")
+        master_df = pd.read_csv(master_path, header=header_value)
         master_df.columns = master_columns
 
-        print("READING BACK TXT")
-        btemp_df = pd.read_csv(btemp_txt_path, header=header_value)
-        btemp_df.columns = back_temp_column
+        btemp_df = pd.read_csv(slave_path, header=header_value)
+        btemp_df.columns = slave_column
 
-        print("READING THIGH TXT")
-        ttemp_df = pd.read_csv(ttemp_txt_path, header=header_value)
-        ttemp_df.columns = thigh_temp_column
+        ttemp_df = pd.read_csv(slave2_path, header=header_value)
+        ttemp_df.columns = slave2_column
 
         # Merge the csvs
-        print("MERGING MASTER AND CSVS")
+        print("CONCATINATING DATAFRAMES")
         merged_df = pd.concat([master_df, btemp_df, ttemp_df], axis=1,)
-
-
-        master_file_dir, master_filename_w_format = os.path.split(master_csv_path)
-        out_path = os.path.join(master_file_dir, master_filename_w_format.split('.')[0] + '_TEMP_BT.csv')
 
         self.dataframe_iterator = merged_df
 
-        print("SAVING MERGED CSV")
         print("DONE, here is a sneak peak:\n", merged_df.head(5))
         if save:
             print("Saving")
+            master_file_dir, master_filename_w_format = os.path.split(master_path)
+            out_path = os.path.join(master_file_dir, master_filename_w_format.split('.')[0] + '_TEMP_BT.csv')
             merged_df.to_csv(out_path, index=False, float_format='%.6f')
             print("Saved synched and merged as csv to : ", os.path.abspath(out_path))
 

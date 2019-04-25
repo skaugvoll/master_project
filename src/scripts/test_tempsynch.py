@@ -61,10 +61,10 @@ class Tempsynch:
                 # dataframe_path='../../data/temp/4000181.7z/4000181/4000181-34566_2017-09-19_B_4000181-26584_2017-09-19_T_timesync_output_TEMP_SYNCHED_BT.csv'
             )
 
-            self.dh.concat_timesynch_and_temp(
-                master_csv_path=self.dh.get_synched_csv_path(),
-                btemp_txt_path=self.dh.get_unzipped_path() + '/btemp.txt',
-                ttemp_txt_path=self.dh.get_unzipped_path() + '/ttemp.txt',
+            self.dh.concat_dataframes(
+                master_path=self.dh.get_synched_csv_path(),
+                slave_path=self.dh.get_unzipped_path() + '/btemp.txt',
+                slave2_path=self.dh.get_unzipped_path() + '/ttemp.txt',
             )
 
 

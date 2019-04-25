@@ -2,6 +2,7 @@ import sys, os
 import numpy as np
 import cwa_converter
 import pickle
+import pandas as pd
 from multiprocessing import Process, Queue, Manager
 from pipeline.DataHandler import DataHandler
 import utils.temperature_segmentation_and_calculation as temp_feature_util
@@ -48,10 +49,10 @@ class Pipeline:
             ]
         )
 
-        self.dh.concat_timesynch_and_temp(
-            master_csv_path=self.dh.get_synched_csv_path(),
-            btemp_txt_path=self.dh.get_unzipped_path() + '/btemp.txt',
-            ttemp_txt_path=self.dh.get_unzipped_path() + '/ttemp.txt',
+        self.dh.concat_dataframes(
+            master_path=self.dh.get_synched_csv_path(),
+            slave_path=self.dh.get_unzipped_path() + '/btemp.txt',
+            slave2_path=self.dh.get_unzipped_path() + '/ttemp.txt',
             save=save
         )
 
@@ -688,15 +689,15 @@ class Pipeline:
                 save=save
             )
 
-            df = dh.concat_timesynch_and_temp(
-                                  timesync,
-                                  root_dir + "/btemp.txt",
-                                  root_dir + "/ttemp.txt",
-                                  master_columns=master_columns,
-                                  back_temp_column=['btemp'],  # should probably be set snz we can specify temp_col_name
-                                  thigh_temp_column=['ttemp'],  # should probably be set snz we can specify temp_cl_name
-                                  header_value=None,
-                                  save=save)
+            df = dh.concat_dataframes(
+                timesync,
+                root_dir + "/btemp.txt",
+                root_dir + "/ttemp.txt",
+                master_columns=master_columns,
+                slave_column=['btemp'],  # should probably be set snz we can specify temp_col_name
+                slave2_column=['ttemp'],  # should probably be set snz we can specify temp_cl_name
+                header_value=None,
+                save=save)
 
 
             dh.convert_column_from_str_to_datetime(
@@ -782,9 +783,8 @@ class Pipeline:
         model = models.get(model_name, model_args)
 
         # if passed in validation dataframe, give it its propper format.
-        if not validation_dataframe is None:
+        if not validation_dataframe is None and type(validation_dataframe) == pd.DataFrame:
             validation_dataframe = [validation_dataframe]
-
 
         # potentially overwrite config variables
         batch_size = batch_size or config.TRAINING['args']['batch_size']
@@ -792,11 +792,17 @@ class Pipeline:
         callbacks = config.TRAINING['args']['callbacks'] or None
 
         cols = None
+
+
+        if type(training_dataframe) == pd.DataFrame:
+           training_dataframe = [training_dataframe]
+
         if back_cols and thigh_cols:
             self.num_sensors = 2
             cols = [back_cols, thigh_cols]
-            model.train_old(
-                train_data=[training_dataframe],
+
+            model.train(
+                train_data=training_dataframe,
                 valid_data=validation_dataframe,
                 epochs=config.TRAINING['args']['epochs'],
                 batch_size=batch_size, # gets this from config file when init model
@@ -809,8 +815,9 @@ class Pipeline:
         else:
             cols = back_cols or thigh_cols
             self.num_sensors = 1
-            model.train_old(
-                train_data=[training_dataframe],
+
+            model.train(
+                train_data=training_dataframe,
                 valid_data=validation_dataframe,
                 callbacks=[],
                 epochs=config.TRAINING['args']['epochs'],
@@ -842,15 +849,20 @@ class Pipeline:
         model = model or self.model
         num_sensors = num_sensors or self.num_sensors
 
+        if type(dataframe) == pd.DataFrame:
+           dataframe = [dataframe]
+
         if num_sensors == 2:
-            return model.evaluate(dataframes=[dataframe],
+            return model.evaluate(
+                          dataframes=dataframe,
                           batch_size=batch_size or self.config.TRAINING['args']['batch_size'],
                           sequence_length=sequence_length or self.config.TRAINING['args']['sequence_length'],
                           back_cols=self.cols[0] or back_cols,
                           thigh_cols=self.cols[1] or thigh_cols,
                           label_col=label_col)
         elif num_sensors == 1:
-            return model.evaluate(dataframes=[dataframe],
+            return model.evaluate(
+                          dataframes=dataframe,
                           batch_size=batch_size or self.config.TRAINING['args']['batch_size'],
                           sequence_length=sequence_length or self.config.TRAINING['args']['sequence_length'],
                           cols=self.cols or cols,
@@ -859,7 +871,77 @@ class Pipeline:
             print("Pipeline.py :: evaluate_lstm_model ::")
             raise NotImplementedError()
 
+    def create_large_dataframe_from_multiple_training_directories(self,
+                                                               list_with_subjects,
+                                                               back_keywords=['Back', "B"],
+                                                               thigh_keywords=['Thigh', "T"],
+                                                               label_keywords=['GoPro', "Labels", "interval", "intervals", "json"],
+                                                               synched_keywords=["timesynched"],
+                                                               out_path=None,
+                                                               columns_to=None,
+                                                               save=False,
+                                                               added_columns_name=["labels"],
+                                                               drop_non_labels=True,
+                                                               verbose=True,
+                                                               list=False
+                                                               ):
 
+        subjects = DataHandler.findFilesInDirectoriesAndSubDirs(list_with_subjects,
+                                                         back_keywords,
+                                                         thigh_keywords,
+                                                         label_keywords,
+                                                         synched_keywords,
+                                                         verbose=verbose)
+
+        # print(subjects)
+        merged_df = None
+        if list:
+            merged_df = []
+
+        dh = DataHandler()
+        dh_stacker = DataHandler()
+        for idx, root_dir in enumerate(subjects):
+            subject = subjects[root_dir]
+            # print("SUBJECT: \n", subject, root_dir)
+            back = os.path.join(root_dir, subject['backCSV'])
+            thigh = os.path.join(root_dir, subject['thighCSV'])
+            label = os.path.join(root_dir, subject['labelCSV'])
+
+
+            df = dh.concat_dataframes(
+                back,
+                thigh,
+                label,
+                master_columns=['bx', 'by', 'bz'],
+                slave_column=['tx', 'ty', 'tz'],  # should probably be set snz we can specify temp_col_name
+                slave2_column=['label'],  # should probably be set snz we can specify temp_cl_name
+                header_value=None)
+
+            # TRENGER VI å GJØRE DETTE FOR DE MED LABEL SOM CSV??
+            # for col_name in added_columns_name:
+            #     if col_name is "labels" or col_name is "label":
+            #         self.addLables(label, column_name=col_name, datahandler=dh)
+            #         if drop_non_labels:
+            #             dh.get_dataframe_iterator().dropna(subset=[col_name], inplace=True)
+            #     else:
+            #         dh.add_new_column(col_name)
+
+
+            if list:
+                merged_df.append(df)
+            else:
+                if idx == 0:
+                    merged_df = dh.get_dataframe_iterator()
+                    continue
+                # vertically stack the dataframes aka add the rows from dataframe2 as rows to the dataframe1
+                merged_df = dh_stacker.vertical_stack_dataframes(merged_df, dh.get_dataframe_iterator(),
+                                                             set_as_current_df=False)
+
+            progressbar.printProgressBar(idx, len(subjects), 20, explenation='Merging datasets prog.: ')
+
+        progressbar.printProgressBar(len(subjects), len(subjects), 20, explenation='Merging datasets prog.: ')
+        print()
+        return merged_df
 
     def instansiate_model(self, model_name, model_args):
         return models.get(model_name, model_args)
