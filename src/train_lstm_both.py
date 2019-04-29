@@ -13,8 +13,9 @@ list_with_subjects = [
     '../data/input/training_data/'
 ]
 
-trainDataframe = pipObj.create_large_dataframe_from_multiple_training_directories(
+trainDataframe = pipObj.create_large_dataframe_from_multiple_input_directories(
     list_with_subjects,
+    merge_column=None,
     save=False,
     added_columns_name=['labels'],
     list=True

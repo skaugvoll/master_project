@@ -601,7 +601,8 @@ class Pipeline:
                                                                save=False,
                                                                added_columns_name=["labels"],
                                                                drop_non_labels=True,
-                                                               verbose=True
+                                                               verbose=True,
+                                                               list=False
                                                                ):
         '''
 
@@ -645,15 +646,17 @@ class Pipeline:
         :param added_columns_name:
         :param drop_non_labels:
         :param verbose:
+        :param list:
         :return:
         '''
 
         for subj in list_with_subjects:
-            cwa_converter.convert_cwas_to_csv_with_temp(
-                subject_dir=subj,
-                out_dir=subj,
-                paralell=True
-            )
+            if ".7z" in subj:
+                cwa_converter.convert_cwas_to_csv_with_temp(
+                    subject_dir=subj,
+                    out_dir=subj,
+                    paralell=True
+                )
 
 
         subjects = DataHandler.findFilesInDirectoriesAndSubDirs(list_with_subjects,
@@ -665,6 +668,9 @@ class Pipeline:
 
         # print(subjects)
         merged_df = None
+        if list:
+            merged_df = []
+
         dh = DataHandler()
         dh_stacker = DataHandler()
         for idx, root_dir in enumerate(subjects):
@@ -673,58 +679,81 @@ class Pipeline:
             back = os.path.join(root_dir, subject['backCSV'])
             thigh = os.path.join(root_dir, subject['thighCSV'])
             label = os.path.join(root_dir, subject['labelCSV'])
-            timesync = os.path.join(root_dir, subject['synchedCSV'])
 
-            # dh = DataHandler()
-            dh.merge_multiple_csvs(
-                timesync, back, thigh,
-                out_path=out_path,
-                master_columns=master_columns,
-                slave_columns=slave_columns,
-                slave2_columns=slave2_columns,
-                merge_how='left',
-                rearrange_columns_to=rearrange_columns_to,
-                merge_on=merge_column,
-                header_value=None,
-                save=save
-            )
+            needSynchronization = ".7z" in root_dir
+            print("Need Synchronization; ", needSynchronization)
 
-            df = dh.concat_dataframes(
-                timesync,
-                root_dir + "/btemp.txt",
-                root_dir + "/ttemp.txt",
-                master_columns=master_columns,
-                slave_column=['btemp'],  # should probably be set snz we can specify temp_col_name
-                slave2_column=['ttemp'],  # should probably be set snz we can specify temp_cl_name
-                header_value=None,
-                save=save)
+            if needSynchronization:
+                timesync = os.path.join(root_dir, subject['synchedCSV'])
+                # dh = DataHandler()
+                dh.merge_multiple_csvs(
+                    timesync, back, thigh,
+                    out_path=out_path,
+                    master_columns=master_columns,
+                    slave_columns=slave_columns,
+                    slave2_columns=slave2_columns,
+                    merge_how='left',
+                    rearrange_columns_to=rearrange_columns_to,
+                    merge_on=merge_column,
+                    header_value=None,
+                    save=save
+                )
+
+                df = dh.concat_dataframes(
+                    timesync,
+                    root_dir + "/btemp.txt",
+                    root_dir + "/ttemp.txt",
+                    master_columns=master_columns,
+                    slave_column=['btemp'],  # should probably be set snz we can specify temp_col_name
+                    slave2_column=['ttemp'],  # should probably be set snz we can specify temp_cl_name
+                    header_value=None,
+                    save=save)
 
 
-            dh.convert_column_from_str_to_datetime(
-                dataframe=dh.get_dataframe_iterator(),
-            )
+                dh.convert_column_from_str_to_datetime(
+                    dataframe=dh.get_dataframe_iterator(),
+                )
 
-            dh.set_column_as_index("time")
+                dh.set_column_as_index("time")
 
-            for col_name in added_columns_name:
-                if col_name is "labels" or col_name is "label":
-                    self.addLables(label, column_name=col_name, datahandler=dh)
-                    if drop_non_labels:
-                        dh.get_dataframe_iterator().dropna(subset=[col_name], inplace=True)
-                else:
-                    dh.add_new_column(col_name)
+                for col_name in added_columns_name:
+                    if col_name is "labels" or col_name is "label":
+                        self.addLables(label, column_name=col_name, datahandler=dh)
+                        if drop_non_labels:
+                            dh.get_dataframe_iterator().dropna(subset=[col_name], inplace=True)
+                    else:
+                        dh.add_new_column(col_name)
 
-            if idx == 0:
-                merged_df = dh.get_dataframe_iterator()
-                continue
+            else:
+                df = dh.concat_dataframes(
+                    back,
+                    thigh,
+                    label,
+                    master_columns=['bx', 'by', 'bz'],
+                    slave_column=['tx', 'ty', 'tz'],  # should probably be set snz we can specify temp_col_name
+                    slave2_column=['label'],  # should probably be set snz we can specify temp_cl_name
+                    header_value=None)
 
-            # vertically stack the dataframes aka add the rows from dataframe2 as rows to the dataframe1
-            merged_df = dh_stacker.vertical_stack_dataframes(merged_df, dh.get_dataframe_iterator(),
-                                                             set_as_current_df=False)
+            # ALWAYS DO THIS, not dependent on file format.
+            if list:
+                merged_df.append(df)
+            else:
+                if idx == 0:
+                    merged_df = dh.get_dataframe_iterator()
+                    continue
+
+                # vertically stack the dataframes aka add the rows from dataframe2 as rows to the dataframe1
+                merged_df = dh_stacker.vertical_stack_dataframes(merged_df, dh.get_dataframe_iterator(), set_as_current_df=False)
 
             progressbar.printProgressBar(idx, len(subjects), 20, explenation='Merging datasets prog.: ')
 
         progressbar.printProgressBar(len(subjects), len(subjects), 20, explenation='Merging datasets prog.: ')
+
+        if save:
+            out_path_dir, out_path_filename = os.path.split(out_path)
+            out_path = os.path.join(out_path_dir, out_path_filename)
+            merged_df.to_csv(out_path)
+
         print("DONE")
         return merged_df
 
@@ -870,78 +899,6 @@ class Pipeline:
         else:
             print("Pipeline.py :: evaluate_lstm_model ::")
             raise NotImplementedError()
-
-    def create_large_dataframe_from_multiple_training_directories(self,
-                                                               list_with_subjects,
-                                                               back_keywords=['Back', "B"],
-                                                               thigh_keywords=['Thigh', "T"],
-                                                               label_keywords=['GoPro', "Labels", "interval", "intervals", "json"],
-                                                               synched_keywords=["timesynched"],
-                                                               out_path=None,
-                                                               columns_to=None,
-                                                               save=False,
-                                                               added_columns_name=["labels"],
-                                                               drop_non_labels=True,
-                                                               verbose=True,
-                                                               list=False
-                                                               ):
-
-        subjects = DataHandler.findFilesInDirectoriesAndSubDirs(list_with_subjects,
-                                                         back_keywords,
-                                                         thigh_keywords,
-                                                         label_keywords,
-                                                         synched_keywords,
-                                                         verbose=verbose)
-
-        # print(subjects)
-        merged_df = None
-        if list:
-            merged_df = []
-
-        dh = DataHandler()
-        dh_stacker = DataHandler()
-        for idx, root_dir in enumerate(subjects):
-            subject = subjects[root_dir]
-            # print("SUBJECT: \n", subject, root_dir)
-            back = os.path.join(root_dir, subject['backCSV'])
-            thigh = os.path.join(root_dir, subject['thighCSV'])
-            label = os.path.join(root_dir, subject['labelCSV'])
-
-
-            df = dh.concat_dataframes(
-                back,
-                thigh,
-                label,
-                master_columns=['bx', 'by', 'bz'],
-                slave_column=['tx', 'ty', 'tz'],  # should probably be set snz we can specify temp_col_name
-                slave2_column=['label'],  # should probably be set snz we can specify temp_cl_name
-                header_value=None)
-
-            # TRENGER VI å GJØRE DETTE FOR DE MED LABEL SOM CSV??
-            # for col_name in added_columns_name:
-            #     if col_name is "labels" or col_name is "label":
-            #         self.addLables(label, column_name=col_name, datahandler=dh)
-            #         if drop_non_labels:
-            #             dh.get_dataframe_iterator().dropna(subset=[col_name], inplace=True)
-            #     else:
-            #         dh.add_new_column(col_name)
-
-
-            if list:
-                merged_df.append(df)
-            else:
-                if idx == 0:
-                    merged_df = dh.get_dataframe_iterator()
-                    continue
-                # vertically stack the dataframes aka add the rows from dataframe2 as rows to the dataframe1
-                merged_df = dh_stacker.vertical_stack_dataframes(merged_df, dh.get_dataframe_iterator(),
-                                                             set_as_current_df=False)
-
-            progressbar.printProgressBar(idx, len(subjects), 20, explenation='Merging datasets prog.: ')
-
-        progressbar.printProgressBar(len(subjects), len(subjects), 20, explenation='Merging datasets prog.: ')
-        print()
-        return merged_df
 
     def instansiate_model(self, model_name, model_args):
         return models.get(model_name, model_args)

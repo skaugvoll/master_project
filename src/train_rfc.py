@@ -9,23 +9,23 @@ from src import models
 pipObj = Pipeline()
 
 
-# list_with_subjects = [
-#     '../data/input/shower_atle.7z',
+list_with_subjects = [
+    '../data/input/shower_atle.7z',
     # '../data/input/nonshower_paul.7z',
-#     '../data/input/Thomas.7z',
-#     '../data/input/Thomas2.7z',
+    # '../data/input/Thomas.7z',
+    # '../data/input/Thomas2.7z',
     # '../data/input/Sigve.7z'
-# ]
+]
 
-# unzip all data
-# unzipped_paths = pipObj.unzip_multiple_directories(list_with_subjects, zip_to="../data/temp/")
-# print(unzipped_paths)
+###unzip all data
+unzipped_paths = pipObj.unzip_multiple_directories(list_with_subjects, zip_to="../data/temp/")
+print(unzipped_paths)
 
 
 train = ['../data/temp/shower_atle.7z/shower_atle',
-    '../data/temp/nonshower_paul.7z/nonshower_paul',
-    '../data/temp/Thomas.7z/Thomas',
-    '../data/temp/Thomas2.7z/Thomas2',
+    # '../data/temp/nonshower_paul.7z/nonshower_paul',
+    # '../data/temp/Thomas.7z/Thomas',
+    # '../data/temp/Thomas2.7z/Thomas2',
     # '../data/temp/Sigve.7z/Sigve'
     ]
 
@@ -54,8 +54,10 @@ trainDataframe = pipObj.create_large_dataframe_from_multiple_input_directories(
                     'ttemp'
                 ],
     save=False,
-    added_columns_name=['labels']
+    added_columns_name=['labels'],
+    list=False
 )
+input('HER ER VI FERDIGE')
 
 # extract the features
 back, thigh, labels = pipObj.get_features_and_labels_as_np_array(
