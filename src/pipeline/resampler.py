@@ -11,17 +11,23 @@ from src.utils.cmdline_input import cmd_input
 def convert_dataframe_into_generator(dataframe, chunk_size):
     length = len(dataframe)
     start = 0
-    end = start + chunk_size
+    end = chunk_size
     while end < length:
-        if not start == 0:
-            end += 1 #
-        start = end
-        end += chunk_size
         # iloc works from including, to but not including
         yield dataframe.iloc[start:end]
 
+        start = end
+        end += 1
+        end += chunk_size
+
     # Start is less then length, but end is greather then end (thus lasta pieces of data in dataframe)
-    yield dataframe.iloc[start:]
+    print("END > LENGHT")
+    print("START: ", start)
+    print("END: ", end)
+    print("length: ", length)
+
+    input("...")
+    yield dataframe.iloc[end:length]
 
     # Now we know that we have emptied the dataframe, we are done. this functions does not work anymore
 
