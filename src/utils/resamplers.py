@@ -44,7 +44,8 @@ def resample_stream( resampler, dataframe_iterator, downsample_factor, discrete_
   discrete_columns = discrete_columns or []
 
   for chunk in dataframe_iterator: # chunk =  pandas.core.frame.DataFrame
-
+    # print(chunk)
+    # input("...")
     # Get length of current window
     window_size = len( chunk )
 

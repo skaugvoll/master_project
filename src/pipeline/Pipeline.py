@@ -141,7 +141,6 @@ class Pipeline:
         :return: Path to saved downsampled csv file
         '''
 
-        result_df = None
         result_df = resampler(
             resampler=resampler_method,
             source_rate=source_hz,
@@ -641,7 +640,8 @@ class Pipeline:
                                                                added_columns_name=["labels"],
                                                                drop_non_labels=True,
                                                                verbose=True,
-                                                               list=False
+                                                               list=False,
+                                                               downsample_config=None
                                                                ):
         '''
 
@@ -688,6 +688,7 @@ class Pipeline:
         :param list:
         :return:
         '''
+
 
         for subj in list_with_subjects:
             if ".7z" in subj:
@@ -776,6 +777,35 @@ class Pipeline:
 
 
             # ALWAYS DO THIS, not dependent on file format.
+            if downsample_config:
+                # TODO: pass in downsample config as dictionary
+
+                if downsample_config['add_timestamps']:
+                    df.index = pd.date_range(
+                        start=pd.Timestamp.now(),
+                        periods=len(df),
+                        freq=pd.Timedelta(seconds=1/downsample_config['source_hz'])
+                    )
+
+                outpath, res_df = self.downsampleData(
+                    input_csv_path=df,
+                    out_csv_path=downsample_config['out_path'],
+                    discrete_columns=downsample_config['discrete_columns_list'], # pass in
+                    source_hz=downsample_config['source_hz'], # pass in
+                    target_hz=downsample_config['target_hz'], # pass in
+                    window_size=downsample_config['window_size'] # pass in
+                )
+
+
+                print('Length {}Hz: {}\nLength {}Hz: {}'.format(
+                    downsample_config['source_hz'],
+                    len(df),
+                    downsample_config['target_hz'],
+                    len(res_df))
+                )
+
+                df = res_df
+
             if list:
                 merged_df.append(df)
             else:

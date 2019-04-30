@@ -8,6 +8,25 @@ import subprocess
 from src.utils.cmdline_input import cmd_input
 
 
+def convert_dataframe_into_generator(dataframe, chunk_size):
+    length = len(dataframe)
+    start = 0
+    end = start + chunk_size
+    while end < length:
+        if not start == 0:
+            end += 1 #
+        start = end
+        end += chunk_size
+        # iloc works from including, to but not including
+        yield dataframe.iloc[start:end]
+
+    # Start is less then length, but end is greather then end (thus lasta pieces of data in dataframe)
+    yield dataframe.iloc[start:]
+
+    # Now we know that we have emptied the dataframe, we are done. this functions does not work anymore
+
+
+
 def read_sensor_data( file, chunksize=None, index_col=0, parse_dates=[0] ):
   '''
   Convenience function for reading sensor data in chunks
@@ -26,8 +45,6 @@ def write_chunked_dataframe_to_file( file, dataframe_iterator ):
     for i, df in enumerate( dataframe_iterator ):
         if i == 0:
             result_df = df
-        # print(df.describe())
-        # input("....")
         df.to_csv( file, mode='a', header=(i==0))
         result_df = result_df.append(df)
 
@@ -65,7 +82,16 @@ def main(resampler, source_rate, target_rate, window_size, inputD, output, discr
 
 
     # Read data in chunks
-    dataframe_iterator = read_sensor_data(inputD, chunksize=window_size) # pandas.io.parsers.TextFileReader
+    if type(inputD) == str:
+        dataframe_iterator = read_sensor_data(inputD, chunksize=window_size) # pandas.io.parsers.TextFileReader
+
+    elif type(inputD) == pd.DataFrame:
+        dataframe_iterator = convert_dataframe_into_generator(inputD, window_size)
+
+    else:
+        print("Not supported input format. Exiting")
+        sys.exit(-1)
+
 
     # Apply resampler
     resampled_stream = resamplers.resample_stream(
