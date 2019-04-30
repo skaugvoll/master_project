@@ -23,7 +23,9 @@ def write_chunked_dataframe_to_file( file, dataframe_iterator ):
 
 
     for i, df in enumerate( dataframe_iterator ):
-        df.to_csv( file, header=(i==0))
+        # print(df.describe())
+        # input("....")
+        df.to_csv( file, mode='a', header=(i==0))
 
 
 
@@ -77,9 +79,25 @@ def main(resampler, source_rate, target_rate, window_size, inputD, output, discr
     if inputD is None:
         print('Using stdin for input')
         inputD = sys.__stdin__
+
     if output is None:
         print('Using stdout for output')
         output = sys.__stdout__
+
+    elif os.path.exists(output):
+        asw = ''
+        acceptable_yes_answers = ['yes', 'y']
+        acceptable_no_answers = ['no', 'n']
+        while asw not in acceptable_yes_answers + acceptable_no_answers:
+            asw = input("There already exists a resampled file. Do you want to delete it ? ")
+
+        if asw in acceptable_yes_answers:
+            os.system("rm {}".format(output))
+            print("Done, file is removed")
+        elif asw in acceptable_no_answers:
+            print("Ok. Exiting program now.")
+            sys.exit(-1)
+
 
     # Compute downsample factor
     downsample_factor = source_rate / target_rate
@@ -90,12 +108,11 @@ def main(resampler, source_rate, target_rate, window_size, inputD, output, discr
     print('Using resampler: {}'.format(resampler))
 
     discrete_columns = discrete_columns or []
-    print('Using discrete_columns: ', discrete_columns)
+    print('Using discrete_columns: ', discrete_columns, "\n")
 
 
     # Read data in chunks
-    dataframe_iterator = read_sensor_data(inputD, chunksize=window_size)
-
+    dataframe_iterator = read_sensor_data(inputD, chunksize=window_size) # pandas.io.parsers.TextFileReader
 
     # Apply resampler
     resampled_stream = resamplers.resample_stream(
