@@ -5,6 +5,7 @@ import contextlib
 import src.utils.resamplers as resamplers
 import pandas as pd
 import subprocess
+from src.utils.cmdline_input import cmd_input
 
 
 def read_sensor_data( file, chunksize=None, index_col=0, parse_dates=[0] ):
@@ -85,18 +86,10 @@ def main(resampler, source_rate, target_rate, window_size, inputD, output, discr
         output = sys.__stdout__
 
     elif os.path.exists(output):
-        asw = ''
-        acceptable_yes_answers = ['yes', 'y']
-        acceptable_no_answers = ['no', 'n']
-        while asw not in acceptable_yes_answers + acceptable_no_answers:
-            asw = input("There already exists a resampled file. Do you want to delete it ? ")
-
-        if asw in acceptable_yes_answers:
-            os.system("rm {}".format(output))
-            print("Done, file is removed")
-        elif asw in acceptable_no_answers:
-            print("Ok. Exiting program now.")
-            sys.exit(-1)
+        question = "There already exists a resampled file. Do you want to delete it ? "
+        funcYes = lambda: os.system("rm {}".format(output))
+        funcNo = lambda: sys.exit(-1)
+        cmd_input(question, funcYes, funcNo, yesPrint="Done. file is removed.", noPrint="Ok. Exiting system now.")
 
 
     # Compute downsample factor

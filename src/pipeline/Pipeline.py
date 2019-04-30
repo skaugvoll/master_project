@@ -11,7 +11,9 @@ from src.config import Config
 from src import models
 from src.utils.WindowMemory import WindowMemory
 from src.utils.ColorPrint import ColorPrinter
+from src.utils.cmdline_input import cmd_input
 from tensorflow.keras.backend import clear_session
+from pipeline.resampler import main as resampler
 
 
 class Pipeline:
@@ -115,6 +117,42 @@ class Pipeline:
             intervals = dh.read_labels_from_json(filepath=intervals)
 
         dh.add_labels_file_based_on_intervals(intervals=intervals, label_col_name=column_name)
+
+
+    @staticmethod
+    def remove_files_or_dirs_from(list_with_paths):
+        for f in list_with_paths:
+            try:
+                os.system("rm -rf {}".format(f))
+            except:
+                print("Could not remove file {}".format(f))
+
+
+    def downsampleData(self,input_csv_path, out_csv_path, resampler_method='fourier', source_hz=100, target_hz=50, window_size=20000, discrete_columns=[]):
+        '''
+
+        :param input_csv_path: A csv file with TIMESTAMP INDEX AND where COLUMNS are xyz from all sensors are merged into one file
+        :param out_csv_path: the relative path where to save the resampled csv file
+        :param resampler_method: DEFAULT FOURIER
+        :param source_hz: DEFAULT 100
+        :param target_hz: DEFAULT 50
+        :param window_size: DEFAULT 20 000
+        :param discrete_columns:list with column names in dataframe not to downsample. IF TRANING DATA, give ["label(s)"]
+        :return: Path to saved downsampled csv file
+        '''
+
+        resampler(
+            resampler=resampler_method,
+            source_rate=source_hz,
+            target_rate=target_hz,
+            window_size=window_size,
+            inputD=input_csv_path,
+            output=out_csv_path,
+            discrete_columns=discrete_columns
+        )
+
+        return out_csv_path
+
 
 
     ####################################################################################################################
@@ -763,6 +801,14 @@ class Pipeline:
         print("DONE")
         return merged_df
 
+    ####################################################################################################################
+    #                                            vPIPELINE CODE FOR RUNNING MODELSv                                    #
+    ####################################################################################################################
+
+
+    def instansiate_model(self, model_name, model_args):
+        return models.get(model_name, model_args)
+
 
     def train_lstm_model(self,
                          training_dataframe,
@@ -906,8 +952,6 @@ class Pipeline:
             print("Pipeline.py :: evaluate_lstm_model ::")
             raise NotImplementedError()
 
-    def instansiate_model(self, model_name, model_args):
-        return models.get(model_name, model_args)
 
     def train_rfc_model(self,
                         back,
@@ -1019,13 +1063,10 @@ class Pipeline:
         else:
             print("Did not save")
 
-    @staticmethod
-    def remove_files_or_dirs_from(list_with_paths):
-        for f in list_with_paths:
-            try:
-                os.system("rm -rf {}".format(f))
-            except:
-                print("Could not remove file {}".format(f))
+    ####################################################################################################################
+    #                                            ^PIPELINE CODE FOR RUNNING MODELS^                                    #
+    ####################################################################################################################
+
 
 if __name__ == '__main__':
     p = Pipeline()
