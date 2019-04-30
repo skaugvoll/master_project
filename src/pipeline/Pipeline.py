@@ -594,9 +594,9 @@ class Pipeline:
                                                                label_keywords=['GoPro', "Labels", "interval", "intervals", "json"],
                                                                synched_keywords=["timesynched"],
                                                                out_path=None,
-                                                               master_columns=['bx', 'by', 'bz'],
-                                                               slave_columns=['tx', 'ty', 'tz'],
-                                                               slave2_columns=['tx', 'ty', 'tz'],
+                                                               master_columns=['time', 'bx', 'by', 'bz', 'tx', 'ty', 'tz'],
+                                                               slave_columns=['time', 'bx1', 'by1', 'bz1', 'btemp'],
+                                                               slave2_columns=['time', 'tx1', 'ty1', 'tz1', 'ttemp'],
                                                                rearrange_columns_to=None,
                                                                save=False,
                                                                added_columns_name=["labels"],
@@ -678,8 +678,6 @@ class Pipeline:
             # print("SUBJECT: \n", subject, root_dir)
             back = os.path.join(root_dir, subject['backCSV'])
             thigh = os.path.join(root_dir, subject['thighCSV'])
-            label = os.path.join(root_dir, subject['labelCSV'])
-
             needSynchronization = ".7z" in root_dir
             print("Need Synchronization; ", needSynchronization)
 
@@ -696,7 +694,7 @@ class Pipeline:
                     rearrange_columns_to=rearrange_columns_to,
                     merge_on=merge_column,
                     header_value=None,
-                    save=save
+                    # save=save
                 )
 
                 df = dh.concat_dataframes(
@@ -707,7 +705,8 @@ class Pipeline:
                     slave_column=['btemp'],  # should probably be set snz we can specify temp_col_name
                     slave2_column=['ttemp'],  # should probably be set snz we can specify temp_cl_name
                     header_value=None,
-                    save=save)
+                    # save=save
+                )
 
 
                 dh.convert_column_from_str_to_datetime(
@@ -718,6 +717,7 @@ class Pipeline:
 
                 for col_name in added_columns_name:
                     if col_name is "labels" or col_name is "label":
+                        label = os.path.join(root_dir, subject['labelCSV'])
                         self.addLables(label, column_name=col_name, datahandler=dh)
                         if drop_non_labels:
                             dh.get_dataframe_iterator().dropna(subset=[col_name], inplace=True)
@@ -725,6 +725,7 @@ class Pipeline:
                         dh.add_new_column(col_name)
 
             else:
+                label = os.path.join(root_dir, subject['labelCSV'])
                 df = dh.concat_dataframes(
                     back,
                     thigh,
@@ -733,6 +734,7 @@ class Pipeline:
                     slave_column=['tx', 'ty', 'tz'],  # should probably be set snz we can specify temp_col_name
                     slave2_column=['label'],  # should probably be set snz we can specify temp_cl_name
                     header_value=None)
+
 
             # ALWAYS DO THIS, not dependent on file format.
             if list:
@@ -749,10 +751,14 @@ class Pipeline:
 
         progressbar.printProgressBar(len(subjects), len(subjects), 20, explenation='Merging datasets prog.: ')
 
-        if save:
+        if save and not list:
             out_path_dir, out_path_filename = os.path.split(out_path)
+            if out_path_filename == "":
+                out_path_filename = "MERGED_CSVS_SYNCED_OR_NOT.csv"
+            if not os.path.exists(out_path_dir):
+                os.makedirs(out_path_dir)
             out_path = os.path.join(out_path_dir, out_path_filename)
-            merged_df.to_csv(out_path)
+            merged_df.to_csv(out_path, index=False)
 
         print("DONE")
         return merged_df
