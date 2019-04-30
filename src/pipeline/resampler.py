@@ -22,58 +22,18 @@ def write_chunked_dataframe_to_file( file, dataframe_iterator ):
     comes as an iterator of dataframe, to csv
     '''
 
-
+    result_df = None
     for i, df in enumerate( dataframe_iterator ):
+        if i == 0:
+            result_df = df
         # print(df.describe())
         # input("....")
         df.to_csv( file, mode='a', header=(i==0))
+        result_df = result_df.append(df)
+
+    return result_df
 
 
-
-def copy_stream( stream ):
-  '''
-  Copies a stream so that it can be read by two differnt consumers
-  '''
-  # Leverage the unix tee-tool to copy stdout to stderr
-  p = subprocess.Popen(
-    ['tee', '/dev/stderr'],
-    stdin=stream,
-    stdout=subprocess.PIPE,
-    stderr=subprocess.PIPE
-  )
-  return p.stdout, p.stderr
-
-# parser = argparse.ArgumentParser('Read subject data in one or more filepaths and write as csv')
-# parser.add_argument('-r', '--resampler',
-#                     help='Which resampling method to use',
-#                     required=True,
-#                     choices=src.resamplers.get_resampler_names()
-#                     )
-# parser.add_argument('-s', '--source-rate',
-#                     help='Sample rate of the input file',
-#                     required=True,
-#                     type=float
-#                     )
-# parser.add_argument('-t', '--target-rate',
-#                     help='Target sample rate after resampling',
-#                     required=True,
-#                     type=float
-#                     )
-# parser.add_argument('-w', '--window-size',
-#                     help='If set, resample data with a rolling window. Useful for large files',
-#                     type=int,
-#                     default=20000
-#                     )
-# parser.add_argument('-i', '--input',
-#                     help='Filepath to csv data that will be resampled. Defaults to standard in.'
-#                     )
-# parser.add_argument('-o', '--output',
-#                     help='Where to write the result. Defaults to standard out.',
-#                     )
-# parser.add_argument('--discrete-columns',
-#                     help='Columns that will just be resampling by getting the closest value',
-#                     nargs='+',
-#                     )
 
 def main(resampler, source_rate, target_rate, window_size, inputD, output, discrete_columns):
     # Default input/output to stdin/stdout
@@ -115,7 +75,9 @@ def main(resampler, source_rate, target_rate, window_size, inputD, output, discr
         discrete_columns=discrete_columns
     )
     # Then write it to file
-    write_chunked_dataframe_to_file(output, resampled_stream)
+    result_df = write_chunked_dataframe_to_file(output, resampled_stream)
+
+    return result_df
 
 #
 # if __name__ == '__main__':

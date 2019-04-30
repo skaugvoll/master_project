@@ -141,7 +141,8 @@ class Pipeline:
         :return: Path to saved downsampled csv file
         '''
 
-        resampler(
+        result_df = None
+        result_df = resampler(
             resampler=resampler_method,
             source_rate=source_hz,
             target_rate=target_hz,
@@ -151,7 +152,7 @@ class Pipeline:
             discrete_columns=discrete_columns
         )
 
-        return out_csv_path
+        return out_csv_path, result_df
 
 
 
