@@ -9,25 +9,36 @@ from src.utils.cmdline_input import cmd_input
 
 
 def convert_dataframe_into_generator(dataframe, chunk_size):
+
     length = len(dataframe)
     start = 0
     end = chunk_size
-    while end < length:
+    prev_start, prev_end = 0, 0
+    while end <= length:
         # iloc works from including, to but not including
         yield dataframe.iloc[start:end]
+
+        prev_start = start
+        prev_end = end
 
         start = end
         end += 1
         end += chunk_size
 
+
+
+    # Hvis end er hoyere enn length, vet vi ikke da at vi har faat med oss alle rows ?
+    
     # Start is less then length, but end is greather then end (thus lasta pieces of data in dataframe)
-    print("END > LENGHT")
-    print("START: ", start)
-    print("END: ", end)
+    print("END > LENGTH")
+    print("START: ", start, "PREV: ", prev_start)
+    print("END: ", end, "PREV: ", prev_end)
     print("length: ", length)
 
-    input("...")
-    yield dataframe.iloc[end:length]
+
+    # input("...")
+    #
+    # yield dataframe.iloc[prev_end:length]
 
     # Now we know that we have emptied the dataframe, we are done. this functions does not work anymore
 
@@ -53,6 +64,7 @@ def write_chunked_dataframe_to_file( file, dataframe_iterator ):
             result_df = df
         df.to_csv( file, mode='a', header=(i==0))
         result_df = result_df.append(df)
+        print("LENGTH RESULT DF SO FAR: ", len(result_df))
 
     return result_df
 
