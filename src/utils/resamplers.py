@@ -37,27 +37,38 @@ def resample_stream( resampler, dataframe_iterator, downsample_factor, discrete_
       Columns that should not be resampled by the resampling
       function. Instead, the closest value to the resampled
       index will be used.
+
+  NB: if the discrete_columns IS NOT passed as a list e.i. ["label"], the function will not work properly
+      because it changes the type of resampled_df from DataFrame to Series, thus make sure it is a list.
   '''
   discrete_columns = discrete_columns or []
 
-  for chunk in dataframe_iterator:
+  for chunk in dataframe_iterator: # chunk =  pandas.core.frame.DataFrame
+    # print(chunk)
+    # input("...")
     # Get length of current window
     window_size = len( chunk )
+
     # Compute length of resampled window
     resampled_window_size = int( round( window_size / downsample_factor ))
+
     # Compute resampled index
     index = chunk.index
     start = index[0]
     end   = index[-1] + (index[-1]-index[0])/window_size
-    resampled_index = pd.date_range( start, end, periods=resampled_window_size+1, closed='left' )
+    resampled_index = pd.date_range( start, end, periods=resampled_window_size, closed='left' ) # remove +1 from periods
+
     # For all discrete columns, fetch the closest value to new index
     discrete_samples = index.searchsorted( resampled_index ).clip( 0, len(chunk)-1 )
     resampled_df = chunk[discrete_columns].iloc[ discrete_samples ]
+
     # Then set new index
     resampled_df.index = resampled_index
+
     # For the non-discrete columns, apply the resampler
     for column in set( chunk.columns ) - set( discrete_columns ):
       resampled_df[ column ] = resampler( chunk[column], downsample_factor )
+
     # Finally, make sure the resampled dataframe has the same column order
     yield resampled_df[ chunk.columns ]
 

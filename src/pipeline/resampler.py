@@ -5,6 +5,43 @@ import contextlib
 import src.utils.resamplers as resamplers
 import pandas as pd
 import subprocess
+from src.utils.cmdline_input import cmd_input
+
+
+def convert_dataframe_into_generator(dataframe, chunk_size):
+
+    length = len(dataframe)
+    start = 0
+    end = chunk_size
+    prev_start, prev_end = 0, 0
+    while end <= length:
+        # iloc works from including, to but not including
+        yield dataframe.iloc[start:end]
+
+        prev_start = start
+        prev_end = end
+
+        start = end
+        end += 1
+        end += chunk_size
+
+
+
+    # Hvis end er hoyere enn length, vet vi ikke da at vi har faat med oss alle rows ?
+    
+    # Start is less then length, but end is greather then end (thus lasta pieces of data in dataframe)
+    print("END > LENGTH")
+    print("START: ", start, "PREV: ", prev_start)
+    print("END: ", end, "PREV: ", prev_end)
+    print("length: ", length)
+
+
+    # input("...")
+    #
+    # yield dataframe.iloc[prev_end:length]
+
+    # Now we know that we have emptied the dataframe, we are done. this functions does not work anymore
+
 
 
 def read_sensor_data( file, chunksize=None, index_col=0, parse_dates=[0] ):
@@ -21,65 +58,34 @@ def write_chunked_dataframe_to_file( file, dataframe_iterator ):
     comes as an iterator of dataframe, to csv
     '''
 
-
+    result_df = None
     for i, df in enumerate( dataframe_iterator ):
-        df.to_csv( file, header=(i==0))
+        if i == 0:
+            result_df = df
+        df.to_csv( file, mode='a', header=(i==0))
+        result_df = result_df.append(df)
+        print("LENGTH RESULT DF SO FAR: ", len(result_df))
+
+    return result_df
 
 
-
-def copy_stream( stream ):
-  '''
-  Copies a stream so that it can be read by two differnt consumers
-  '''
-  # Leverage the unix tee-tool to copy stdout to stderr
-  p = subprocess.Popen(
-    ['tee', '/dev/stderr'],
-    stdin=stream,
-    stdout=subprocess.PIPE,
-    stderr=subprocess.PIPE
-  )
-  return p.stdout, p.stderr
-
-# parser = argparse.ArgumentParser('Read subject data in one or more filepaths and write as csv')
-# parser.add_argument('-r', '--resampler',
-#                     help='Which resampling method to use',
-#                     required=True,
-#                     choices=src.resamplers.get_resampler_names()
-#                     )
-# parser.add_argument('-s', '--source-rate',
-#                     help='Sample rate of the input file',
-#                     required=True,
-#                     type=float
-#                     )
-# parser.add_argument('-t', '--target-rate',
-#                     help='Target sample rate after resampling',
-#                     required=True,
-#                     type=float
-#                     )
-# parser.add_argument('-w', '--window-size',
-#                     help='If set, resample data with a rolling window. Useful for large files',
-#                     type=int,
-#                     default=20000
-#                     )
-# parser.add_argument('-i', '--input',
-#                     help='Filepath to csv data that will be resampled. Defaults to standard in.'
-#                     )
-# parser.add_argument('-o', '--output',
-#                     help='Where to write the result. Defaults to standard out.',
-#                     )
-# parser.add_argument('--discrete-columns',
-#                     help='Columns that will just be resampling by getting the closest value',
-#                     nargs='+',
-#                     )
 
 def main(resampler, source_rate, target_rate, window_size, inputD, output, discrete_columns):
     # Default input/output to stdin/stdout
     if inputD is None:
         print('Using stdin for input')
         inputD = sys.__stdin__
+
     if output is None:
         print('Using stdout for output')
         output = sys.__stdout__
+
+    elif os.path.exists(output):
+        question = "There already exists a resampled file. Do you want to delete it ? "
+        funcYes = lambda: os.system("rm {}".format(output))
+        funcNo = lambda: sys.exit(-1)
+        cmd_input(question, funcYes, funcNo, yesPrint="Done. file is removed.", noPrint="Ok. Exiting system now.")
+
 
     # Compute downsample factor
     downsample_factor = source_rate / target_rate
@@ -90,11 +96,19 @@ def main(resampler, source_rate, target_rate, window_size, inputD, output, discr
     print('Using resampler: {}'.format(resampler))
 
     discrete_columns = discrete_columns or []
-    print('Using discrete_columns: ', discrete_columns)
+    print('Using discrete_columns: ', discrete_columns, "\n")
 
 
     # Read data in chunks
-    dataframe_iterator = read_sensor_data(inputD, chunksize=window_size)
+    if type(inputD) == str:
+        dataframe_iterator = read_sensor_data(inputD, chunksize=window_size) # pandas.io.parsers.TextFileReader
+
+    elif type(inputD) == pd.DataFrame:
+        dataframe_iterator = convert_dataframe_into_generator(inputD, window_size)
+
+    else:
+        print("Not supported input format. Exiting")
+        sys.exit(-1)
 
 
     # Apply resampler
@@ -105,7 +119,9 @@ def main(resampler, source_rate, target_rate, window_size, inputD, output, discr
         discrete_columns=discrete_columns
     )
     # Then write it to file
-    write_chunked_dataframe_to_file(output, resampled_stream)
+    result_df = write_chunked_dataframe_to_file(output, resampled_stream)
+
+    return result_df
 
 #
 # if __name__ == '__main__':
