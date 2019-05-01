@@ -128,7 +128,7 @@ class Pipeline:
                 print("Could not remove file {}".format(f))
 
 
-    def downsampleData(self,input_csv_path, out_csv_path, resampler_method='fourier', source_hz=100, target_hz=50, window_size=20000, discrete_columns=[]):
+    def downsampleData(self,input_csv_path, out_csv_path, resampler_method='fourier', source_hz=100, target_hz=50, window_size=20000, discrete_columns=[], save=False):
         '''
 
         :param input_csv_path: A csv file with TIMESTAMP INDEX AND where COLUMNS are xyz from all sensors are merged into one file
@@ -148,7 +148,8 @@ class Pipeline:
             window_size=window_size,
             inputD=input_csv_path,
             output=out_csv_path,
-            discrete_columns=discrete_columns
+            discrete_columns=discrete_columns,
+            save=save
         )
 
         return out_csv_path, result_df
@@ -787,15 +788,16 @@ class Pipeline:
                         freq=pd.Timedelta(seconds=1/downsample_config['source_hz'])
                     )
 
+
                 outpath, res_df = self.downsampleData(
                     input_csv_path=df,
                     out_csv_path=downsample_config['out_path'],
-                    discrete_columns=downsample_config['discrete_columns_list'], # pass in
-                    source_hz=downsample_config['source_hz'], # pass in
-                    target_hz=downsample_config['target_hz'], # pass in
-                    window_size=downsample_config['window_size'] # pass in
+                    discrete_columns=downsample_config['discrete_columns_list'],
+                    source_hz=downsample_config['source_hz'],
+                    target_hz=downsample_config['target_hz'],
+                    window_size=downsample_config['window_size'],
+                    save=save
                 )
-
 
                 print('Length {}Hz: {}\nLength {}Hz: {}'.format(
                     downsample_config['source_hz'],
