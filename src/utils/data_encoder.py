@@ -139,7 +139,9 @@ class DataEncoder:
     '''
 
     # Initial encoding dict for non-replaced classes
+
     # NB:: ZERO INDEXED VALUES :: the enumerate functions starts by default at 0, thus, giving the downshift in one hot vector mapping VALUES
+
     # This will be in order { 1:0, 2:1, 3:2 }, ... because the active_classes is an array with the order class_value 1,2,3,4
     one_hot_enc = { cl['value']:i for i,cl in enumerate( active_classes )}
     # Make a temporary lookup; { name -> value }

@@ -13,12 +13,12 @@ class Plotter():
         # self.root_dir = os.path.dirname(os.path.abspath(__file__))
         print
 
-    def plot_temperature(self, temp_dataframe):
+    def plot_temperature(self, temp_dataframe, outputname):
         df = pd.read_csv(temp_dataframe)
         # df.columns = ['time', 'bx', 'by', 'bz', 'tx', 'ty', 'tz', 'label']
         # df[['time', 'btemp']].plot(style=['r-'])
         df[['bx', 'by', 'bz', 'tx', 'ty', 'tz', ]].plot(style=['r-', 'g--', 'b-.', 'c', 'y', 'm'])
-        plt.savefig('Temp.png')
+        plt.savefig(outputname)
 
 
 
@@ -157,8 +157,8 @@ class Plotter():
     # create single
 if __name__ == '__main__':
     pl = Plotter()
-    pl.plot_temperature('../../data/temp/merged/res006.csv')
-    # pl.plot_temperature('../../data/temp/merged/rresampled006.csv')
+    pl.plot_temperature('../../data/temp/merged/res006.csv', 'Original')
+    pl.plot_temperature('../../data/temp/merged/resampled006.csv', 'Resampeled.png')
     # pl.plot_temperature('../../data/temp/4000181.7z/4000181/4000181-34566_2017-09-19_B.csv')
     # pl.print_weekly_view("../../data/output/4000181_timestamped_predictions.csv")
 

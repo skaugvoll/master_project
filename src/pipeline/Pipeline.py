@@ -911,11 +911,13 @@ class Pipeline:
         if type(training_dataframe) == pd.DataFrame:
            training_dataframe = [training_dataframe]
 
+        model_history = None
+
         if back_cols and thigh_cols:
             self.num_sensors = 2
             cols = [back_cols, thigh_cols]
 
-            model.train(
+            model_history =  model.train(
                 train_data=training_dataframe,
                 valid_data=validation_dataframe,
                 epochs=config.TRAINING['args']['epochs'],
@@ -925,15 +927,16 @@ class Pipeline:
                 thigh_cols=thigh_cols,
                 label_col=label_col,
                 shuffle=shuffle,
+                callbacks=callbacks
             )
         else:
             cols = back_cols or thigh_cols
             self.num_sensors = 1
 
-            model.train(
+            model_history = model.train(
                 train_data=training_dataframe,
                 valid_data=validation_dataframe,
-                callbacks=[],
+                callbacks=callbacks,
                 epochs=config.TRAINING['args']['epochs'],
                 batch_size=batch_size,
                 sequence_length=sequence_length,
@@ -956,7 +959,7 @@ class Pipeline:
         self.sequence_length = sequence_length
         self.cols = cols
         self.model = model
-        return self.model
+        return self.model, model_history
 
 
     def evaluate_lstm_model(self, dataframe, label_col, num_sensors=None, model=None, back_cols=None, thigh_cols=None, cols=None, batch_size=None, sequence_length=None):
@@ -976,6 +979,33 @@ class Pipeline:
                           label_col=label_col)
         elif num_sensors == 1:
             return model.evaluate(
+                          dataframes=dataframe,
+                          batch_size=batch_size or self.config.TRAINING['args']['batch_size'],
+                          sequence_length=sequence_length or self.config.TRAINING['args']['sequence_length'],
+                          cols=self.cols or cols,
+                          label_col=label_col)
+        else:
+            print("Pipeline.py :: evaluate_lstm_model ::")
+            raise NotImplementedError()
+
+
+    def predict_lstm_model(self, dataframe, label_col, num_sensors=None, model=None, back_cols=None, thigh_cols=None, cols=None, batch_size=None, sequence_length=None):
+        model = model or self.model
+        num_sensors = num_sensors or self.num_sensors
+
+        if type(dataframe) == pd.DataFrame:
+           dataframe = [dataframe]
+
+        if num_sensors == 2:
+            return model.predict(
+                          dataframes=dataframe,
+                          batch_size=batch_size or self.config.TRAINING['args']['batch_size'],
+                          sequence_length=sequence_length or self.config.TRAINING['args']['sequence_length'],
+                          back_cols=self.cols[0] or back_cols,
+                          thigh_cols=self.cols[1] or thigh_cols,
+                          label_col=label_col)
+        elif num_sensors == 1:
+            return model.predict(
                           dataframes=dataframe,
                           batch_size=batch_size or self.config.TRAINING['args']['batch_size'],
                           sequence_length=sequence_length or self.config.TRAINING['args']['sequence_length'],

@@ -9,26 +9,76 @@ now = datetime.datetime.now()
 
 pipObj = Pipeline()
 
-list_with_subjects = [
-    '../data/input/training_data/'
+train_list_with_subjects = [
+    '../data/input/training_data/006',
+    '../data/input/training_data/008',
+    '../data/input/training_data/009',
+    '../data/input/training_data/010',
+    '../data/input/training_data/011',
+    '../data/input/training_data/012',
+    '../data/input/training_data/013',
+    '../data/input/training_data/014',
+    '../data/input/training_data/015',
+    '../data/input/training_data/016',
+    '../data/input/training_data/017',
+    '../data/input/training_data/018',
+    '../data/input/training_data/019',
+    '../data/input/training_data/020',
+    '../data/input/training_data/021'
 ]
 
-trainDataframe = pipObj.create_large_dataframe_from_multiple_input_directories(
-    list_with_subjects,
+
+
+
+trainDataframes = pipObj.create_large_dataframe_from_multiple_input_directories(
+    train_list_with_subjects,
     merge_column=None,
     save=False,
     added_columns_name=['labels'],
-    list=True
+    list=False,
+    downsample_config={
+            'out_path' : '../data/temp/merged/resampled_test.csv',
+            'discrete_columns_list' : ['label'],
+            'source_hz': 100,
+            'target_hz': 50,
+            'window_size': 20000,
+            'add_timestamps': True
+        }
 )
 
-train, validation = DataHandler.split_df_into_training_and_test(trainDataframe, split_rate=.2, shuffle=False)
-validation, test = DataHandler.split_df_into_training_and_test(validation, split_rate=.5, shuffle=False)
+# test_list_with_subjects = [
+#     '../data/input/training_data/019',
+#     '../data/input/training_data/020',
+#     '../data/input/training_data/021'
+# ]
+
+# testDataframes= pipObj.create_large_dataframe_from_multiple_input_directories(
+#     test_list_with_subjects,
+#     merge_column=None,
+#     save=False,
+#     added_columns_name=['labels'],
+#     list=True,
+#     downsample_config={
+#             'out_path' : '../data/temp/merged/resampled_test.csv',
+#             'discrete_columns_list' : ['label'],
+#             'source_hz': 100,
+#             'target_hz': 50,
+#             'window_size': 20000,
+#             'add_timestamps': True
+#         }
+# )
+
 
 ####
 # Train the model
 ####
 
-pipObj.train_lstm_model(
+
+train, validation = DataHandler.split_df_into_training_and_test(trainDataframes, split_rate=.2, shuffle=False)
+validation, test = DataHandler.split_df_into_training_and_test(validation, split_rate=.5, shuffle=False)
+
+
+_, History = pipObj.train_lstm_model(
     training_dataframe=train,
     back_cols=['bx','by','bz'],
     thigh_cols=['tx','ty','tz'],
@@ -40,6 +90,19 @@ pipObj.train_lstm_model(
     shuffle=False
 )
 
+
+from matplotlib import pyplot as plt
+plt.plot(History.history['acc'], label="Trn")
+plt.plot(History.history['val_acc'], label="Tst")
+plt.plot(History.history['loss'], label="Ltrn")
+plt.plot(History.history['val_loss'], label="Ltst")
+plt.legend()
+plt.savefig('Training History')
+
+
+# print(History.history)
+#
+#
 res = pipObj.evaluate_lstm_model(
     dataframe=test,
     label_col='label',
@@ -53,6 +116,20 @@ res = pipObj.evaluate_lstm_model(
 )
 
 print("Evaluation result: {}".format(res))
+
+res, gt, cfm = pipObj.predict_lstm_model(
+    dataframe=test,
+    label_col='label',
+    num_sensors=None,
+    model=None,
+    back_cols=None,
+    thigh_cols=None,
+    cols=None,
+    batch_size=None,
+    sequence_length=None
+)
+
+# print("CONFUSION MATRIX: \n", cfm)
 
 #LEAVE ONE OUT X_VAL
 # import numpy as np

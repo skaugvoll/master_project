@@ -47,19 +47,23 @@ MODEL:
     back_layers:
       inputs: 3
       layers:
-        - { units: 32, residual: False, dropout: False }
-    # Independednt stream for thigh sensor data, before being joined
+        - { units: 64, residual: False, dropout: False }
+
+
+    # Independent stream for thigh sensor data, before being joined
     thigh_layers:
       inputs: 3
       layers:
-        - { units: 32, residual: False, dropout: False }
+        - { units: 64, residual: False, dropout: False }
+
+
     # Classes used
     classes: *CLASSES
 
 # Arguments to use when doing training
 TRAINING:
   args:
-    epochs: 10
+    epochs: 20
     batch_size: 512
     sequence_length: 250
     callbacks:
@@ -71,15 +75,15 @@ TRAINING:
           save_best_only: True
           save_weights_only: True
           mode: min
-      - name: LOAD_BEST_WEIGHTS_REDUCE_LR
-        args: 
-          patience: 4
-          weights_path: *WEIGHTS_PATH
-          verbose: 1  
-      - name: EarlyStopping
-        args:
-          verbose: 1
-          patience: 10
+#      - name: LOAD_BEST_WEIGHTS_REDUCE_LR
+#        args:
+#          patience: 10
+#          weights_path: *WEIGHTS_PATH
+#          verbose: 1
+#      - name: EarlyStopping
+#        args:
+#          verbose: 1
+#          patience: 20
 
 # Arguments to use when doing inference
 INFERENCE:
