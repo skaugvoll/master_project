@@ -524,8 +524,8 @@ class TwoSensorLSTM( HARModel ):
 
     # Make model
     self.model = Model( inputs=[ipt_back, ipt_thigh], outputs=net )
-    self.model.compile(loss='categorical_crossentropy', optimizer='adadelta', metrics=['accuracy'])
-
+    # self.model.compile(loss='categorical_crossentropy', optimizer='adagrad', metrics=['accuracy'])
+    self.compile()
     print(self.colorPrinter.colorString(">>>>>>> BUILD COMPLETE <<<<<<<<", "green", bright=False))
     print(self.model.summary())
 
@@ -559,8 +559,9 @@ class TwoSensorLSTM( HARModel ):
     else:
       return Activation(activation)(Add()([l0, l1]))
 
+
   def compile(self):
-    self.model.compile(loss='categorical_crossentropy', optimizer='adagrad', metrics=['accuracy'])
+    self.model.compile(loss='categorical_crossentropy', optimizer='adadelta', metrics=['accuracy'])
 
   def calculate_confusion_matrix(self):
       gt = self.test_ground_truth_labels # is one hot vector
