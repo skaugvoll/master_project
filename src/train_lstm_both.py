@@ -82,39 +82,40 @@ for k in run_history:
         continue
 
     run = run_history[k]
-    # try:
-    labels = np.array(run['Labels'])
-    y_true = np.array(run['Ground_truth'])
-    y_pred = np.array(run['Predictions'])
+    try:
+        labels = np.array(run['Labels'])
+        y_true = np.array(run['Ground_truth'])
+        y_pred = np.array(run['Predictions'])
 
-    # if num_cols >= 2, use col index when get axis at row column, else column = None and use row as index
-    ax = pipObj.plotter.get_axis_at_row_column(row, col)
-    ax.set_yscale('linear')
-    ax.set_title('linear')
-    ax.grid(True)
+        # if num_cols >= 2, use col index when get axis at row column, else column = None and use row as index
+        ax = pipObj.plotter.get_axis_at_row_column(row, col)
+        ax.set_yscale('linear')
+        ax.set_title('linear')
+        ax.grid(True)
 
-    # if no more columns, and there is a new row
-    if col + 1 >= num_cols and row + 1 < num_rows:
-        row += 1
-
-
-    # write out the row
-    if col + 1 < num_cols:
-        col += 1
-    else:
-        col = 0
+        # if no more columns, and there is a new row
+        if col + 1 >= num_cols and row + 1 < num_rows:
+            row += 1
 
 
+        # write out the row
+        if col + 1 < num_cols:
+            col += 1
+        else:
+            col = 0
 
 
-    ds = train_list_with_subjects[k - 1]
-    title = str(ds).split("/")[-1] + " :: AVG ACC: " + str(run_history[k]['Accuracy'])
-    pipObj.plot_confusion_matrix(y_true, y_pred, labels, figure=fig, axis=ax, title=title)
-    # except Exception as e:
-    #     print("Woopsises; ", e)
-    #     continue
-    # finally:
-    # input("....")
+
+
+        ds = train_list_with_subjects[k - 1]
+        title = str(ds).split("/")[-1] + " :: AVG ACC: " + str(run_history[k]['Accuracy'])
+        pipObj.plot_confusion_matrix(y_true, y_pred, labels, figure=fig, axis=ax, title=title)
+    except Exception as e:
+        print("Woopsises; ", e)
+        continue
+    finally:
+        pass
+        # input("....")
 
 # pipObj.plotter.plotter_show()
 pipObj.plotter.plotter_save()
