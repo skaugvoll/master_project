@@ -3,15 +3,22 @@ try: sys.path.append( os.path.abspath( os.path.join( os.path.dirname( __file__),
 except: print("SAdsadsadhsa;hkldasjkd")
 
 
-import matplotlib.pyplot as plt
-import matplotlib as mpl
 import os, re
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
+
+from sklearn.metrics import confusion_matrix
+from sklearn.utils.multiclass import unique_labels
 
 class Plotter():
     def __init__(self):
         # self.root_dir = os.path.dirname(os.path.abspath(__file__))
         print
+        self.plotter = None
+        self.figure = None
+        self.axis = None
 
     def plot_temperature(self, temp_dataframe, outputname):
         df = pd.read_csv(temp_dataframe)
@@ -154,11 +161,112 @@ class Plotter():
         fig.subplots_adjust(top=0.85)
         plt.savefig("Daily-Chart-" + subjectid)
 
-    # create single
+    def plot_confusion_matrix(self, y_true, y_pred, classes,
+                              normalize=False,
+                              title=None,
+                              cmap=plt.cm.Blues,
+                              figure=None,
+                              axis=None
+                              ):
+        """
+        This function prints and plots the confusion matrix.
+        Normalization can be applied by setting `normalize=True`.
+        """
+        if not title:
+            if normalize:
+                title = 'Normalized confusion matrix'
+            else:
+                title = 'Confusion matrix, without normalization'
+
+        # Compute confusion matrix
+        cm = confusion_matrix(y_true, y_pred)
+        # Only use the labels that appear in the data
+        # classes = classes[unique_labels(y_true, y_pred)]
+        if normalize:
+            cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+            print("Normalized confusion matrix")
+        else:
+            print('Confusion matrix, without normalization')
+
+        print(cm)
+        if not figure and not axis:
+            fig, ax = plt.subplots()
+        else:
+            fig = figure
+            ax = axis
+
+        im = ax.imshow(cm, interpolation='nearest', cmap=cmap)
+        ax.figure.colorbar(im, ax=ax)
+        # We want to show all ticks...
+        ax.set(xticks=np.arange(cm.shape[1]),
+               yticks=np.arange(cm.shape[0]),
+               # ... and label them with the respective list entries
+               xticklabels=classes, yticklabels=classes,
+               title=title,
+               ylabel='True label',
+               xlabel='Predicted label')
+
+        # Rotate the tick labels and set their alignment.
+        plt.setp(ax.get_xticklabels(), rotation=45, ha="right",
+                 rotation_mode="anchor")
+
+        # Loop over data dimensions and create text annotations.
+        fmt = '.2f' if normalize else 'd'
+        thresh = cm.max() / 2.
+        for i in range(cm.shape[0]):
+            for j in range(cm.shape[1]):
+                ax.text(j, i, format(cm[i, j], fmt),
+                        ha="center", va="center",
+                        color="white" if cm[i, j] > thresh else "black")
+        fig.tight_layout()
+
+        # plt.savefig("{}.png".format(title))
+
+        return ax
+
+    def plotter_show(self):
+        plt.show()
+
+    def plotter_save(self, name="test.png"):
+        plt.savefig(name)
+
+    def start_multiple_plots(self, num_rows, num_columns, figsize=None):
+        self.figure, self.axis = plt.subplots(num_rows, num_columns, figsize=figsize)
+        # self.figure.subplots_adjust(left=0.88, right=0.98, wspace=0.3)
+        self.num_rows = num_rows
+        self.num_columns = num_columns
+        return self.figure, self.axis
+
+    def get_figure(self):
+        return self.figure
+
+    def get_axis_at_row_column(self, row, column):
+        print(self.axis)
+
+        print()
+        print(row, column)
+        print()
+
+        if column == None:
+            return self.axis[row]
+
+        else:
+            return self.axis[row][column]
+
+
+    def add_plot_to_multiple_plots(self, row, column, axis, title):
+        pass
+
+
+
+
+
+
+
 if __name__ == '__main__':
     pl = Plotter()
-    pl.plot_temperature('../../data/temp/merged/res006.csv', 'Original')
-    pl.plot_temperature('../../data/temp/merged/resampled006.csv', 'Resampeled.png')
+    # pl.plot_temperature('../../data/temp/merged/res006.csv', 'Original')
+    # pl.plot_temperature('../../data/temp/merged/resampled006.csv', 'Resampeled.png')
     # pl.plot_temperature('../../data/temp/4000181.7z/4000181/4000181-34566_2017-09-19_B.csv')
     # pl.print_weekly_view("../../data/output/4000181_timestamped_predictions.csv")
 

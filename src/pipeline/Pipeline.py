@@ -2,10 +2,12 @@ import sys, os
 import numpy as np
 import cwa_converter
 import pickle
+import pprint
 import pandas as pd
+import utils.temperature_segmentation_and_calculation as temp_feature_util
 from multiprocessing import Process, Queue, Manager
 from pipeline.DataHandler import DataHandler
-import utils.temperature_segmentation_and_calculation as temp_feature_util
+from pipeline.Plotter import Plotter
 from utils import progressbar
 from src.config import Config
 from src import models
@@ -14,12 +16,15 @@ from src.utils.ColorPrint import ColorPrinter
 from src.utils.cmdline_input import cmd_input
 from tensorflow.keras.backend import clear_session
 from pipeline.resampler import main as resampler
+from sklearn.model_selection import LeaveOneOut
+from sklearn.metrics import precision_recall_fscore_support, classification_report, accuracy_score
 
 
 class Pipeline:
     def __init__(self):
         self.dh = DataHandler()
         self.colorPrinter = ColorPrinter()
+        self.plotter = Plotter()
         self.dataframe = None
         self.model = None
 
@@ -641,7 +646,7 @@ class Pipeline:
                                                                added_columns_name=["labels"],
                                                                drop_non_labels=True,
                                                                verbose=True,
-                                                               list=False,
+                                                               list=True,
                                                                downsample_config=None
                                                                ):
         '''
@@ -870,7 +875,7 @@ class Pipeline:
         :param save_model: if path and save_model [True | False] saves the model to the path
         :param save_weights: if path and save_weights [True | False] saves the weight to the path with suffix: _weights
         :param shuffle: if given, set numpy random seed to 47, then shuffle the windows and labels
-        :return: the trained model object
+        :return: model, leave one out histroy: the trained model object, a dictionary with history of leave one out passes
         '''
         '''
         src/models/__init__.py states:
@@ -913,53 +918,133 @@ class Pipeline:
 
         model_history = None
 
-        if back_cols and thigh_cols:
-            self.num_sensors = 2
-            cols = [back_cols, thigh_cols]
+        ######### DO TRAINING AND PREDICTION HERE ###########
+        indexes = [i for i in range( 1, len( training_dataframe )+1) ]
+        X = np.array(indexes)
 
-            model_history =  model.train(
-                train_data=training_dataframe,
-                valid_data=validation_dataframe,
-                epochs=config.TRAINING['args']['epochs'],
-                batch_size=batch_size, # gets this from config file when init model
-                sequence_length=sequence_length, # gets this from config file when init model
-                back_cols=back_cols,
-                thigh_cols=thigh_cols,
-                label_col=label_col,
-                shuffle=shuffle,
-                callbacks=callbacks
-            )
-        else:
-            cols = back_cols or thigh_cols
-            self.num_sensors = 1
+        loo = LeaveOneOut()
 
-            model_history = model.train(
-                train_data=training_dataframe,
-                valid_data=validation_dataframe,
-                callbacks=callbacks,
-                epochs=config.TRAINING['args']['epochs'],
+        RUNS_HISTORY = {}
+        previous_acc = 0.0
+
+        for train_index, test_index in loo.split(X):
+            print("TRAIN:", train_index, "TEST:", test_index)
+            trainingset = []
+            testset = training_dataframe[test_index[0]]
+            for idx in train_index:
+                trainingset.append(training_dataframe[idx])
+
+            if back_cols and thigh_cols:
+                self.num_sensors = 2
+                cols = [back_cols, thigh_cols]
+
+                model_history = model.train(
+                    train_data=trainingset,
+                    valid_data=validation_dataframe,
+                    epochs=config.TRAINING['args']['epochs'],
+                    batch_size=batch_size,  # gets this from config file when init model
+                    sequence_length=sequence_length,  # gets this from config file when init model
+                    back_cols=back_cols,
+                    thigh_cols=thigh_cols,
+                    label_col=label_col,
+                    shuffle=shuffle,
+                    callbacks=callbacks
+                )
+            else:
+                cols = back_cols or thigh_cols
+                self.num_sensors = 1
+
+                model_history = model.train(
+                    train_data=trainingset,
+                    valid_data=validation_dataframe,
+                    epochs=config.TRAINING['args']['epochs'],
+                    batch_size=batch_size,
+                    sequence_length=sequence_length,
+                    cols=cols,
+                    label_col=label_col,
+                    shuffle=shuffle,
+                    callbacks=callbacks,
+                )
+
+            preds, gt, cm = model.predict(
+                dataframes=[testset],
                 batch_size=batch_size,
                 sequence_length=sequence_length,
-                cols=cols,
-                label_col=label_col,
-                shuffle=shuffle
-            )
+                back_cols=back_cols,
+                thigh_cols=thigh_cols,
+                label_col=label_col)
 
-        #####
-        # Save the model / weights
-        #####
-        if save_to_path and (save_weights or save_model):
-            print("Done saving: {}".format(
+            gt = gt.argmax(axis=1)
+            preds = preds.argmax(axis=1)
+
+
+            precision, recall, fscore, support = precision_recall_fscore_support(gt, preds)
+            # print("P \n", precision)
+            # print("R \n", recall)
+            # print("F \n", fscore)
+            # print("S \n", support)
+            print()
+
+            # only use labels present in the data
+            labels = []
+            label_values = list(set(gt)) + list(set(preds))
+            label_values = list(set(label_values))
+            label_values.sort()
+
+            for i in label_values:
+                # print("I: ", i)
+                shift_up_from_OHE_downshift = i + 1
+                labels.append(model.encoder.name_lookup[shift_up_from_OHE_downshift])
+
+            # print(labels)
+            # input("...")
+
+            report = classification_report(gt, preds, target_names=labels, output_dict=True)
+
+            acc = accuracy_score(gt, preds)
+
+            #####
+            # Save the model / weights
+            #####
+            if save_to_path and (save_weights or save_model) and acc > previous_acc:
+                print("Done saving: {}".format(
                     model.save_model_andOr_weights(path=save_to_path, model=save_model, weight=save_weights)
                 )
             )
 
+            # Save the extra info to the report
+            report['Accuracy'] = acc
+            report['Confusion_matrix'] = cm
+            report['Ground_truth'] = gt
+            report['Predictions'] = preds
+            report['Labels'] = labels
+            # Add the current run report to the overall HISTORY report
+            RUNS_HISTORY[indexes[test_index[0]]] = report
+
+        ## print the RUN HISTROY dictionary
+        pprint.pprint(RUNS_HISTORY)
+
+
+        ## CALCULATE THE AVERAGE ACCURACY FOR THE LEAVE ONE OUT VALIDATION
+        avg_acc = 0
+        for key in RUNS_HISTORY:
+            avg_acc += RUNS_HISTORY[key]['Accuracy']
+
+        avg_acc /= len(RUNS_HISTORY.keys())
+        print("AVG ACCURACY : ", avg_acc)
+        RUNS_HISTORY['AVG_ACCURACY'] = avg_acc
+
+        #####################################################
+
+        # VARIABLE CONTROL
         self.config = config
         self.batch_size = batch_size
         self.sequence_length = sequence_length
         self.cols = cols
         self.model = model
-        return self.model, model_history
+
+        # return the trained model (last run), leave one out history
+        return self.model, RUNS_HISTORY
 
 
     def evaluate_lstm_model(self, dataframe, label_col, num_sensors=None, model=None, back_cols=None, thigh_cols=None, cols=None, batch_size=None, sequence_length=None):
@@ -1129,6 +1214,23 @@ class Pipeline:
     ####################################################################################################################
     #                                            ^PIPELINE CODE FOR RUNNING MODELS^                                    #
     ####################################################################################################################
+
+    ####################################################################################################################
+    #                                            ^PIPELINE CODE FOR PLOTTING^                                    #
+    ####################################################################################################################
+
+    def plot_confusion_matrix(self, y_true, y_pred, classes, figure=None, axis=None, normalize=False, title=None):
+        plot = self.plotter.plot_confusion_matrix(y_true, y_pred, classes, normalize, title, figure=figure, axis=axis)
+
+
+
+    ####################################################################################################################
+    #                                            ^PIPELINE CODE FOR PLOTTING^                                    #
+    ####################################################################################################################
+
+
+
+
 
 
 if __name__ == '__main__':
