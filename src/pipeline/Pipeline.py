@@ -1132,6 +1132,195 @@ class Pipeline:
             raise NotImplementedError()
 
 
+    def train_RFC_model_leave_one_out(self,
+                         training_dataframe,
+                         back_cols=[0, 1, 2],
+                         thigh_cols=[3, 4, 5],
+                         back_temp_col=[6],
+                         thigh_temp_col=[7],
+                         label_col=[8],
+                         window_length=250,
+                         sampling_freq=50,
+                         train_overlap=.8,
+                         number_of_trees_in_forest=100,
+                         save_to_path=None,
+                         save_model=False,
+                         save_weights=False,
+                         target_names={'1':'All', '2':"Thigh", '3':"Back", '4':"None"}
+                         ):
+
+
+        if type(training_dataframe) == pd.DataFrame:
+           training_dataframe = [training_dataframe]
+
+        #######
+        #
+        # MAKE THE LIST WITH DATAFRAMES INTO ONE BIG DATAFRAME WE CAN EXTRACT FROM
+        #
+        ######
+        DATAFRAME = pd.DataFrame()
+        for id, df in enumerate(training_dataframe):
+            print(df)
+            df['ID'] = id
+
+            DATAFRAME = DATAFRAME.append(df)
+
+        ######### DO TRAINING AND PREDICTION HERE ###########
+        indexes = [i for i in range( 1, len( training_dataframe )+1) ]
+        X = np.array(indexes)
+
+        loo = LeaveOneOut()
+
+        RUNS_HISTORY = {}
+        previous_acc = 0.0
+        prev_save = None
+
+        self.RFC = models.get("RFC", {})
+        rfc_memory_in_seconds = 600
+        rfc_use_acc_data = True
+
+        for train_index, test_index in loo.split(X):
+            print("TRAIN:", train_index, "TEST:", test_index)
+
+            trainingset = DATAFRAME.loc[DATAFRAME['ID'].isin(train_index)]
+            testset = DATAFRAME.loc[DATAFRAME['ID'].isin(test_index)]
+
+            # extract the features
+            back, thigh, labels = self.get_features_and_labels_as_np_array(
+                df=trainingset,
+                back_columns=back_cols,
+                thigh_columns=thigh_cols,
+                label_column=label_col
+            )
+
+            btemp, ttemp, _ = self.get_features_and_labels_as_np_array(
+                df=trainingset,
+                back_columns=back_temp_col,
+                thigh_columns=thigh_temp_col,
+                label_column=None
+            )
+
+            self.RFC.train(
+                back_training_feat=back,
+                thigh_training_feat=thigh,
+                back_temp=btemp,
+                thigh_temp=ttemp,
+                labels=labels,
+                samples_pr_window=window_length,
+                sampling_freq=sampling_freq,
+                train_overlap=train_overlap,
+                number_of_trees=number_of_trees_in_forest,
+                snt_memory_seconds=rfc_memory_in_seconds,
+                use_acc_data=rfc_use_acc_data
+            )
+
+                    ########## AFTER TRAINING, FIND MEASURES
+
+            # extract the features
+            back, thigh, labels = self.get_features_and_labels_as_np_array(
+                df=testset,
+                back_columns=back_cols,
+                thigh_columns=thigh_cols,
+                label_column=label_col
+            )
+
+            btemp, ttemp, _ = self.get_features_and_labels_as_np_array(
+                df=testset,
+                back_columns=back_temp_col,
+                thigh_columns=thigh_temp_col,
+                label_column=None
+            )
+
+            #
+            preds, gt, cm = self.RFC.test(
+                back,
+                thigh,
+                [btemp, ttemp],
+                labels,
+                250
+            )
+
+            precision, recall, fscore, support = precision_recall_fscore_support(gt, preds)
+            print("P \n", precision)
+            print("R \n", recall)
+            print("F \n", fscore)
+            print("S \n", support)
+            print()
+
+
+            # only use labels present in the data
+            labels = []
+            label_values = list(set(gt)) + list(set(preds))
+            label_values = list(set(label_values))
+            label_values.sort()
+
+            for i in label_values:
+                labels.append(target_names[i])
+
+            report = classification_report(gt, preds, target_names=labels, output_dict=True)
+            acc = accuracy_score(gt, preds)
+            print("PREV ACC {} --VS--  ACC {}".format(previous_acc, acc))
+            print("Save: ", (save_to_path and (save_weights or save_model) and acc > previous_acc))
+
+            # #####
+            # # Save the model / weights
+            # #####
+            if save_to_path and (save_weights or save_model) and acc > previous_acc:
+                # path = "{}_{}_{:.3f}".format(save_to_path, "ACC", acc)
+                saved_path = self.RFC.save_model(path=save_to_path)
+                print("Done saving: {} \nSaved testmodel: {}\n Accuracy: {}".format(
+                    saved_path,
+                    indexes[test_index[0]]-1,
+                    acc
+                ))
+                previous_acc = acc
+
+                # try:
+                #     print("PREV_SAVE: ", prev_save + "_weights.h5")
+                #     if prev_save:
+                #         if save_weights:
+                #
+                #             os.system('rm {}'.format(prev_save + "_weights.h5"))
+                #         if save_model:
+                #             os.system('rm {}'.format(prev_save + ".h5"))
+                # except:
+                #     print("Previous best saved weights or model could not be deleted")
+                #
+                # prev_save = saved_path
+
+
+
+            # Save the extra info to the report
+            report['Accuracy'] = acc
+            report['Confusion_matrix'] = cm
+            report['Ground_truth'] = gt
+            report['Predictions'] = preds
+            report['Labels'] = labels
+            # Add the current run report to the overall HISTORY report
+            RUNS_HISTORY[indexes[test_index[0]]] = report
+
+        ## print the RUN HISTROY dictionary
+        # pprint.pprint(RUNS_HISTORY)
+
+
+        ## CALCULATE THE AVERAGE ACCURACY FOR THE LEAVE ONE OUT VALIDATION
+        avg_acc = 0
+        for key in RUNS_HISTORY:
+            avg_acc += RUNS_HISTORY[key]['Accuracy']
+
+        avg_acc /= len(RUNS_HISTORY.keys())
+        print("AVG ACCURACY : ", avg_acc)
+        RUNS_HISTORY['AVG_ACCURACY'] = avg_acc
+
+        #####################################################
+
+        # VARIABLE CONTROL
+        self.model = self.RFC
+
+        # return the trained model (last run), leave one out history
+        return self.RFC, RUNS_HISTORY
+
+
     def train_rfc_model(self,
                         back,
                         thigh,
@@ -1254,6 +1443,62 @@ class Pipeline:
         plot = self.plotter.plot_confusion_matrix(y_true, y_pred, classes, normalize, title, figure=figure, axis=axis)
 
 
+
+    def plot_run_history(self, run_history, num_rows, num_cols, datasets_names, img_title='run_history.png'):
+        num_rows = num_rows
+        num_cols = num_cols
+        row_height, col_height = 10, 10
+        figsize = (num_rows * row_height, num_cols * col_height)
+        fig, axis = self.plotter.start_multiple_plots(num_rows, num_cols, figsize=figsize)
+
+        row = 0
+        col = 0
+
+        for k in run_history:
+            # print("K: ", k)
+            if k == 'AVG_ACCURACY':
+                continue
+
+            run = run_history[k]
+            try:
+                labels = np.array(run['Labels'])
+                y_true = np.array(run['Ground_truth'])
+                y_pred = np.array(run['Predictions'])
+
+                if num_rows == 1 or num_cols == 1:
+                    ax = self.plotter.get_axis_at_row_column(row, None)
+                    row += 1
+                else:
+                    ax = self.plotter.get_axis_at_row_column(row, col)
+
+                    # if no more columns, and there is a new row
+                    if col + 1 >= num_cols and row + 1 < num_rows:
+                        row += 1
+
+                    # write out the row
+                    if col + 1 < num_cols:
+                        col += 1
+                    else:
+                        col = 0
+
+                # if num_cols >= 2, use col index when get axis at row column, else column = None and use row as index
+
+                ax.set_yscale('linear')
+                ax.set_title('linear')
+                ax.grid(True)
+
+                ds = datasets_names[k - 1]
+                title = str(ds).split("/")[-1] + " :: AVG ACC: " + str(run_history[k]['Accuracy'])
+                self.plot_confusion_matrix(y_true, y_pred, labels, figure=fig, axis=ax, title=title)
+            except Exception as e:
+                print("Woopsises; ", e)
+                continue
+            finally:
+                pass
+                # input("....")
+
+        # self.plotter.plotter_show()
+        self.plotter.plotter_save(name=img_title)
 
     ####################################################################################################################
     #                                            ^PIPELINE CODE FOR PLOTTING^                                    #
