@@ -926,6 +926,7 @@ class Pipeline:
 
         RUNS_HISTORY = {}
         previous_acc = 0.0
+        prev_save = None
 
         for train_index, test_index in loo.split(X):
             print("TRAIN:", train_index, "TEST:", test_index)
@@ -1009,33 +1010,36 @@ class Pipeline:
             report = classification_report(gt, preds, target_names=labels, output_dict=True)
 
             acc = accuracy_score(gt, preds)
-            print("PREV ACC {} -->  ACC {}".format(previous_acc, acc))
+            print("PREV ACC {} --VS--  ACC {}".format(previous_acc, acc))
             print("Save: ", (save_to_path and (save_weights or save_model) and acc > previous_acc))
 
             #####
             # Save the model / weights
             #####
-            prev_save = None
             if save_to_path and (save_weights or save_model) and acc > previous_acc:
-                path = "{}_{}_{:.3f}".format(save_to_path, "ACC", acc)
-                print("Done saving: {} \nSaved testmodel: {}\n Accuracy: {}".format(
-                    model.save_model(path=path,
+                # path = "{}_{}_{:.3f}".format(save_to_path, "ACC", acc)
+                saved_path = model.save_model(path=save_to_path,
                                      model=save_model,
-                                     weight=save_weights),
+                                     weight=save_weights)
+                print("Done saving: {} \nSaved testmodel: {}\n Accuracy: {}".format(
+                    saved_path,
                     indexes[test_index[0]]-1,
                     acc
                 ))
                 previous_acc = acc
 
-                try:
-                    print("PREV_SAVE: ", prev_save)
-                    if prev_save:
-                        os.system('rm {}'.format(prev_save))
-                        input("...")
-                except:
-                    print("Previous best saved weights could not be deleted")
-
-                prev_save = path
+                # try:
+                #     print("PREV_SAVE: ", prev_save + "_weights.h5")
+                #     if prev_save:
+                #         if save_weights:
+                #
+                #             os.system('rm {}'.format(prev_save + "_weights.h5"))
+                #         if save_model:
+                #             os.system('rm {}'.format(prev_save + ".h5"))
+                # except:
+                #     print("Previous best saved weights or model could not be deleted")
+                #
+                # prev_save = saved_path
 
 
 
