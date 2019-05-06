@@ -1017,8 +1017,8 @@ class Pipeline:
             # Save the model / weights
             #####
             if save_to_path and (save_weights or save_model) and acc > previous_acc:
-                # path = "{}_{}_{:.3f}".format(save_to_path, "ACC", acc)
-                saved_path = model.save_model(path=save_to_path,
+                path = "{}_{}_{:.3f}".format(save_to_path, "ACC", acc)
+                saved_path = model.save_model(path=path,
                                      model=save_model,
                                      weight=save_weights)
                 print("Done saving: {} \nSaved testmodel: {}\n Accuracy: {}".format(
@@ -1028,18 +1028,17 @@ class Pipeline:
                 ))
                 previous_acc = acc
 
-                # try:
-                #     print("PREV_SAVE: ", prev_save + "_weights.h5")
-                #     if prev_save:
-                #         if save_weights:
-                #
-                #             os.system('rm {}'.format(prev_save + "_weights.h5"))
-                #         if save_model:
-                #             os.system('rm {}'.format(prev_save + ".h5"))
-                # except:
-                #     print("Previous best saved weights or model could not be deleted")
-                #
-                # prev_save = saved_path
+                try:
+                    print("PREV_SAVE: ", prev_save)
+                    if prev_save:
+                        if save_weights:
+                            os.remove('{}'.format(prev_save))
+                        if save_model:
+                            os.remove('{}'.format(prev_save))
+                except Exception as e:
+                    print("Previous best saved weights or model could not be deleted\n", e)
+
+                prev_save = saved_path
 
 
 
@@ -1279,9 +1278,9 @@ class Pipeline:
                     print("PREV_SAVE: ", prev_save, path)
                     input("...")
                     if prev_save:
-                            os.sytem('rm -rf {}'.format(prev_save))
-                except:
-                    print("Previous best saved weights or model could not be deleted")
+                            os.remove('{}'.format(prev_save))
+                except Exception as e:
+                    print("Previous best saved weights or model could not be deleted\n", e)
 
                 prev_save = path
 
