@@ -1266,27 +1266,24 @@ class Pipeline:
             # # Save the model / weights
             # #####
             if save_to_path and (save_weights or save_model) and acc > previous_acc:
-                # path = "{}_{}_{:.3f}".format(save_to_path, "ACC", acc)
-                saved_path = self.RFC.save_model(path=save_to_path)
+                path = "{}_{}_{:.3f}.h5".format(save_to_path, "ACC", acc)
+                self.RFC.save_model(path=path)
                 print("Done saving: {} \nSaved testmodel: {}\n Accuracy: {}".format(
-                    saved_path,
+                    path,
                     indexes[test_index[0]]-1,
                     acc
                 ))
                 previous_acc = acc
 
-                # try:
-                #     print("PREV_SAVE: ", prev_save + "_weights.h5")
-                #     if prev_save:
-                #         if save_weights:
-                #
-                #             os.system('rm {}'.format(prev_save + "_weights.h5"))
-                #         if save_model:
-                #             os.system('rm {}'.format(prev_save + ".h5"))
-                # except:
-                #     print("Previous best saved weights or model could not be deleted")
-                #
-                # prev_save = saved_path
+                try:
+                    print("PREV_SAVE: ", prev_save, path)
+                    input("...")
+                    if prev_save:
+                            os.sytem('rm -rf {}'.format(prev_save))
+                except:
+                    print("Previous best saved weights or model could not be deleted")
+
+                prev_save = path
 
 
 
