@@ -950,6 +950,14 @@ class Pipeline:
                     shuffle=shuffle,
                     callbacks=callbacks
                 )
+
+                preds, gt, cm = model.predict(
+                    dataframes=[testset],
+                    batch_size=batch_size,
+                    sequence_length=sequence_length,
+                    back_cols=back_cols,
+                    thigh_cols=thigh_cols,
+                    label_col=label_col)
             else:
                 cols = back_cols or thigh_cols
                 self.num_sensors = 1
@@ -966,13 +974,12 @@ class Pipeline:
                     callbacks=callbacks,
                 )
 
-            preds, gt, cm = model.predict(
-                dataframes=[testset],
-                batch_size=batch_size,
-                sequence_length=sequence_length,
-                back_cols=back_cols,
-                thigh_cols=thigh_cols,
-                label_col=label_col)
+                preds, gt, cm = model.predict(
+                    dataframes=[testset],
+                    batch_size=batch_size,
+                    sequence_length=sequence_length,
+                    cols= back_cols or thigh_cols,
+                    label_col=label_col)
 
             gt = gt.argmax(axis=1)
             preds = preds.argmax(axis=1)
@@ -1002,15 +1009,35 @@ class Pipeline:
             report = classification_report(gt, preds, target_names=labels, output_dict=True)
 
             acc = accuracy_score(gt, preds)
+            print("PREV ACC {} -->  ACC {}".format(previous_acc, acc))
+            print("Save: ", (save_to_path and (save_weights or save_model) and acc > previous_acc))
 
             #####
             # Save the model / weights
             #####
+            prev_save = None
             if save_to_path and (save_weights or save_model) and acc > previous_acc:
-                print("Done saving: {}".format(
-                    model.save_model_andOr_weights(path=save_to_path, model=save_model, weight=save_weights)
-                )
-            )
+                path = "{}_{}_{:.3f}".format(save_to_path, "ACC", acc)
+                print("Done saving: {} \nSaved testmodel: {}\n Accuracy: {}".format(
+                    model.save_model(path=path,
+                                     model=save_model,
+                                     weight=save_weights),
+                    indexes[test_index[0]]-1,
+                    acc
+                ))
+                previous_acc = acc
+
+                try:
+                    print("PREV_SAVE: ", prev_save)
+                    if prev_save:
+                        os.system('rm {}'.format(prev_save))
+                        input("...")
+                except:
+                    print("Previous best saved weights could not be deleted")
+
+                prev_save = path
+
+
 
             # Save the extra info to the report
             report['Accuracy'] = acc

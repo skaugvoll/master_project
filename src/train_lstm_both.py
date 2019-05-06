@@ -59,7 +59,7 @@ _, run_history = pipObj.train_lstm_model(
     config_path='../params/config.yml',
     label_col='label',
     save_to_path="trained_models/both_sensors_" + str(now.day) + "_" + str(now.month),
-    save_weights=False,
+    save_weights=True,
     shuffle=False
 )
 
@@ -104,11 +104,8 @@ for k in run_history:
         else:
             col = 0
 
-
-
-
         ds = train_list_with_subjects[k - 1]
-        title = str(ds).split("/")[-1] + " :: AVG ACC: " + str(run_history[k]['Accuracy'])
+        title = str(ds).split("/")[-1] + " :: Accuracy: " + str(run_history[k]['Accuracy'])
         pipObj.plot_confusion_matrix(y_true, y_pred, labels, figure=fig, axis=ax, title=title)
     except Exception as e:
         print("Woopsises; ", e)
@@ -118,4 +115,4 @@ for k in run_history:
         # input("....")
 
 # pipObj.plotter.plotter_show()
-pipObj.plotter.plotter_save()
+pipObj.plotter.plotter_save(name="BOTH-LOO-2.png")

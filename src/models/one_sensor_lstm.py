@@ -6,6 +6,7 @@ import numpy as np
 
 from keras.layers import Input, Concatenate, Dropout, Activation, Dense, Add, Bidirectional, BatchNormalization
 from keras.models import Model
+from sklearn.metrics import confusion_matrix
 
 from . import HARModel
 from ..layers.lstm import LSTM
@@ -35,6 +36,8 @@ class OneSensorLSTM( HARModel ):
     self.num_outputs = self.encoder.num_active_classes
 
     self.colorPrinter = ColorPrinter()
+    self.test_ground_truth_labels = []
+    self.predictions = []
 
     # Build network
     self.build()
@@ -162,24 +165,59 @@ class OneSensorLSTM( HARModel ):
     x1 = self.get_features( dataframes, cols, batch_size=batch_size, sequence_length=sequence_length )
     y = self.get_labels( dataframes, label_col, batch_size=batch_size, sequence_length=sequence_length )
 
-    res = self.model.evaluate(
+    loss, acc = self.model.evaluate(
       x=x1,
       y=y,
       batch_size=batch_size,
     )
 
-    ret_labels = self.model.metrics_names
-    return_object = {}
-    for i, l in enumerate(ret_labels):
-      return_object[l] = res[i]
+    print("ACC: ", acc)
+    return (loss, acc)
 
-    return return_object
+
+    # ret_labels = self.model.metrics_names
+    # return_object = {}
+    # for i, l in enumerate(ret_labels):
+    #   return_object[l] = res[i]
+    #
+    # return return_object
     #
     # return self.model.evaluate(
     #   x=x1,
     #   y=y,
     #   batch_size=batch_size,
     # )
+
+
+
+  def predict( self,
+      dataframes,
+      batch_size=None,
+      sequence_length=None,
+      cols=['x', 'y', 'z'],
+      label_col='label'
+      ):
+
+    # Make batch_size and sequence_length default to architecture params
+    batch_size = batch_size or self.batch_size
+    sequence_length = sequence_length or self.sequence_length
+
+    # Get design matrices of training data
+    x1 = self.get_features( dataframes, cols, batch_size=batch_size, sequence_length=sequence_length )
+
+    # Get labels as onehotencoding
+    y = self.get_labels( dataframes, label_col, batch_size=batch_size, sequence_length=sequence_length )
+
+    # Variables for evaluation, debugging, etc
+    self.test_ground_truth_labels = y
+
+
+    self.predictions = self.model.predict(
+      x=x1,
+      batch_size=batch_size,
+    )
+
+    return self.predictions, self.test_ground_truth_labels, self.calculate_confusion_matrix()
 
   def predict_on_one_window(self, window):
     '''
@@ -459,10 +497,10 @@ class OneSensorLSTM( HARModel ):
     out = Activation( 'softmax' )( net )
     # Make model
     self.model = Model(inputs=ipt, outputs=out )
-    self.model.compile(loss='categorical_crossentropy', optimizer='adagrad', metrics=['accuracy'])
+    self.compile()
 
     print(self.colorPrinter.colorString(">>>>>>> BUILD COMPLETE <<<<<<<<", "green", bright=True))
-
+    print(self.model.summary())
 
   def lstm_layer( self, *args, **kwargs ):
     if self.bidirectional:
@@ -477,4 +515,49 @@ class OneSensorLSTM( HARModel ):
       return Activation(activation)(Add()([l0,l1]))
 
   def compile(self):
-    self.model.compile(loss='categorical_crossentropy', optimizer='adagrad', metrics=['accuracy'])
+    self.model.compile(loss='categorical_crossentropy', optimizer='adadelta', metrics=['accuracy'])
+
+
+  def calculate_confusion_matrix(self):
+      gt = self.test_ground_truth_labels # is one hot vector
+      preds = self.predictions # is probability for each class
+
+      gt2 = self.encoder.one_hot_decode(gt)
+      gt = gt.argmax(axis=1)
+
+      preds = preds.argmax(axis=1)
+
+      labels_used = set(preds) # [0, n]
+
+      labels = [self.encoder.name_lookup[i + 1] for i in labels_used]
+
+      self.confusion_matrix = confusion_matrix(gt, preds)
+      # self.print_cm(self.confusion_matrix, labels)
+
+      return self.confusion_matrix
+
+
+  def print_cm(self, cm, labels, hide_zeroes=False, hide_diagonal=False, hide_threshold=None):
+    """pretty print for confusion matrixes"""
+    columnwidth = max([len(x) for x in labels] + [5])  # 5 is value length
+    empty_cell = " " * columnwidth
+
+    # Print header
+    print("    " + empty_cell, end=" ")
+    for label in labels:
+      print("%{0}s".format(columnwidth) % label, end=" ")
+    print()
+
+    # Print rows
+    for i, label1 in enumerate(labels):
+      print("    %{0}s".format(columnwidth) % label1, end=" ")
+      for j in range(len(labels)):
+        cell = "%{0}.1f".format(columnwidth) % cm[i, j]
+        if hide_zeroes:
+          cell = cell if float(cm[i, j]) != 0 else empty_cell
+        if hide_diagonal:
+          cell = cell if i != j else empty_cell
+        if hide_threshold:
+          cell = cell if cm[i, j] > hide_threshold else empty_cell
+        print(cell, end=" ")
+      print()
