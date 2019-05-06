@@ -1,10 +1,13 @@
 import sys, os
+
+
 try: sys.path.append( os.path.abspath( os.path.join( os.path.dirname( __file__), '..')))
 except: print("SAdsadsadhsa;hkldasjkd")
 
-
+from matplotlib.ticker import FuncFormatter
 import matplotlib.pyplot as plt
 import matplotlib as mpl
+import numpy as np
 import os, re
 import pandas as pd
 
@@ -13,14 +16,41 @@ class Plotter():
         # self.root_dir = os.path.dirname(os.path.abspath(__file__))
         print
 
-    def plot_temperature(self, temp_dataframe):
-        df = pd.read_csv(temp_dataframe)
+
+    def plot_lines(self, dataframe, columns_to_print, styles_to_print, outputname):
+    # columns_to_print = ['bx', 'by', 'bz', 'tx', 'ty', 'tz']
+    # styles_to_print = ['r-', 'g--', 'b-.', 'c', 'y', 'm']
+
+        df = pd.read_csv(dataframe)
         # df.columns = ['time', 'bx', 'by', 'bz', 'tx', 'ty', 'tz', 'label']
         # df[['time', 'btemp']].plot(style=['r-'])
-        df[['bx', 'by', 'bz', 'tx', 'ty', 'tz', ]].plot(style=['r-', 'g--', 'b-.', 'c', 'y', 'm'])
-        plt.savefig('Temp.png')
+        df[columns_to_print].plot(style=styles_to_print)
+        plt.savefig(outputname)
 
+    def plot_snt_barchart(self, values, outputname, title):
+        # plt.rcdefaults()
 
+        objects = ('1 - All', '2 - Thigh', '3 - Back', '4 - None')
+        x = np.arange(len(objects))
+
+        def millions(x, pos):
+            'The two args are the value and tick position'
+            return '%1.1fM' % (x * 1e-6)
+
+        formatter = FuncFormatter(millions)
+
+        fig, ax = plt.subplots()
+        ax.yaxis.set_major_formatter(formatter)
+        bars = ax.bar(x, values, align='center', color='white')
+        for bar in bars:
+            height = bar.get_height()
+            ax.text(bar.get_x() + bar.get_width() / 2., height + 10,
+                    '%d' % int(height),
+                    ha='center', va='bottom')
+        plt.bar(x, values)
+        plt.xticks(x, objects)
+        plt.savefig(outputname)
+        plt.title(title)
 
     ##########################
 
@@ -157,7 +187,19 @@ class Plotter():
     # create single
 if __name__ == '__main__':
     pl = Plotter()
-    pl.plot_temperature('../../data/temp/merged/res006.csv')
+    pl.plot_snt_barchart([17398515, 3089850, 2946800, 29461400], 'SNT.png', 'SNT dataset distribution')
+    pl.plot_snt_barchart([4077200, 333950, 431850, 3797000], '001.png', 'Recording 001')
+    pl.plot_snt_barchart([5930850, 1506850, 883650, 6390650], '002.png', 'Recording 002')
+    pl.plot_snt_barchart([1629400, 425600, 369200, 6072600], '003.png', 'Recording 003')
+    pl.plot_snt_barchart([1233515, 279000, 265200, 2311000], '004.png', 'Recording 004')
+    pl.plot_snt_barchart([2520400, 544450, 996900, 10650250], '005.png', 'Recording 005')
+    pl.plot_snt_barchart([375200, 0, 0, 131800], '006.png', 'Recording 006')
+    pl.plot_snt_barchart([1631950, 0, 0, 108100], '007.png', 'Recording 007')
+
+
+
+
+    # pl.plot_lines('../../data/temp/merged/res006.csv')
     # pl.plot_temperature('../../data/temp/merged/rresampled006.csv')
     # pl.plot_temperature('../../data/temp/4000181.7z/4000181/4000181-34566_2017-09-19_B.csv')
     # pl.print_weekly_view("../../data/output/4000181_timestamped_predictions.csv")
