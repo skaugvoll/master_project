@@ -203,6 +203,7 @@ class DataHandler():
         master_df = pd.read_csv(master_path, header=header_value)
         master_df.columns = master_columns
 
+        #TODO: FIX BTEMp TTEMP
         btemp_df = pd.read_csv(slave_path, header=header_value)
         btemp_df.columns = slave_column
 

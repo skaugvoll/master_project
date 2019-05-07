@@ -2,22 +2,29 @@ import sys, os
 import numpy as np
 import cwa_converter
 import pickle
+import pprint
 import pandas as pd
+import utils.temperature_segmentation_and_calculation as temp_feature_util
 from multiprocessing import Process, Queue, Manager
 from pipeline.DataHandler import DataHandler
-import utils.temperature_segmentation_and_calculation as temp_feature_util
+from pipeline.Plotter import Plotter
 from utils import progressbar
 from src.config import Config
 from src import models
 from src.utils.WindowMemory import WindowMemory
 from src.utils.ColorPrint import ColorPrinter
+from src.utils.cmdline_input import cmd_input
 from tensorflow.keras.backend import clear_session
+from pipeline.resampler import main as resampler
+from sklearn.model_selection import LeaveOneOut
+from sklearn.metrics import precision_recall_fscore_support, classification_report, accuracy_score
 
 
 class Pipeline:
     def __init__(self):
         self.dh = DataHandler()
         self.colorPrinter = ColorPrinter()
+        self.plotter = Plotter()
         self.dataframe = None
         self.model = None
 
@@ -115,6 +122,43 @@ class Pipeline:
             intervals = dh.read_labels_from_json(filepath=intervals)
 
         dh.add_labels_file_based_on_intervals(intervals=intervals, label_col_name=column_name)
+
+
+    @staticmethod
+    def remove_files_or_dirs_from(list_with_paths):
+        for f in list_with_paths:
+            try:
+                os.system("rm -rf {}".format(f))
+            except:
+                print("Could not remove file {}".format(f))
+
+
+    def downsampleData(self,input_csv_path, out_csv_path, resampler_method='fourier', source_hz=100, target_hz=50, window_size=20000, discrete_columns=[], save=False):
+        '''
+
+        :param input_csv_path: A csv file with TIMESTAMP INDEX AND where COLUMNS are xyz from all sensors are merged into one file
+        :param out_csv_path: the relative path where to save the resampled csv file
+        :param resampler_method: DEFAULT FOURIER
+        :param source_hz: DEFAULT 100
+        :param target_hz: DEFAULT 50
+        :param window_size: DEFAULT 20 000
+        :param discrete_columns:list with column names in dataframe not to downsample. IF TRANING DATA, give ["label(s)"]
+        :return: Path to saved downsampled csv file
+        '''
+
+        result_df = resampler(
+            resampler=resampler_method,
+            source_rate=source_hz,
+            target_rate=target_hz,
+            window_size=window_size,
+            inputD=input_csv_path,
+            output=out_csv_path,
+            discrete_columns=discrete_columns,
+            save=save
+        )
+
+        return out_csv_path, result_df
+
 
 
     ####################################################################################################################
@@ -594,14 +638,16 @@ class Pipeline:
                                                                label_keywords=['GoPro', "Labels", "interval", "intervals", "json"],
                                                                synched_keywords=["timesynched"],
                                                                out_path=None,
-                                                               master_columns=['bx', 'by', 'bz'],
-                                                               slave_columns=['tx', 'ty', 'tz'],
-                                                               slave2_columns=['tx', 'ty', 'tz'],
+                                                               master_columns=['time', 'bx', 'by', 'bz', 'tx', 'ty', 'tz'],
+                                                               slave_columns=['time', 'bx1', 'by1', 'bz1', 'btemp'],
+                                                               slave2_columns=['time', 'tx1', 'ty1', 'tz1', 'ttemp'],
                                                                rearrange_columns_to=None,
                                                                save=False,
                                                                added_columns_name=["labels"],
                                                                drop_non_labels=True,
-                                                               verbose=True
+                                                               verbose=True,
+                                                               list=True,
+                                                               downsample_config=None
                                                                ):
         '''
 
@@ -645,15 +691,18 @@ class Pipeline:
         :param added_columns_name:
         :param drop_non_labels:
         :param verbose:
+        :param list:
         :return:
         '''
 
+
         for subj in list_with_subjects:
-            cwa_converter.convert_cwas_to_csv_with_temp(
-                subject_dir=subj,
-                out_dir=subj,
-                paralell=True
-            )
+            if ".7z" in subj:
+                cwa_converter.convert_cwas_to_csv_with_temp(
+                    subject_dir=subj,
+                    out_dir=subj,
+                    paralell=True
+                )
 
 
         subjects = DataHandler.findFilesInDirectoriesAndSubDirs(list_with_subjects,
@@ -665,6 +714,9 @@ class Pipeline:
 
         # print(subjects)
         merged_df = None
+        if list:
+            merged_df = []
+
         dh = DataHandler()
         dh_stacker = DataHandler()
         for idx, root_dir in enumerate(subjects):
@@ -672,61 +724,128 @@ class Pipeline:
             # print("SUBJECT: \n", subject, root_dir)
             back = os.path.join(root_dir, subject['backCSV'])
             thigh = os.path.join(root_dir, subject['thighCSV'])
-            label = os.path.join(root_dir, subject['labelCSV'])
-            timesync = os.path.join(root_dir, subject['synchedCSV'])
+            needSynchronization = ".7z" in root_dir
+            print("Need Synchronization; ", needSynchronization)
 
-            # dh = DataHandler()
-            dh.merge_multiple_csvs(
-                timesync, back, thigh,
-                out_path=out_path,
-                master_columns=master_columns,
-                slave_columns=slave_columns,
-                slave2_columns=slave2_columns,
-                merge_how='left',
-                rearrange_columns_to=rearrange_columns_to,
-                merge_on=merge_column,
-                header_value=None,
-                save=save
-            )
+            if needSynchronization:
+                timesync = os.path.join(root_dir, subject['synchedCSV'])
+                # dh = DataHandler()
+                dh.merge_multiple_csvs(
+                    timesync, back, thigh,
+                    out_path=out_path,
+                    master_columns=master_columns,
+                    slave_columns=slave_columns,
+                    slave2_columns=slave2_columns,
+                    merge_how='left',
+                    rearrange_columns_to=rearrange_columns_to,
+                    merge_on=merge_column,
+                    header_value=None,
+                    # save=save
+                )
 
-            df = dh.concat_dataframes(
-                timesync,
-                root_dir + "/btemp.txt",
-                root_dir + "/ttemp.txt",
-                master_columns=master_columns,
-                slave_column=['btemp'],  # should probably be set snz we can specify temp_col_name
-                slave2_column=['ttemp'],  # should probably be set snz we can specify temp_cl_name
-                header_value=None,
-                save=save)
+                df = dh.concat_dataframes(
+                    timesync,
+                    root_dir + "/btemp.txt",
+                    root_dir + "/ttemp.txt",
+                    master_columns=master_columns,
+                    slave_column=['btemp'],  # should probably be set snz we can specify temp_col_name
+                    slave2_column=['ttemp'],  # should probably be set snz we can specify temp_cl_name
+                    header_value=None,
+                    # save=save
+                )
 
 
-            dh.convert_column_from_str_to_datetime(
-                dataframe=dh.get_dataframe_iterator(),
-            )
+                dh.convert_column_from_str_to_datetime(
+                    dataframe=dh.get_dataframe_iterator(),
+                )
 
-            dh.set_column_as_index("time")
+                dh.set_column_as_index("time")
 
-            for col_name in added_columns_name:
-                if col_name is "labels" or col_name is "label":
-                    self.addLables(label, column_name=col_name, datahandler=dh)
-                    if drop_non_labels:
-                        dh.get_dataframe_iterator().dropna(subset=[col_name], inplace=True)
-                else:
-                    dh.add_new_column(col_name)
+                for col_name in added_columns_name:
+                    if col_name is "labels" or col_name is "label":
+                        label = os.path.join(root_dir, subject['labelCSV'])
+                        self.addLables(label, column_name=col_name, datahandler=dh)
+                        if drop_non_labels:
+                            dh.get_dataframe_iterator().dropna(subset=[col_name], inplace=True)
+                    else:
+                        dh.add_new_column(col_name)
 
-            if idx == 0:
-                merged_df = dh.get_dataframe_iterator()
-                continue
+            else:
+                label = os.path.join(root_dir, subject['labelCSV'])
+                df = dh.concat_dataframes(
+                    back,
+                    thigh,
+                    label,
+                    master_columns=['bx', 'by', 'bz'],
+                    slave_column=['tx', 'ty', 'tz'],  # should probably be set snz we can specify temp_col_name
+                    slave2_column=['label'],  # should probably be set snz we can specify temp_cl_name
+                    header_value=None)
 
-            # vertically stack the dataframes aka add the rows from dataframe2 as rows to the dataframe1
-            merged_df = dh_stacker.vertical_stack_dataframes(merged_df, dh.get_dataframe_iterator(),
-                                                             set_as_current_df=False)
+
+            # ALWAYS DO THIS, not dependent on file format.
+            if downsample_config:
+                # TODO: pass in downsample config as dictionary
+
+                if downsample_config['add_timestamps']:
+                    df.index = pd.date_range(
+                        start=pd.Timestamp.now(),
+                        periods=len(df),
+                        freq=pd.Timedelta(seconds=1/downsample_config['source_hz'])
+                    )
+
+
+                outpath, res_df = self.downsampleData(
+                    input_csv_path=df,
+                    out_csv_path=downsample_config['out_path'],
+                    discrete_columns=downsample_config['discrete_columns_list'],
+                    source_hz=downsample_config['source_hz'],
+                    target_hz=downsample_config['target_hz'],
+                    window_size=downsample_config['window_size'],
+                    save=save
+                )
+
+                print('Length {}Hz: {}\nLength {}Hz: {}'.format(
+                    downsample_config['source_hz'],
+                    len(df),
+                    downsample_config['target_hz'],
+                    len(res_df))
+                )
+
+                df = res_df
+
+            if list:
+                merged_df.append(df)
+            else:
+                if idx == 0:
+                    merged_df = dh.get_dataframe_iterator()
+                    continue
+
+                # vertically stack the dataframes aka add the rows from dataframe2 as rows to the dataframe1
+                merged_df = dh_stacker.vertical_stack_dataframes(merged_df, dh.get_dataframe_iterator(), set_as_current_df=False)
 
             progressbar.printProgressBar(idx, len(subjects), 20, explenation='Merging datasets prog.: ')
 
         progressbar.printProgressBar(len(subjects), len(subjects), 20, explenation='Merging datasets prog.: ')
+
+        if save and not list:
+            out_path_dir, out_path_filename = os.path.split(out_path)
+            if out_path_filename == "":
+                out_path_filename = "MERGED_CSVS_SYNCED_OR_NOT.csv"
+            if not os.path.exists(out_path_dir):
+                os.makedirs(out_path_dir)
+            out_path = os.path.join(out_path_dir, out_path_filename)
+            merged_df.to_csv(out_path, index=False)
+
         print("DONE")
         return merged_df
+
+    ####################################################################################################################
+    #                                            vPIPELINE CODE FOR RUNNING MODELSv                                    #
+    ####################################################################################################################
+
+
+    def instansiate_model(self, model_name, model_args):
+        return models.get(model_name, model_args)
 
 
     def train_lstm_model(self,
@@ -756,7 +875,7 @@ class Pipeline:
         :param save_model: if path and save_model [True | False] saves the model to the path
         :param save_weights: if path and save_weights [True | False] saves the weight to the path with suffix: _weights
         :param shuffle: if given, set numpy random seed to 47, then shuffle the windows and labels
-        :return: the trained model object
+        :return: model, leave one out histroy: the trained model object, a dictionary with history of leave one out passes
         '''
         '''
         src/models/__init__.py states:
@@ -797,52 +916,173 @@ class Pipeline:
         if type(training_dataframe) == pd.DataFrame:
            training_dataframe = [training_dataframe]
 
-        if back_cols and thigh_cols:
-            self.num_sensors = 2
-            cols = [back_cols, thigh_cols]
+        model_history = None
 
-            model.train(
-                train_data=training_dataframe,
-                valid_data=validation_dataframe,
-                epochs=config.TRAINING['args']['epochs'],
-                batch_size=batch_size, # gets this from config file when init model
-                sequence_length=sequence_length, # gets this from config file when init model
-                back_cols=back_cols,
-                thigh_cols=thigh_cols,
-                label_col=label_col,
-                shuffle=shuffle,
-            )
-        else:
-            cols = back_cols or thigh_cols
-            self.num_sensors = 1
+        ######### DO TRAINING AND PREDICTION HERE ###########
+        indexes = [i for i in range( 1, len( training_dataframe )+1) ]
+        X = np.array(indexes)
 
-            model.train(
-                train_data=training_dataframe,
-                valid_data=validation_dataframe,
-                callbacks=[],
-                epochs=config.TRAINING['args']['epochs'],
-                batch_size=batch_size,
-                sequence_length=sequence_length,
-                cols=cols,
-                label_col=label_col,
-                shuffle=shuffle
-            )
+        loo = LeaveOneOut()
 
-        #####
-        # Save the model / weights
-        #####
-        if save_to_path and (save_weights or save_model):
-            print("Done saving: {}".format(
-                    model.save_model_andOr_weights(path=save_to_path, model=save_model, weight=save_weights)
+        RUNS_HISTORY = {}
+        previous_acc = 0.0
+        prev_save = None
+
+        for train_index, test_index in loo.split(X):
+            print("TRAIN:", train_index, "TEST:", test_index)
+            trainingset = []
+            testset = training_dataframe[test_index[0]]
+            for idx in train_index:
+                trainingset.append(training_dataframe[idx])
+
+            if back_cols and thigh_cols:
+                self.num_sensors = 2
+                cols = [back_cols, thigh_cols]
+
+                model_history = model.train(
+                    train_data=trainingset,
+                    valid_data=validation_dataframe,
+                    epochs=config.TRAINING['args']['epochs'],
+                    batch_size=batch_size,  # gets this from config file when init model
+                    sequence_length=sequence_length,  # gets this from config file when init model
+                    back_cols=back_cols,
+                    thigh_cols=thigh_cols,
+                    label_col=label_col,
+                    shuffle=shuffle,
+                    callbacks=callbacks
                 )
-            )
 
+                preds, gt, cm = model.predict(
+                    dataframes=[testset],
+                    batch_size=batch_size,
+                    sequence_length=sequence_length,
+                    back_cols=back_cols,
+                    thigh_cols=thigh_cols,
+                    label_col=label_col)
+            else:
+                cols = back_cols or thigh_cols
+                self.num_sensors = 1
+
+                model_history = model.train(
+                    train_data=trainingset,
+                    valid_data=validation_dataframe,
+                    epochs=config.TRAINING['args']['epochs'],
+                    batch_size=batch_size,
+                    sequence_length=sequence_length,
+                    cols=cols,
+                    label_col=label_col,
+                    shuffle=shuffle,
+                    callbacks=callbacks,
+                )
+
+                preds, gt, cm = model.predict(
+                    dataframes=[testset],
+                    batch_size=batch_size,
+                    sequence_length=sequence_length,
+                    cols= back_cols or thigh_cols,
+                    label_col=label_col)
+
+            gt = gt.argmax(axis=1)
+            preds = preds.argmax(axis=1)
+
+
+            precision, recall, fscore, support = precision_recall_fscore_support(gt, preds)
+            # print("P \n", precision)
+            # print("R \n", recall)
+            # print("F \n", fscore)
+            # print("S \n", support)
+            print()
+
+            # only use labels present in the data
+            labels = []
+            label_values = list(set(gt)) + list(set(preds))
+            label_values = list(set(label_values))
+            label_values.sort()
+
+            for i in label_values:
+                # print("I: ", i)
+                shift_up_from_OHE_downshift = i + 1
+                labels.append(model.encoder.name_lookup[shift_up_from_OHE_downshift])
+
+            # print(labels)
+            # input("...")
+
+            report = classification_report(gt, preds, target_names=labels, output_dict=True)
+
+            acc = accuracy_score(gt, preds)
+            print("PREV ACC {} --VS--  ACC {}".format(previous_acc, acc))
+            print("Save: ", (save_to_path and (save_weights or save_model) and acc > previous_acc))
+
+            #####
+            # Save the model / weights
+            #####
+            if save_to_path and (save_weights or save_model) and acc > previous_acc:
+                path = "{}_{}_{:.3f}".format(save_to_path, "ACC", acc)
+                saved_path = model.save_model(path=path,
+                                     model=save_model,
+                                     weight=save_weights)
+                print("Done saving: {} \nSaved testmodel: {}\n Accuracy: {}".format(
+                    saved_path,
+                    indexes[test_index[0]]-1,
+                    acc
+                ))
+                previous_acc = acc
+
+                try:
+                    print("PREV_SAVE: ", prev_save, path)
+                    if prev_save:
+                        if save_weights:
+                            try:
+                                p = '{}_weights.h5'.format(prev_save)
+                                print(p)
+                                os.remove(p)
+                            except:
+                                print("Previous best saved weights could not be deleted")
+                        if save_model:
+                            try:
+                                os.remove('{}.h5'.format(prev_save))
+                            except:
+                                print("Previous best saved model could not be deleted\n")
+                except Exception as e:
+                    print("Previous best saved weights or model could not be deleted\n", e)
+
+                prev_save = path
+
+
+
+            # Save the extra info to the report
+            report['Accuracy'] = acc
+            report['Confusion_matrix'] = cm
+            report['Ground_truth'] = gt
+            report['Predictions'] = preds
+            report['Labels'] = labels
+            # Add the current run report to the overall HISTORY report
+            RUNS_HISTORY[indexes[test_index[0]]] = report
+
+        ## print the RUN HISTROY dictionary
+        pprint.pprint(RUNS_HISTORY)
+
+
+        ## CALCULATE THE AVERAGE ACCURACY FOR THE LEAVE ONE OUT VALIDATION
+        avg_acc = 0
+        for key in RUNS_HISTORY:
+            avg_acc += RUNS_HISTORY[key]['Accuracy']
+
+        avg_acc /= len(RUNS_HISTORY.keys())
+        print("AVG ACCURACY : ", avg_acc)
+        RUNS_HISTORY['AVG_ACCURACY'] = avg_acc
+
+        #####################################################
+
+        # VARIABLE CONTROL
         self.config = config
         self.batch_size = batch_size
         self.sequence_length = sequence_length
         self.cols = cols
         self.model = model
-        return self.model
+
+        # return the trained model (last run), leave one out history
+        return self.model, RUNS_HISTORY
 
 
     def evaluate_lstm_model(self, dataframe, label_col, num_sensors=None, model=None, back_cols=None, thigh_cols=None, cols=None, batch_size=None, sequence_length=None):
@@ -871,80 +1111,218 @@ class Pipeline:
             print("Pipeline.py :: evaluate_lstm_model ::")
             raise NotImplementedError()
 
-    def create_large_dataframe_from_multiple_training_directories(self,
-                                                               list_with_subjects,
-                                                               back_keywords=['Back', "B"],
-                                                               thigh_keywords=['Thigh', "T"],
-                                                               label_keywords=['GoPro', "Labels", "interval", "intervals", "json"],
-                                                               synched_keywords=["timesynched"],
-                                                               out_path=None,
-                                                               columns_to=None,
-                                                               save=False,
-                                                               added_columns_name=["labels"],
-                                                               drop_non_labels=True,
-                                                               verbose=True,
-                                                               list=False
-                                                               ):
 
-        subjects = DataHandler.findFilesInDirectoriesAndSubDirs(list_with_subjects,
-                                                         back_keywords,
-                                                         thigh_keywords,
-                                                         label_keywords,
-                                                         synched_keywords,
-                                                         verbose=verbose)
+    def predict_lstm_model(self, dataframe, label_col, num_sensors=None, model=None, back_cols=None, thigh_cols=None, cols=None, batch_size=None, sequence_length=None):
+        model = model or self.model
+        num_sensors = num_sensors or self.num_sensors
 
-        # print(subjects)
-        merged_df = None
-        if list:
-            merged_df = []
+        if type(dataframe) == pd.DataFrame:
+           dataframe = [dataframe]
 
-        dh = DataHandler()
-        dh_stacker = DataHandler()
-        for idx, root_dir in enumerate(subjects):
-            subject = subjects[root_dir]
-            # print("SUBJECT: \n", subject, root_dir)
-            back = os.path.join(root_dir, subject['backCSV'])
-            thigh = os.path.join(root_dir, subject['thighCSV'])
-            label = os.path.join(root_dir, subject['labelCSV'])
+        if num_sensors == 2:
+            return model.predict(
+                          dataframes=dataframe,
+                          batch_size=batch_size or self.config.TRAINING['args']['batch_size'],
+                          sequence_length=sequence_length or self.config.TRAINING['args']['sequence_length'],
+                          back_cols=self.cols[0] or back_cols,
+                          thigh_cols=self.cols[1] or thigh_cols,
+                          label_col=label_col)
+        elif num_sensors == 1:
+            return model.predict(
+                          dataframes=dataframe,
+                          batch_size=batch_size or self.config.TRAINING['args']['batch_size'],
+                          sequence_length=sequence_length or self.config.TRAINING['args']['sequence_length'],
+                          cols=self.cols or cols,
+                          label_col=label_col)
+        else:
+            print("Pipeline.py :: evaluate_lstm_model ::")
+            raise NotImplementedError()
 
 
-            df = dh.concat_dataframes(
+    def train_RFC_model_leave_one_out(self,
+                         training_dataframe,
+                         back_cols=[0, 1, 2],
+                         thigh_cols=[3, 4, 5],
+                         back_temp_col=[6],
+                         thigh_temp_col=[7],
+                         label_col=[8],
+                         window_length=250,
+                         sampling_freq=50,
+                         train_overlap=.8,
+                         number_of_trees_in_forest=100,
+                         save_to_path=None,
+                         save_model=False,
+                         save_weights=False,
+                         target_names={'1':'All', '2':"Thigh", '3':"Back", '4':"None"}
+                         ):
+
+
+        if type(training_dataframe) == pd.DataFrame:
+           training_dataframe = [training_dataframe]
+
+        #######
+        #
+        # MAKE THE LIST WITH DATAFRAMES INTO ONE BIG DATAFRAME WE CAN EXTRACT FROM
+        #
+        ######
+        DATAFRAME = pd.DataFrame()
+        for id, df in enumerate(training_dataframe):
+            print(df)
+            df['ID'] = id
+
+            DATAFRAME = DATAFRAME.append(df)
+
+        ######### DO TRAINING AND PREDICTION HERE ###########
+        indexes = [i for i in range( 1, len( training_dataframe )+1) ]
+        X = np.array(indexes)
+
+        loo = LeaveOneOut()
+
+        RUNS_HISTORY = {}
+        previous_acc = 0.0
+        prev_save = None
+
+        self.RFC = models.get("RFC", {})
+        rfc_memory_in_seconds = 600
+        rfc_use_acc_data = True
+
+        for train_index, test_index in loo.split(X):
+            print("TRAIN:", train_index, "TEST:", test_index)
+
+            trainingset = DATAFRAME.loc[DATAFRAME['ID'].isin(train_index)]
+            testset = DATAFRAME.loc[DATAFRAME['ID'].isin(test_index)]
+
+            # extract the features
+            back, thigh, labels = self.get_features_and_labels_as_np_array(
+                df=trainingset,
+                back_columns=back_cols,
+                thigh_columns=thigh_cols,
+                label_column=label_col
+            )
+
+            btemp, ttemp, _ = self.get_features_and_labels_as_np_array(
+                df=trainingset,
+                back_columns=back_temp_col,
+                thigh_columns=thigh_temp_col,
+                label_column=None
+            )
+
+            self.RFC.train(
+                back_training_feat=back,
+                thigh_training_feat=thigh,
+                back_temp=btemp,
+                thigh_temp=ttemp,
+                labels=labels,
+                samples_pr_window=window_length,
+                sampling_freq=sampling_freq,
+                train_overlap=train_overlap,
+                number_of_trees=number_of_trees_in_forest,
+                snt_memory_seconds=rfc_memory_in_seconds,
+                use_acc_data=rfc_use_acc_data
+            )
+
+                    ########## AFTER TRAINING, FIND MEASURES
+
+            # extract the features
+            back, thigh, labels = self.get_features_and_labels_as_np_array(
+                df=testset,
+                back_columns=back_cols,
+                thigh_columns=thigh_cols,
+                label_column=label_col
+            )
+
+            btemp, ttemp, _ = self.get_features_and_labels_as_np_array(
+                df=testset,
+                back_columns=back_temp_col,
+                thigh_columns=thigh_temp_col,
+                label_column=None
+            )
+
+            #
+            preds, gt, cm = self.RFC.test(
                 back,
                 thigh,
-                label,
-                master_columns=['bx', 'by', 'bz'],
-                slave_column=['tx', 'ty', 'tz'],  # should probably be set snz we can specify temp_col_name
-                slave2_column=['label'],  # should probably be set snz we can specify temp_cl_name
-                header_value=None)
+                [btemp, ttemp],
+                labels,
+                250
+            )
 
-            # TRENGER VI å GJØRE DETTE FOR DE MED LABEL SOM CSV??
-            # for col_name in added_columns_name:
-            #     if col_name is "labels" or col_name is "label":
-            #         self.addLables(label, column_name=col_name, datahandler=dh)
-            #         if drop_non_labels:
-            #             dh.get_dataframe_iterator().dropna(subset=[col_name], inplace=True)
-            #     else:
-            #         dh.add_new_column(col_name)
+            precision, recall, fscore, support = precision_recall_fscore_support(gt, preds)
+            print("P \n", precision)
+            print("R \n", recall)
+            print("F \n", fscore)
+            print("S \n", support)
+            print()
 
 
-            if list:
-                merged_df.append(df)
-            else:
-                if idx == 0:
-                    merged_df = dh.get_dataframe_iterator()
-                    continue
-                # vertically stack the dataframes aka add the rows from dataframe2 as rows to the dataframe1
-                merged_df = dh_stacker.vertical_stack_dataframes(merged_df, dh.get_dataframe_iterator(),
-                                                             set_as_current_df=False)
+            # only use labels present in the data
+            labels = []
+            label_values = list(set(gt)) + list(set(preds))
+            label_values = list(set(label_values))
+            label_values.sort()
 
-            progressbar.printProgressBar(idx, len(subjects), 20, explenation='Merging datasets prog.: ')
+            for i in label_values:
+                labels.append(target_names[i])
 
-        progressbar.printProgressBar(len(subjects), len(subjects), 20, explenation='Merging datasets prog.: ')
-        print()
-        return merged_df
+            report = classification_report(gt, preds, target_names=labels, output_dict=True)
+            acc = accuracy_score(gt, preds)
+            print("PREV ACC {} --VS--  ACC {}".format(previous_acc, acc))
+            print("Save: ", (save_to_path and (save_weights or save_model) and acc > previous_acc))
 
-    def instansiate_model(self, model_name, model_args):
-        return models.get(model_name, model_args)
+            # #####
+            # # Save the model / weights
+            # #####
+            if save_to_path and (save_weights or save_model) and acc > previous_acc:
+                path = "{}_{}_{:.3f}.h5".format(save_to_path, "ACC", acc)
+                self.RFC.save_model(path=path)
+                print("Done saving: {} \nSaved testmodel: {}\n Accuracy: {}".format(
+                    path,
+                    indexes[test_index[0]]-1,
+                    acc
+                ))
+                previous_acc = acc
+
+                try:
+                    print("PREV_SAVE: ", prev_save, path)
+                    if prev_save:
+                            os.remove('{}'.format(prev_save))
+                except Exception as e:
+                    print("Previous best saved weights or model could not be deleted\n", e)
+
+                prev_save = path
+
+
+
+            # Save the extra info to the report
+            report['Accuracy'] = acc
+            report['Confusion_matrix'] = cm
+            report['Ground_truth'] = gt
+            report['Predictions'] = preds
+            report['Labels'] = labels
+            # Add the current run report to the overall HISTORY report
+            RUNS_HISTORY[indexes[test_index[0]]] = report
+
+        ## print the RUN HISTROY dictionary
+        # pprint.pprint(RUNS_HISTORY)
+
+
+        ## CALCULATE THE AVERAGE ACCURACY FOR THE LEAVE ONE OUT VALIDATION
+        avg_acc = 0
+        for key in RUNS_HISTORY:
+            avg_acc += RUNS_HISTORY[key]['Accuracy']
+
+        avg_acc /= len(RUNS_HISTORY.keys())
+        print("AVG ACCURACY : ", avg_acc)
+        RUNS_HISTORY['AVG_ACCURACY'] = avg_acc
+
+        #####################################################
+
+        # VARIABLE CONTROL
+        self.model = self.RFC
+
+        # return the trained model (last run), leave one out history
+        return self.RFC, RUNS_HISTORY
+
 
     def train_rfc_model(self,
                         back,
@@ -1056,13 +1434,83 @@ class Pipeline:
         else:
             print("Did not save")
 
-    @staticmethod
-    def remove_files_or_dirs_from(list_with_paths):
-        for f in list_with_paths:
+    ####################################################################################################################
+    #                                            ^PIPELINE CODE FOR RUNNING MODELS^                                    #
+    ####################################################################################################################
+
+    ####################################################################################################################
+    #                                            ^PIPELINE CODE FOR PLOTTING^                                    #
+    ####################################################################################################################
+
+    def plot_confusion_matrix(self, y_true, y_pred, classes, figure=None, axis=None, normalize=False, title=None):
+        plot = self.plotter.plot_confusion_matrix(y_true, y_pred, classes, normalize, title, figure=figure, axis=axis)
+
+
+
+    def plot_run_history(self, run_history, num_rows, num_cols, datasets_names, img_title='run_history.png'):
+        num_rows = num_rows
+        num_cols = num_cols
+        row_height, col_height = 10, 10
+        figsize = (num_rows * row_height, num_cols * col_height)
+        fig, axis = self.plotter.start_multiple_plots(num_rows, num_cols, figsize=figsize)
+
+        row = 0
+        col = 0
+
+        for k in run_history:
+            # print("K: ", k)
+            if k == 'AVG_ACCURACY':
+                continue
+
+            run = run_history[k]
             try:
-                os.system("rm -rf {}".format(f))
-            except:
-                print("Could not remove file {}".format(f))
+                labels = np.array(run['Labels'])
+                y_true = np.array(run['Ground_truth'])
+                y_pred = np.array(run['Predictions'])
+
+                if num_rows == 1 or num_cols == 1:
+                    ax = self.plotter.get_axis_at_row_column(row, None)
+                    row += 1
+                else:
+                    ax = self.plotter.get_axis_at_row_column(row, col)
+
+                    # if no more columns, and there is a new row
+                    if col + 1 >= num_cols and row + 1 < num_rows:
+                        row += 1
+
+                    # write out the row
+                    if col + 1 < num_cols:
+                        col += 1
+                    else:
+                        col = 0
+
+                # if num_cols >= 2, use col index when get axis at row column, else column = None and use row as index
+
+                ax.set_yscale('linear')
+                ax.set_title('linear')
+                ax.grid(True)
+
+                ds = datasets_names[k - 1]
+                title = str(ds).split("/")[-1] + " :: AVG ACC: " + str(run_history[k]['Accuracy'])
+                self.plot_confusion_matrix(y_true, y_pred, labels, figure=fig, axis=ax, title=title)
+            except Exception as e:
+                print("Woopsises; ", e)
+                continue
+            finally:
+                pass
+                # input("....")
+
+        # self.plotter.plotter_show()
+        self.plotter.plotter_save(name=img_title)
+
+    ####################################################################################################################
+    #                                            ^PIPELINE CODE FOR PLOTTING^                                    #
+    ####################################################################################################################
+
+
+
+
+
 
 if __name__ == '__main__':
     p = Pipeline()

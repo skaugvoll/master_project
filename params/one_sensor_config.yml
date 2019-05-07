@@ -41,13 +41,13 @@ MODEL:
     gpu: True
     stateful: True
     bidirectional: True
-    output_dropout: 0.9
+    output_dropout: 0.6
     batch_norm: True
     # Independent stream for back sensor data, before being joined
     layers:
       inputs: 3
       layers:
-        - { units: 32, residual: False, dropout: False }
+        - { units: 64, residual: False, dropout: True }
     # Classes used
     classes: *CLASSES
 

@@ -23,10 +23,10 @@ list_with_subjects = [
 
 data = [
     # '../data/temp/shower_atle.7z/shower_atle',
-    # '../data/temp/nonshower_paul.7z/nonshower_paul',
+    '../data/temp/nonshower_paul.7z/nonshower_paul',
     # '../data/temp/Thomas.7z/Thomas',
     # '../data/temp/Thomas2.7z/Thomas2',
-    '../data/temp/Thomas3.7z/Thomas3',
+    # '../data/temp/Thomas3.7z/Thomas3',
     # '../data/temp/Sigve.7z/Sigve',
     # '../data/temp/Sigve2.7z/Sigve2'
 ]
@@ -52,7 +52,7 @@ dataframe = pipObj.create_large_dataframe_from_multiple_input_directories(
     added_columns_name=['labels']
 )
 
-# print(dataframe.describe())
+print(dataframe.describe())
 # print(dataframe.labels)
 
 labels = {}

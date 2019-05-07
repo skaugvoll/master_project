@@ -152,7 +152,7 @@ class HARRandomForrest():
         self.predictions = self.RFC_classifier.predict(both_features)
         print("I kinda diiiid! ")
         print("PREDICTIONS: \n{}".format(self.predictions))
-        return self.predictions
+        return self.predictions, self.test_ground_truth_labels, self.calculate_confusion_matrix()
 
     def classify(self,
                  back_test_feat,
