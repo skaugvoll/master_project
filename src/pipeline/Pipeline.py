@@ -1029,16 +1029,24 @@ class Pipeline:
                 previous_acc = acc
 
                 try:
-                    print("PREV_SAVE: ", prev_save)
+                    print("PREV_SAVE: ", prev_save, path)
                     if prev_save:
                         if save_weights:
-                            os.remove('{}'.format(prev_save))
+                            try:
+                                p = '{}_weights.h5'.format(prev_save)
+                                print(p)
+                                os.remove(p)
+                            except:
+                                print("Previous best saved weights could not be deleted")
                         if save_model:
-                            os.remove('{}'.format(prev_save))
+                            try:
+                                os.remove('{}.h5'.format(prev_save))
+                            except:
+                                print("Previous best saved model could not be deleted\n")
                 except Exception as e:
                     print("Previous best saved weights or model could not be deleted\n", e)
 
-                prev_save = saved_path
+                prev_save = path
 
 
 
@@ -1276,7 +1284,6 @@ class Pipeline:
 
                 try:
                     print("PREV_SAVE: ", prev_save, path)
-                    input("...")
                     if prev_save:
                             os.remove('{}'.format(prev_save))
                 except Exception as e:

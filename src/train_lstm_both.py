@@ -18,17 +18,17 @@ train_list_with_subjects = [
     '../data/input/training_data/008',
     '../data/input/training_data/009',
     '../data/input/training_data/010',
-    '../data/input/training_data/011',
-    '../data/input/training_data/012',
-    '../data/input/training_data/013',
-    '../data/input/training_data/014',
-    '../data/input/training_data/015',
-    '../data/input/training_data/016',
-    '../data/input/training_data/017',
-    '../data/input/training_data/018',
+    # '../data/input/training_data/011',
+    # '../data/input/training_data/012',
+    # '../data/input/training_data/013',
+    # '../data/input/training_data/014',
+    # '../data/input/training_data/015',
+    # '../data/input/training_data/016',
+    # '../data/input/training_data/017',
+    # '../data/input/training_data/018',
     '../data/input/training_data/019',
-    '../data/input/training_data/020',
-    '../data/input/training_data/021'
+    # '../data/input/training_data/020',
+    # '../data/input/training_data/021'
 ]
 
 
