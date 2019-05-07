@@ -31,7 +31,7 @@ def convert_dataframe_into_generator(dataframe, chunk_size):
 
 
 
-def read_sensor_data( file, chunksize=None, index_col=0, parse_dates=[0] ):
+def read_sensor_data( file, chunksize=None, index_col=0, parse_dates=[0]):
   '''
   Convenience function for reading sensor data in chunks
   which defaults to a datetime index at column-position 0
@@ -39,7 +39,7 @@ def read_sensor_data( file, chunksize=None, index_col=0, parse_dates=[0] ):
   return pd.read_csv( file, index_col=index_col, parse_dates=parse_dates, chunksize=chunksize )
 
 
-def write_chunked_dataframe_to_file( file, dataframe_iterator ):
+def write_chunked_dataframe_to_file( file, dataframe_iterator, save ):
     '''
     Write a chunked dataframe, meaning a dataframe that
     comes as an iterator of dataframe, to csv
@@ -49,14 +49,16 @@ def write_chunked_dataframe_to_file( file, dataframe_iterator ):
     for i, df in enumerate( dataframe_iterator ):
         if i == 0:
             result_df = df
-        df.to_csv( file, mode='a', header=(i==0))
+        if save:
+            df.to_csv( file, mode='a', header=(i==0))
+
         result_df = result_df.append(df)
 
     return result_df
 
 
 
-def main(resampler, source_rate, target_rate, window_size, inputD, output, discrete_columns):
+def main(resampler, source_rate, target_rate, window_size, inputD, output, discrete_columns, save=False):
     # Default input/output to stdin/stdout
     if inputD is None:
         print('Using stdin for input')
@@ -105,7 +107,7 @@ def main(resampler, source_rate, target_rate, window_size, inputD, output, discr
         discrete_columns=discrete_columns
     )
     # Then write it to file
-    result_df = write_chunked_dataframe_to_file(output, resampled_stream)
+    result_df = write_chunked_dataframe_to_file(output, resampled_stream, save)
 
     return result_df
 

@@ -26,6 +26,8 @@ pipObj = Pipeline()
 #     discrete_columns=['label']
 # )
 
+# ha en funksjon for a lese inn csv som dataframe, som saa blir da trining eller testing dataframe equals to return of pipObj.create_large_dataframe_from_multiple_input_directories
+#dataframe =  datahandler.load_dataframe_from_csv()
 
 trainDataframe = pipObj.create_large_dataframe_from_multiple_input_directories(
     ['../data/input/training_data/006'],
@@ -43,6 +45,5 @@ trainDataframe = pipObj.create_large_dataframe_from_multiple_input_directories(
     }
 )
 
-# ha en funksjon for a lese inn csv som dataframe, som saa blir da trining eller testing dataframe equals to return of pipObj.create_large_dataframe_from_multiple_input_directories
-#dataframe =  datahandler.load_dataframe_from_csv()
+
 
