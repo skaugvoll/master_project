@@ -69,5 +69,5 @@ print("---------------------------------------------")
 # 2 rows 1 column
 
 # num rows * num cols >= len(train_list_with_subject) 5 * 3 = 15 >= 15
-num_rows, num_cols = 5, 3
+num_rows, num_cols = 4, 4
 pipObj.plot_run_history(run_history, num_rows, num_cols, train_list_with_subjects, img_title="LOO_THIGH_RUN_HISTORY.png")
