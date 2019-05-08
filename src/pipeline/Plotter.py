@@ -22,6 +22,49 @@ class Plotter():
         self.figure = None
         self.axis = None
 
+    def plot_resample(self):
+        for i in range(6, 23):
+            if i == 7:
+                continue
+            if i < 10:
+                subject = '00' + str(i)
+                print(i)
+            else:
+                subject = '0' + str(i)
+                print(i)
+            df = pd.read_csv('../../data/temp/merged/res'+subject+'.csv')
+            rdf = pd.read_csv('../../data/temp/merged/resampled'+subject+'.csv')
+            b_columns_to_print = ['bx', 'by', 'bz']
+            r_columns_to_print = ['tx', 'ty', 'tz']
+            styles_to_print = ['c-', 'y--', 'm-.']
+            # styles_to_print = ['r-', 'g--', 'b-.', 'c', 'y', 'm']
+
+            fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(9, 8))
+
+            # fig = plt.figure()
+            # fig.add_subplot(221)  # top left
+            df[b_columns_to_print].plot(style=styles_to_print, ax=axes[0, 0])
+            axes[0, 0].set_title('Raw '+subject+' Back x, y, z')
+            axes[0, 0].set_ylim([-8, 8])
+
+            # fig.add_subplot(222)  # top right
+            rdf[b_columns_to_print].plot(style=styles_to_print, ax=axes[0, 1])
+            axes[0, 1].set_title('Resampeled '+subject+' Back x, y, z')
+            axes[0, 1].set_ylim([-8, 8])
+
+            # fig.add_subplot(223)  # bottom left
+            df[r_columns_to_print].plot(style=styles_to_print, ax=axes[1, 0])
+            axes[1, 0].set_title('Raw '+subject+' Thigh x, y, z')
+            axes[1, 0].set_ylim([-8, 8])
+
+            # fig.add_subplot(224)
+            rdf[r_columns_to_print].plot(style=styles_to_print, ax=axes[1, 1])
+            axes[1, 1].set_title('Resampeled '+subject+' Thigh x, y, z')
+            axes[1, 1].set_ylim([-8, 8])
+
+
+            plt.savefig('../../data/temp/merged/Comparison '+subject)
+
 
     def plot_lines(self, dataframe, columns_to_print, styles_to_print, outputname):
     # columns_to_print = ['bx', 'by', 'bz', 'tx', 'ty', 'tz']
@@ -295,14 +338,17 @@ class Plotter():
 if __name__ == '__main__':
     pl = Plotter()
 
-    pl.plot_snt_barchart([17398515, 3089850, 2946800, 29461400], 'SNT.png', 'SNT dataset distribution')
-    pl.plot_snt_barchart([4077200, 333950, 431850, 3797000], '001.png', 'Recording 001')
-    pl.plot_snt_barchart([5930850, 1506850, 883650, 6390650], '002.png', 'Recording 002')
-    pl.plot_snt_barchart([1629400, 425600, 369200, 6072600], '003.png', 'Recording 003')
-    pl.plot_snt_barchart([1233515, 279000, 265200, 2311000], '004.png', 'Recording 004')
-    pl.plot_snt_barchart([2520400, 544450, 996900, 10650250], '005.png', 'Recording 005')
-    pl.plot_snt_barchart([375200, 0, 0, 131800], '006.png', 'Recording 006')
-    pl.plot_snt_barchart([1631950, 0, 0, 108100], '007.png', 'Recording 007')
+    pl.plot_resample()
+    # pl.plot_lines('../../data/temp/merged/res009.csv', ['bx', 'by', 'bz'], ['c', 'y', 'm'], '009plot')
+    #
+    # pl.plot_snt_barchart([17398515, 3089850, 2946800, 29461400], 'SNT.png', 'SNT dataset distribution')
+    # pl.plot_snt_barchart([4077200, 333950, 431850, 3797000], '001.png', 'Recording 001')
+    # pl.plot_snt_barchart([5930850, 1506850, 883650, 6390650], '002.png', 'Recording 002')
+    # pl.plot_snt_barchart([1629400, 425600, 369200, 6072600], '003.png', 'Recording 003')
+    # pl.plot_snt_barchart([1233515, 279000, 265200, 2311000], '004.png', 'Recording 004')
+    # pl.plot_snt_barchart([2520400, 544450, 996900, 10650250], '005.png', 'Recording 005')
+    # pl.plot_snt_barchart([375200, 0, 0, 131800], '006.png', 'Recording 006')
+    # pl.plot_snt_barchart([1631950, 0, 0, 108100], '007.png', 'Recording 007')
 
     # pl.plot_lines('../../data/temp/merged/res006.csv')
     # pl.plot_temperature('../../data/temp/merged/res006.csv', 'Original')
