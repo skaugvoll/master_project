@@ -44,14 +44,12 @@ def write_chunked_dataframe_to_file( file, dataframe_iterator, save ):
     Write a chunked dataframe, meaning a dataframe that
     comes as an iterator of dataframe, to csv
     '''
-
     result_df = None
     for i, df in enumerate( dataframe_iterator ):
         if i == 0:
             result_df = df
         if save:
             df.to_csv( file, mode='a', header=(i==0))
-
         result_df = result_df.append(df)
 
     return result_df
