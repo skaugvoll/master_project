@@ -729,7 +729,7 @@ class Pipeline:
 
             if needSynchronization:
                 timesync = os.path.join(root_dir, subject['synchedCSV'])
-                # dh = DataHandler()
+
                 dh.merge_multiple_csvs(
                     timesync, back, thigh,
                     out_path=out_path,
