@@ -107,7 +107,7 @@ class Plotter():
         convertToMin = lambda m: (m / 50) / 60
         convertToHrs = lambda h: ((h / 50) / 60) / 60
 
-        fig, ax = plt.subplots(figsize=(9,6))
+        fig, ax = plt.subplots(figsize=(12,6))
         ax.yaxis.set_major_formatter(formatter)
         bars = ax.bar(x, values, align='center', color='white')
 
@@ -128,6 +128,8 @@ class Plotter():
                     ha='center', va='bottom')
         plt.bar(x, values)
         plt.xticks(x, objects)
+        plt.xlabel('Label')
+        plt.ylabel('Minutes of recorded data')
         plt.savefig(outputname)
         plt.title(title)
 
@@ -371,7 +373,7 @@ if __name__ == '__main__':
     # pl.plot_resample()
     # pl.plot_lines('../../data/temp/merged/res009.csv', ['bx', 'by', 'bz'], ['c', 'y', 'm'], '009plot')
     #
-    pl.plot_snt_barchart([17398515, 3089850, 2946800, 29461400], 'SIGVE TEST Hrs.png', 'SNT dataset distribution', metric='Min')
+    pl.plot_snt_barchart([17398515, 3089850, 2946800, 29461400], 'snt-dataset-distribution-mins.png', 'SNT dataset distribution', metric='Min')
     # pl.plot_snt_barchart([4077200, 333950, 431850, 3797000], '001.png', 'Recording 001')
     # pl.plot_snt_barchart([5930850, 1506850, 883650, 6390650], '002.png', 'Recording 002')
     # pl.plot_snt_barchart([1629400, 425600, 369200, 6072600], '003.png', 'Recording 003')

@@ -69,4 +69,6 @@ print(transitions)
 
 
 plt.bar(labels, transitions)
+plt.xlabel('Transition')
+plt.ylabel('# Transitions')
 plt.savefig("transitionPlotTest.png")
