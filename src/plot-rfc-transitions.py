@@ -48,6 +48,8 @@ sigve2      = [3,2,0,2,0,1,2,0,1,1,0,0]
 
 shower_atle = [0,0,4,0,0,0,0,0,0,0,0,3]
 nshower_paul= [0,0,2,0,0,0,0,0,0,0,0,2]
+vegard = [0,0,2,0,0,0,0,0,0,0,0,2]
+eivind = [0,0,2,0,0,0,0,0,0,0,0,2]
 
 
 def add_list_elements_together(*lists):
@@ -64,7 +66,7 @@ def add_list_elements_together(*lists):
 
 
 print("SUM ALL DATASETS CONCATINATED")
-transitions = add_list_elements_together(thomas, thomas2, thomas3, sigve, sigve2, shower_atle, nshower_paul)
+transitions = add_list_elements_together(thomas, thomas2, thomas3, sigve, sigve2, shower_atle, nshower_paul, vegard, eivind)
 print(transitions)
 
 
