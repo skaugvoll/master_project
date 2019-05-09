@@ -76,7 +76,7 @@ class Plotter():
         df[columns_to_print].plot(style=styles_to_print)
         plt.savefig(outputname)
 
-    def plot_snt_barchart(self, values, outputname, title):
+    def plot_snt_barchart(self, values, outputname, title, metric='Hrs'):
         # plt.rcdefaults()
 
         objects = ('1 - All', '2 - Thigh', '3 - Back', '4 - None')
@@ -86,15 +86,45 @@ class Plotter():
             'The two args are the value and tick position'
             return '%1.1fM' % (x * 1e-6)
 
-        formatter = FuncFormatter(millions)
+        def minutes(x, pos):
+            # one sample is 1/50 seconds
+            # minutes = lambda x,y: "{1.2f Min}".format( x * (1/50))
+            return "{:10.2f} Min".format((x / 50) / 60)
 
-        fig, ax = plt.subplots()
+        def hours(x, pos):
+            # one sample is 1/50 seconds
+            # minutes = lambda x,y: "{1.2f Min}".format( x * (1/50))
+            return "{:10.2f} Hrs".format(((x / 50) / 60)  / 60 )
+
+
+        if metric == 'Hrs':
+            formatter = FuncFormatter(hours)
+        elif metric == 'Min':
+            formatter = FuncFormatter(minutes)
+        else:
+            formatter = FuncFormatter(hours)
+
+        convertToMin = lambda m: (m / 50) / 60
+        convertToHrs = lambda h: ((h / 50) / 60) / 60
+
+        fig, ax = plt.subplots(figsize=(9,6))
         ax.yaxis.set_major_formatter(formatter)
         bars = ax.bar(x, values, align='center', color='white')
+
         for bar in bars:
-            height = bar.get_height()
-            ax.text(bar.get_x() + bar.get_width() / 2., height + 10,
-                    '%d' % int(height),
+            orgHeight = bar.get_height()
+            height = orgHeight
+
+            if metric == 'Hrs':
+                height = convertToHrs(height)
+            elif metric == 'Min':
+                height = convertToMin(height)
+            else:
+                height = convertToHrs(Height)
+            # height = int(height)
+
+            ax.text(bar.get_x() + bar.get_width() / 2., orgHeight + 10,
+                    '{:.2f} {}'.format(height, metric),
                     ha='center', va='bottom')
         plt.bar(x, values)
         plt.xticks(x, objects)
@@ -338,10 +368,10 @@ class Plotter():
 if __name__ == '__main__':
     pl = Plotter()
 
-    pl.plot_resample()
+    # pl.plot_resample()
     # pl.plot_lines('../../data/temp/merged/res009.csv', ['bx', 'by', 'bz'], ['c', 'y', 'm'], '009plot')
     #
-    # pl.plot_snt_barchart([17398515, 3089850, 2946800, 29461400], 'SNT.png', 'SNT dataset distribution')
+    pl.plot_snt_barchart([17398515, 3089850, 2946800, 29461400], 'SIGVE TEST Hrs.png', 'SNT dataset distribution', metric='Min')
     # pl.plot_snt_barchart([4077200, 333950, 431850, 3797000], '001.png', 'Recording 001')
     # pl.plot_snt_barchart([5930850, 1506850, 883650, 6390650], '002.png', 'Recording 002')
     # pl.plot_snt_barchart([1629400, 425600, 369200, 6072600], '003.png', 'Recording 003')
