@@ -47,14 +47,15 @@ MODEL:
     layers:
       inputs: 3
       layers:
-        - { units: 64, residual: False, dropout: True }
+        - { units: 32, residual: False, dropout: False }
+        - { units: 32, residual: False, dropout: True }
     # Classes used
     classes: *CLASSES
 
 # Arguments to use when doing training
 TRAINING:
   args:
-    epochs: 10
+    epochs: 40
     batch_size: 512
     sequence_length: 250
     callbacks:

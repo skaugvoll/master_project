@@ -1,6 +1,4 @@
 import sys, os
-
-
 try: sys.path.append( os.path.abspath( os.path.join( os.path.dirname( __file__), '..')))
 except: print("SAdsadsadhsa;hkldasjkd")
 
@@ -71,6 +69,7 @@ class Plotter():
     # styles_to_print = ['r-', 'g--', 'b-.', 'c', 'y', 'm']
 
         df = pd.read_csv(dataframe)
+        # df = dataframe
         # df.columns = ['time', 'bx', 'by', 'bz', 'tx', 'ty', 'tz', 'label']
         # df[['time', 'btemp']].plot(style=['r-'])
         df[columns_to_print].plot(style=styles_to_print)
