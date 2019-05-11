@@ -11,32 +11,41 @@ from src import models
 pipObj = Pipeline()
 
 
-list_with_subjects = [
-    '../data/input/shower_atle.7z',
-    # '../data/input/nonshower_paul.7z',
-    # '../data/input/Thomas.7z',
-    # '../data/input/Thomas2.7z',
-    # '../data/input/Sigve.7z'
-]
-
-###unzip all data
-unzipped_paths = pipObj.unzip_multiple_directories(list_with_subjects, zip_to="../data/temp/")
-print(unzipped_paths)
+# list_with_subjects = [
+#     '../data/input/shower_atle.7z',
+#     # '../data/input/nonshower_paul.7z',
+#     # '../data/input/Thomas.7z',
+#     # '../data/input/Thomas2.7z',
+#     # '../data/input/Sigve.7z'
+# ]
+#
+# ###unzip all data
+# unzipped_paths = pipObj.unzip_multiple_directories(list_with_subjects, zip_to="../data/temp/")
+# print(unzipped_paths)
 
 
 train = [
-    # '../data/temp/shower_atle.7z/shower_atle',
-    # '../data/temp/nonshower_paul.7z/nonshower_paul',
-    # '../data/temp/Thomas.7z/Thomas',
-    # '../data/temp/Thomas2.7z/Thomas2',
-    '../data/temp/Sigve2.7z/Sigve2',
     # '../data/temp/Sigve.7z/Sigve'
+    '../data/temp/Sigve2.7z/Sigve2',
+    '../data/temp/Thomas.7z/Thomas',
+    '../data/temp/Thomas2.7z/Thomas2',
+    '../data/temp/Thomas3.7z/Thomas3',
+    '../data/temp/shower_atle.7z/shower_atle',
+    '../data/temp/nonshower_paul.7z/nonshower_paul',
+    '../data/temp/Vegard.7z/Vegard',
+    '../data/temp/Eivind.7z/Eivind',
     ]
 
 test = [
-    # '../data/temp/Thomas.7z/Thomas',
     '../data/temp/Sigve.7z/Sigve'
+    # '../data/temp/Sigve2.7z/Sigve2',
+    # '../data/temp/Thomas.7z/Thomas',
+    # '../data/temp/Thomas2.7z/Thomas2',
+    # '../data/temp/Thomas3.7z/Thomas3',
+    # '../data/temp/shower_atle.7z/shower_atle',
     # '../data/temp/nonshower_paul.7z/nonshower_paul',
+    # '../data/temp/Vegard.7z/Vegard',
+    # '../data/temp/Eivind.7z/Eivind',
 ]
 
 
@@ -59,7 +68,8 @@ trainDataframe = pipObj.create_large_dataframe_from_multiple_input_directories(
                 ],
     save=False,
     added_columns_name=['labels'],
-    list=False
+    list=False,
+    files=True
 )
 
 # extract the features
@@ -111,7 +121,9 @@ testDataframe = pipObj.create_large_dataframe_from_multiple_input_directories(
                         'ttemp'
                     ],
     save=False,
-    added_columns_name=['labels']
+    added_columns_name=['labels'],
+    list=False,
+    files=True
 
 )
 
