@@ -778,12 +778,13 @@ class DataHandler():
                 if dirnames == [] and filenames:
                     sub_dirs.append(dirpath)
 
-        subjects = {}
+        subjects = []
         for subject in sub_dirs:
             if not os.path.exists(subject):
                 print("Could not find Subject at path: ", subject)
 
-            files = {}
+            files = [None] * 5
+            files[0] = subject
             for sub_files_and_dirs in os.listdir(subject):
                 # print(sub_files_and_dirs)
                 words = re.split("[_ .]", sub_files_and_dirs)
@@ -796,22 +797,23 @@ class DataHandler():
                                                                    for word in words for keyword in keywords]
 
                 if any(check_for_matching_word(words, back_keywords)):
-                    files["backCSV"] = sub_files_and_dirs
+                    files[2] = sub_files_and_dirs
 
                 elif any(check_for_matching_word(words, thigh_keywords)):
-                    files["thighCSV"] = sub_files_and_dirs
+                    files[1] = sub_files_and_dirs
 
                 elif any(check_for_matching_word(words, label_keywords)):
-                    files["labelCSV"] = sub_files_and_dirs
+                    files[3] = sub_files_and_dirs
 
                 elif any(check_for_matching_word(words, synched_keywords)):
-                    files["synchedCSV"] = sub_files_and_dirs
+                    files[4] = sub_files_and_dirs
 
-            subjects[subject] = files
+            subjects.append(files)
         if verbose:
             print("Found following subjects")
-            for k, _ in subjects.items():
-                print("Subject: {}".format(k))
+            # for k, _ in subjects.items():
+            #     print("Subject: {}".format(k))
+            print(subjects)
         return subjects
 
 
