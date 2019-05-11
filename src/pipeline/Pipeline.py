@@ -647,7 +647,8 @@ class Pipeline:
                                                                drop_non_labels=True,
                                                                verbose=True,
                                                                list=True,
-                                                               downsample_config=None
+                                                               downsample_config=None,
+                                                               files=False
                                                                ):
         '''
 
@@ -692,12 +693,13 @@ class Pipeline:
         :param drop_non_labels:
         :param verbose:
         :param list:
+        :param files: if True(csv for sensors and temp txt files consists) cwa convert and merge_csv is not performed
         :return:
         '''
 
 
         for subj in list_with_subjects:
-            if ".7z" in subj:
+            if ".7z" in subj and not files:
                 cwa_converter.convert_cwas_to_csv_with_temp(
                     subject_dir=subj,
                     out_dir=subj,
@@ -730,18 +732,19 @@ class Pipeline:
             if needSynchronization:
                 timesync = os.path.join(root_dir, subject['synchedCSV'])
 
-                dh.merge_multiple_csvs(
-                    timesync, back, thigh,
-                    out_path=out_path,
-                    master_columns=master_columns,
-                    slave_columns=slave_columns,
-                    slave2_columns=slave2_columns,
-                    merge_how='left',
-                    rearrange_columns_to=rearrange_columns_to,
-                    merge_on=merge_column,
-                    header_value=None,
-                    # save=save
-                )
+                if not files:
+                    dh.merge_multiple_csvs(
+                        timesync, back, thigh,
+                        out_path=out_path,
+                        master_columns=master_columns,
+                        slave_columns=slave_columns,
+                        slave2_columns=slave2_columns,
+                        merge_how='left',
+                        rearrange_columns_to=rearrange_columns_to,
+                        merge_on=merge_column,
+                        header_value=None,
+                        # save=save
+                    )
 
                 df = dh.concat_dataframes(
                     timesync,

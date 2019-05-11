@@ -12,12 +12,15 @@ pipObj = Pipeline()
 
 
 list_with_subjects = [
-    '../data/input/Sigve.7z',
-    '../data/input/Sigve2.7z',
-    '../data/input/Thomas.7z',
-    '../data/input/Thomas2.7z',
-    '../data/input/shower_atle.7z',
-    '../data/input/nonshower_paul.7z',
+    # '../data/input/Sigve.7z',
+    # '../data/input/Sigve2.7z',
+    # '../data/input/Thomas.7z',
+    # '../data/input/Thomas2.7z',
+    # '../data/input/Thomas3.7z',
+    # '../data/input/shower_atle.7z',
+    # '../data/input/nonshower_paul.7z',
+    # '../data/input/Vegard.7z',
+    # '../data/input/Eivind.7z',
 
 ]
 #
@@ -31,9 +34,11 @@ data = [
     # '../data/temp/nonshower_paul.7z/nonshower_paul',
     # '../data/temp/Thomas.7z/Thomas',
     # '../data/temp/Thomas2.7z/Thomas2',
-    # '../data/temp/Thomas3.7z/Thomas3',
     # '../data/temp/Sigve.7z/Sigve',
     # '../data/temp/Sigve2.7z/Sigve2'
+    # '../data/temp/Thomas3.7z/Thomas3',
+    # '../data/temp/Vegard.7z/Vegard',
+    '../data/temp/Eivind.7z/Eivind'
 ]
 
 dataframe = pipObj.create_large_dataframe_from_multiple_input_directories(
@@ -55,11 +60,12 @@ dataframe = pipObj.create_large_dataframe_from_multiple_input_directories(
                 ],
     save=False,
     added_columns_name=['labels'],
-    # files=True,
-    drop_non_labels=False
+    drop_non_labels=False,
+    list=False,
+    files=True
 )
 
-print(dataframe.describe())
+
 # print(dataframe.labels)
 
 # import matplotlib.pyplot as plt
