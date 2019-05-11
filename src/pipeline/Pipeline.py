@@ -648,7 +648,7 @@ class Pipeline:
                                                                drop_non_labels=True,
                                                                verbose=True,
                                                                list=True,
-                                                               downsample_config=None
+                                                               downsample_config=None,
                                                                ):
         '''
 
@@ -697,6 +697,7 @@ class Pipeline:
         '''
 
 
+
         for subj in list_with_subjects:
             if ".7z" in subj:
                 cwa_converter.convert_cwas_to_csv_with_temp(
@@ -720,16 +721,17 @@ class Pipeline:
 
         dh = DataHandler()
         dh_stacker = DataHandler()
-        for idx, root_dir in enumerate(subjects):
-            subject = subjects[root_dir]
+        for idx, subject in enumerate(subjects):
+            root_dir = subject[0]
             # print("SUBJECT: \n", subject, root_dir)
-            back = os.path.join(root_dir, subject['backCSV'])
-            thigh = os.path.join(root_dir, subject['thighCSV'])
+            back = os.path.join(root_dir, subject[2])
+            thigh = os.path.join(root_dir, subject[1])
             needSynchronization = ".7z" in root_dir
             print("Need Synchronization; ", needSynchronization)
 
             if needSynchronization:
-                timesync = os.path.join(root_dir, subject['synchedCSV'])
+                timesync = os.path.join(root_dir, subject[4])
+
 
                 dh.merge_multiple_csvs(
                     timesync, back, thigh,
@@ -764,8 +766,8 @@ class Pipeline:
 
                 for col_name in added_columns_name:
                     if col_name is "labels" or col_name is "label":
-                        label = os.path.join(root_dir, subject['labelCSV'])
-                        print("LABEL FILE USED IS : {}".format(subject['labelCSV']))
+                        label = os.path.join(root_dir, subject[3])
+                        print("LABEL FILE USED IS : {}".format(subject[3]))
 
                         self.addLables(label, column_name=col_name, datahandler=dh)
                         if drop_non_labels:
@@ -774,7 +776,7 @@ class Pipeline:
                         dh.add_new_column(col_name)
 
             else:
-                label = os.path.join(root_dir, subject['labelCSV'])
+                label = os.path.join(root_dir, subject[3])
                 df = dh.concat_dataframes(
                     back,
                     thigh,
@@ -1156,7 +1158,8 @@ class Pipeline:
                          save_to_path=None,
                          save_model=False,
                          save_weights=False,
-                         target_names={'1':'All', '2':"Thigh", '3':"Back", '4':"None"}
+                         target_names={'1':'All', '2':"Thigh", '3':"Back", '4':"None"},
+                         data_names = None
                          ):
 
 
@@ -1303,6 +1306,10 @@ class Pipeline:
             report['Predictions'] = preds
             report['Labels'] = labels
             # Add the current run report to the overall HISTORY report
+
+            if data_names:
+                report['Dataset'] = data_names[test_index[0]]
+
             RUNS_HISTORY[indexes[test_index[0]]] = report
 
         ## print the RUN HISTROY dictionary
