@@ -1,6 +1,7 @@
 import sys, os
 import numpy as np
 import cwa_converter
+import json
 import pickle
 import pprint
 import pandas as pd
@@ -698,6 +699,7 @@ class Pipeline:
         '''
 
 
+
         for subj in list_with_subjects:
             if ".7z" in subj and not files:
                 cwa_converter.convert_cwas_to_csv_with_temp(
@@ -721,16 +723,17 @@ class Pipeline:
 
         dh = DataHandler()
         dh_stacker = DataHandler()
-        for idx, root_dir in enumerate(subjects):
-            subject = subjects[root_dir]
+        for idx, subject in enumerate(subjects):
+            root_dir = subject[0]
             # print("SUBJECT: \n", subject, root_dir)
-            back = os.path.join(root_dir, subject['backCSV'])
-            thigh = os.path.join(root_dir, subject['thighCSV'])
+            back = os.path.join(root_dir, subject[2])
+            thigh = os.path.join(root_dir, subject[1])
             needSynchronization = ".7z" in root_dir
             print("Need Synchronization; ", needSynchronization)
 
             if needSynchronization:
-                timesync = os.path.join(root_dir, subject['synchedCSV'])
+                timesync = os.path.join(root_dir, subject[4])
+
 
                 if not files:
                     dh.merge_multiple_csvs(
@@ -766,7 +769,9 @@ class Pipeline:
 
                 for col_name in added_columns_name:
                     if col_name is "labels" or col_name is "label":
-                        label = os.path.join(root_dir, subject['labelCSV'])
+                        label = os.path.join(root_dir, subject[3])
+                        print("LABEL FILE USED IS : {}".format(subject[3]))
+
                         self.addLables(label, column_name=col_name, datahandler=dh)
                         if drop_non_labels:
                             dh.get_dataframe_iterator().dropna(subset=[col_name], inplace=True)
@@ -774,7 +779,7 @@ class Pipeline:
                         dh.add_new_column(col_name)
 
             else:
-                label = os.path.join(root_dir, subject['labelCSV'])
+                label = os.path.join(root_dir, subject[3])
                 df = dh.concat_dataframes(
                     back,
                     thigh,
@@ -1156,7 +1161,8 @@ class Pipeline:
                          save_to_path=None,
                          save_model=False,
                          save_weights=False,
-                         target_names={'1':'All', '2':"Thigh", '3':"Back", '4':"None"}
+                         target_names={'1':'All', '2':"Thigh", '3':"Back", '4':"None"},
+                         data_names = None
                          ):
 
 
@@ -1303,6 +1309,10 @@ class Pipeline:
             report['Predictions'] = preds
             report['Labels'] = labels
             # Add the current run report to the overall HISTORY report
+
+            if data_names:
+                report['Dataset'] = data_names[test_index[0]]
+
             RUNS_HISTORY[indexes[test_index[0]]] = report
 
         ## print the RUN HISTROY dictionary
@@ -1510,8 +1520,67 @@ class Pipeline:
     #                                            ^PIPELINE CODE FOR PLOTTING^                                    #
     ####################################################################################################################
 
+    def calculate_avg_prec_recall_f1(self, run_history):
+        avg_precision_1 = 0
+        avg_precision_2 = 0
+        avg_precision_3 = 0
+        avg_precision_4 = 0
+
+        avg_recall_1 = 0
+        avg_recall_2 = 0
+        avg_recall_3 = 0
+        avg_recall_4 = 0
+
+        avg_f1_1 = 0
+        avg_f1_2 = 0
+        avg_f1_3 = 0
+        avg_f1_4 = 0
+
+        divisor = 0
+
+        for k in run_history:
+            if k == 'AVG_ACCURACY':
+                continue
+
+            divisor += 1
 
 
+
+            avg_precision_1 += run_history.get(k, {}).get('All', {}).get('precision', 0)
+            avg_precision_2 += run_history.get(k, {}).get('Thigh', {}).get('precision', 0)
+            avg_precision_3 += run_history.get(k, {}).get('Back', {}).get('precision', 0)
+            avg_precision_4 += run_history.get(k, {}).get('None', {}).get('precision', 0)
+
+            avg_recall_1 += run_history.get(k, {}).get('All', {}).get('recall', 0)
+            avg_recall_2 += run_history.get(k, {}).get('Thigh', {}).get('recall', 0)
+            avg_recall_3 += run_history.get(k, {}).get('Back', {}).get('recall', 0)
+            avg_recall_4 += run_history.get(k, {}).get('None', {}).get('recall', 0)
+
+            avg_f1_1 += run_history.get(k, {}).get('All', {}).get('f1-score', 0)
+            avg_f1_2 += run_history.get(k, {}).get('Thigh', {}).get('f1-score', 0)
+            avg_f1_3 += run_history.get(k, {}).get('Back', {}).get('f1-score', 0)
+            avg_f1_4 += run_history.get(k, {}).get('None', {}).get('f1-score', 0)
+
+        precision = [avg_precision_1, avg_precision_2, avg_precision_3, avg_precision_4]
+        recall = [avg_recall_1, avg_recall_2, avg_recall_3, avg_recall_4]
+        f1 = [avg_f1_1, avg_f1_2, avg_f1_3, avg_f1_4]
+
+        precision = [x / divisor for x in precision]
+        recall = [x / divisor for x in recall]
+        f1 = [x / divisor for x in f1]
+
+        print("_____________________________________________________________________")
+        print("{:^5}\t{:^10}\t{:^10}\t{:^10}".format("Label", "Presicion", "Recall", "F1-score"))
+        for i in range(4):
+            print("{:^5}\t{:^10.3f}\t{:^10.3f}\t{:^10.3f}".format(i, precision[i], recall[i], f1[i]))
+        print("_____________________________________________________________________")
+
+        return precision, recall, f1
+
+
+    def save_run_history_to_file(self, run_history, outputfile):
+        with open(outputfile, "w") as file:
+            pprint.pprint(run_history, file)
 
 
 
