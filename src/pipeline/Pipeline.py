@@ -1501,7 +1501,7 @@ class Pipeline:
                 ax.grid(True)
 
                 ds = datasets_names[k - 1]
-                title = str(ds).split("/")[-1] + " :: AVG ACC: " + str(run_history[k]['Accuracy'])
+                title = str(ds).split("/")[-1] + " :: ACC: " + str(run_history[k]['Accuracy'])
                 self.plot_confusion_matrix(y_true, y_pred, labels, figure=fig, axis=ax, title=title)
             except Exception as e:
                 print("Woopsises; ", e)
@@ -1517,7 +1517,7 @@ class Pipeline:
     #                                            ^PIPELINE CODE FOR PLOTTING^                                    #
     ####################################################################################################################
 
-    def calculate_avg_prec_recall_f1(self, run_history):
+    def calculate_avg_prec_recall_f1(self, run_history, add_to_history=False):
         avg_precision_1 = 0
         avg_precision_2 = 0
         avg_precision_3 = 0
@@ -1571,6 +1571,11 @@ class Pipeline:
         for i in range(4):
             print("{:^5}\t{:^10.3f}\t{:^10.3f}\t{:^10.3f}".format(i, precision[i], recall[i], f1[i]))
         print("_____________________________________________________________________")
+
+        if add_to_history:
+            run_history['AVG_PRECISION'] = precision
+            run_history['AVG_RECALL'] = recall
+            run_history['AVG_F1'] = f1
 
         return precision, recall, f1
 
