@@ -33,7 +33,7 @@ unzipped_paths = [
     '../data/temp/P1_atle.7z/P1_atle',
     '../data/temp/P1_vegar.7z/P1_vegar',
     '../data/temp/P2_atle.7z/P2_atle',
-    '../data/temp/P2_vegar.7z/P2_vegar'
+    '../data/temp/P2_vegar.7z/P2_vegar',
     # '../data/temp/Sigve.7z/Sigve',
     # '../data/temp/Thomas.7z/Thomas',
     # '../data/temp/Thomas2.7z/Thomas2',
@@ -44,7 +44,6 @@ unzipped_paths = [
     # '../data/temp/Vegard.7z/Vegard',
     # '../data/temp/Eivind.7z/Eivind',
 ]
-
 
 # Trenger ikke downsample, da data er recorded i 50Hz
 dataframes = pipObj.create_large_dataframe_from_multiple_input_directories(
@@ -72,12 +71,14 @@ _, run_history = pipObj.train_RFC_model_leave_one_out(
 )
 
 print("---------------------------------------------")
-pipObj.plot_run_history(run_history, 3, 3, unzipped_paths, img_title="LOO_RFC_RUN_HISTORY.png")
+pipObj.plot_run_history(run_history, 3, 3, unzipped_paths, img_title="TEST_LOO_RFC_RUN_HISTORY.png")
 
 print("AVG ACCURACY: ", run_history['AVG_ACCURACY'])
 
-pipObj.calculate_avg_prec_recall_f1(run_history)
+pipObj.calculate_avg_prec_recall_f1(run_history, add_to_history=True)
 
 # write RUN_HISTORY to JSON FILE
-pipObj.save_run_history_to_file(run_history, "RFC_RUN_P_WD_WM.json")
+pipObj.save_run_history_to_file(run_history, "RFC_RUN_LOO_WD_WM.json")
+
+print("AVG PRECISION: ", run_history['AVG_PRECISION'])
 
