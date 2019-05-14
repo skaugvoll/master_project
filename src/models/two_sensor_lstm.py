@@ -207,19 +207,27 @@ class TwoSensorLSTM( HARModel ):
     x1 = self.get_features( dataframes, back_cols, batch_size=batch_size, sequence_length=sequence_length )
     x2 = self.get_features( dataframes, thigh_cols, batch_size=batch_size, sequence_length=sequence_length )
 
-    y = self.get_labels( dataframes, label_col, batch_size=batch_size, sequence_length=sequence_length )
+    if label_col:
+      y = self.get_labels( dataframes, label_col, batch_size=batch_size, sequence_length=sequence_length )
 
-    # Variables for evaluation, debugging, etc
-    self.test_ground_truth_labels = y
+      # Variables for evaluation, debugging, etc
+      self.test_ground_truth_labels = y
 
 
-    self.predictions = self.model.predict(
-      x=[x1, x2],
-      batch_size=batch_size,
-    )
+      self.predictions = self.model.predict(
+        x=[x1, x2],
+        batch_size=batch_size,
+      )
 
-    return self.predictions, self.test_ground_truth_labels, self.calculate_confusion_matrix()
+      return self.predictions, self.test_ground_truth_labels, self.calculate_confusion_matrix()
+    
+    else:
+      self.predictions = self.model.predict(
+        x=[x1, x2],
+        batch_size=batch_size,
+      )
 
+      return self.predictions
 
 
   def predict_on_one_window( self, window ):

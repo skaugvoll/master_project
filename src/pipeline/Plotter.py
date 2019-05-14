@@ -373,6 +373,7 @@ if __name__ == '__main__':
     # pl.plot_lines('../../data/temp/merged/res009.csv', ['bx', 'by', 'bz'], ['c', 'y', 'm'], '009plot')
     #
     # pl.plot_snt_barchart([22282065, 3089850, 2946800, 30718950], '../../data/temp/snt/snt-dataset-distribution-mins.png', 'SNT dataset distribution', metric='Min')
+    pl.plot_snt_barchart([1378000, 748700, 949550, 0], '../../data/temp/snt/snt-dataset-distribution-mins-reinsve.png', 'SNT dataset distribution Reinsve', metric='Min')
     # pl.plot_snt_barchart([4077200, 333950, 431850, 3797000], '../../data/temp/snt/001-Sigve1.png', 'Recording 001', metric='Min')
     # pl.plot_snt_barchart([5930850, 1506850, 883650, 6390650], '../../data/temp/snt/002-Sigve2.png', 'Recording 002', metric='Min')
     # pl.plot_snt_barchart([1629400, 425600, 369200, 6072600], '../../data/temp/snt/003-Thomas1.png', 'Recording 003', metric='Min')

@@ -236,7 +236,6 @@ class Pipeline:
         b_clm = DataHandler.getAttributeOrReturnDefault(dataframe_columns, 'back_features')
         t_clm = DataHandler.getAttributeOrReturnDefault(dataframe_columns, 'thigh_features')
         l_clm = DataHandler.getAttributeOrReturnDefault(dataframe_columns, 'label_column')
-
         btemp = DataHandler.getAttributeOrReturnDefault(dataframe_columns, 'back_temp')
         ttemp = DataHandler.getAttributeOrReturnDefault(dataframe_columns, 'thigh_temp')
 
@@ -509,9 +508,9 @@ class Pipeline:
                 windowMemory.update_num_windows()
 
                 counter += 1
-
             print("DONE")
 
+        result_df['timestart'].sort_values(inplace=True)
         return bth_class, thigh_class, back_class, result_df
 
         # classifiers = {}
@@ -1148,22 +1147,24 @@ class Pipeline:
 
 
     def train_RFC_model_leave_one_out(self,
-                         training_dataframe,
-                         back_cols=[0, 1, 2],
-                         thigh_cols=[3, 4, 5],
-                         back_temp_col=[6],
-                         thigh_temp_col=[7],
-                         label_col=[8],
-                         window_length=250,
-                         sampling_freq=50,
-                         train_overlap=.8,
-                         number_of_trees_in_forest=100,
-                         save_to_path=None,
-                         save_model=False,
-                         save_weights=False,
-                         target_names={'1':'All', '2':"Thigh", '3':"Back", '4':"None"},
-                         data_names = None
-                         ):
+                        training_dataframe,
+                        back_cols=[0, 1, 2],
+                        thigh_cols=[3, 4, 5],
+                        back_temp_col=[6],
+                        thigh_temp_col=[7],
+                        label_col=[8],
+                        window_length=250,
+                        sampling_freq=50,
+                        train_overlap=.8,
+                        number_of_trees_in_forest=100,
+                        save_to_path=None,
+                        save_model=False,
+                        save_weights=False,
+                        target_names={'1':'All', '2':"Thigh", '3':"Back", '4':"None"},
+                        data_names = None,
+                        rfc_memory_in_seconds=600,
+                        rfc_use_acc_data=True
+                        ):
 
 
         if type(training_dataframe) == pd.DataFrame:
@@ -1176,7 +1177,7 @@ class Pipeline:
         ######
         DATAFRAME = pd.DataFrame()
         for id, df in enumerate(training_dataframe):
-            print(df)
+            # print(df)
             df['ID'] = id
 
             DATAFRAME = DATAFRAME.append(df)
@@ -1192,8 +1193,6 @@ class Pipeline:
         prev_save = None
 
         self.RFC = models.get("RFC", {})
-        rfc_memory_in_seconds = 600
-        rfc_use_acc_data = True
 
         for train_index, test_index in loo.split(X):
             print("TRAIN:", train_index, "TEST:", test_index)
@@ -1253,7 +1252,9 @@ class Pipeline:
                 thigh,
                 [btemp, ttemp],
                 labels,
-                250
+                250,
+                snt_memory_seconds= rfc_memory_in_seconds,
+                use_acc_data=rfc_use_acc_data
             )
 
             precision, recall, fscore, support = precision_recall_fscore_support(gt, preds)

@@ -30,15 +30,19 @@ list_with_subjects = [
 
 
 unzipped_paths = [
-'../data/temp/Eivind.7z/Eivind',
-'../data/temp/Vegard.7z/Vegard',
-'../data/temp/Sigve2.7z/Sigve2',
-'../data/temp/Sigve.7z/Sigve',
-'../data/temp/Thomas3.7z/Thomas3',
-'../data/temp/Thomas2.7z/Thomas2',
-'../data/temp/Thomas.7z/Thomas',
-'../data/temp/nonshower_paul.7z/nonshower_paul',
-'../data/temp/shower_atle.7z/shower_atle',
+    '../data/temp/P1_atle.7z/P1_atle',
+    '../data/temp/P1_vegar.7z/P1_vegar',
+    '../data/temp/P2_atle.7z/P2_atle',
+    '../data/temp/P2_vegar.7z/P2_vegar'
+    # '../data/temp/Sigve.7z/Sigve',
+    # '../data/temp/Thomas.7z/Thomas',
+    # '../data/temp/Thomas2.7z/Thomas2',
+    # '../data/temp/shower_atle.7z/shower_atle',
+    # '../data/temp/nonshower_paul.7z/nonshower_paul',
+    # '../data/temp/Sigve2.7z/Sigve2',
+    # '../data/temp/Thomas3.7z/Thomas3',
+    # '../data/temp/Vegard.7z/Vegard',
+    # '../data/temp/Eivind.7z/Eivind',
 ]
 
 
@@ -48,7 +52,8 @@ dataframes = pipObj.create_large_dataframe_from_multiple_input_directories(
     merge_column=None,
     save=False,
     added_columns_name=['label'],
-    list=True
+    list=True,
+    files=True
 )
 
 
@@ -61,7 +66,9 @@ _, run_history = pipObj.train_RFC_model_leave_one_out(
     label_col='label',
     save_weights=True,
     save_to_path="trained_models/LOO_RFC_" + str(now.day) + "_" + str(now.month),
-    data_names=unzipped_paths
+    data_names=unzipped_paths,
+    rfc_memory_in_seconds=600,
+    rfc_use_acc_data = True
 )
 
 print("---------------------------------------------")
@@ -72,5 +79,5 @@ print("AVG ACCURACY: ", run_history['AVG_ACCURACY'])
 pipObj.calculate_avg_prec_recall_f1(run_history)
 
 # write RUN_HISTORY to JSON FILE
-pipObj.save_run_history_to_file(run_history, "RFC_RUN_HISTORY_LOO.json")
+pipObj.save_run_history_to_file(run_history, "RFC_RUN_P_WD_WM.json")
 

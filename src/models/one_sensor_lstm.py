@@ -205,19 +205,28 @@ class OneSensorLSTM( HARModel ):
     # Get design matrices of training data
     x1 = self.get_features( dataframes, cols, batch_size=batch_size, sequence_length=sequence_length )
 
-    # Get labels as onehotencoding
-    y = self.get_labels( dataframes, label_col, batch_size=batch_size, sequence_length=sequence_length )
+    if label_col:
+      # Get labels as onehotencoding
+      y = self.get_labels( dataframes, label_col, batch_size=batch_size, sequence_length=sequence_length )
 
-    # Variables for evaluation, debugging, etc
-    self.test_ground_truth_labels = y
+      # Variables for evaluation, debugging, etc
+      self.test_ground_truth_labels = y
 
 
-    self.predictions = self.model.predict(
-      x=x1,
-      batch_size=batch_size,
-    )
+      self.predictions = self.model.predict(
+        x=x1,
+        batch_size=batch_size,
+      )
 
-    return self.predictions, self.test_ground_truth_labels, self.calculate_confusion_matrix()
+      return self.predictions, self.test_ground_truth_labels, self.calculate_confusion_matrix()
+
+    else:
+      self.predictions = self.model.predict(
+        x=x1,
+        batch_size=batch_size,
+      )
+
+      return self.predictions
 
   def predict_on_one_window(self, window):
     '''
@@ -228,7 +237,7 @@ class OneSensorLSTM( HARModel ):
     # self.compile()
     classification = self.model.predict(window, batch_size=1)
     prob = classification.max(axis=1)
-    target = classification.argmax(axis=1)
+    target = self.encoder.one_hot_decode( classification )
     return target, prob
 
   def inference( self, dataframe_iterator,
