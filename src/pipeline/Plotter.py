@@ -106,9 +106,9 @@ class Plotter():
         convertToMin = lambda m: (m / 50) / 60
         convertToHrs = lambda h: ((h / 50) / 60) / 60
 
-        fig, ax = plt.subplots(figsize=(12,6))
+        fig, ax = plt.subplots(figsize=(11,6))
         ax.yaxis.set_major_formatter(formatter)
-        bars = ax.bar(x, values, align='center', color='white')
+        bars = ax.bar(x, values, align='center', width=0.4)
 
         for bar in bars:
             orgHeight = bar.get_height()
@@ -119,13 +119,13 @@ class Plotter():
             elif metric == 'Min':
                 height = convertToMin(height)
             else:
-                height = convertToHrs(Height)
+                height = convertToHrs(height)
             # height = int(height)
 
             ax.text(bar.get_x() + bar.get_width() / 2., orgHeight + 10,
                     '{:.2f} {}'.format(height, metric),
                     ha='center', va='bottom')
-        plt.bar(x, values)
+        # plt.bar(x, values, width=0.4, align='edge')
         plt.xticks(x, objects)
         plt.xlabel('Label')
         plt.ylabel('Minutes of recorded data')
@@ -372,14 +372,17 @@ if __name__ == '__main__':
     # pl.plot_resample()
     # pl.plot_lines('../../data/temp/merged/res009.csv', ['bx', 'by', 'bz'], ['c', 'y', 'm'], '009plot')
     #
-    pl.plot_snt_barchart([17398515, 3089850, 2946800, 29461400], 'snt-dataset-distribution-mins.png', 'SNT dataset distribution', metric='Min')
-    # pl.plot_snt_barchart([4077200, 333950, 431850, 3797000], '001.png', 'Recording 001')
-    # pl.plot_snt_barchart([5930850, 1506850, 883650, 6390650], '002.png', 'Recording 002')
-    # pl.plot_snt_barchart([1629400, 425600, 369200, 6072600], '003.png', 'Recording 003')
-    # pl.plot_snt_barchart([1233515, 279000, 265200, 2311000], '004.png', 'Recording 004')
-    # pl.plot_snt_barchart([2520400, 544450, 996900, 10650250], '005.png', 'Recording 005')
-    # pl.plot_snt_barchart([375200, 0, 0, 131800], '006.png', 'Recording 006')
-    # pl.plot_snt_barchart([1631950, 0, 0, 108100], '007.png', 'Recording 007')
+    # pl.plot_snt_barchart([22282065, 3089850, 2946800, 30718950], '../../data/temp/snt/snt-dataset-distribution-mins.png', 'SNT dataset distribution', metric='Min')
+    pl.plot_snt_barchart([1378000, 748700, 949550, 0], '../../data/temp/snt/snt-dataset-distribution-mins-reinsve.png', 'SNT dataset distribution Reinsve', metric='Min')
+    # pl.plot_snt_barchart([4077200, 333950, 431850, 3797000], '../../data/temp/snt/001-Sigve1.png', 'Recording 001', metric='Min')
+    # pl.plot_snt_barchart([5930850, 1506850, 883650, 6390650], '../../data/temp/snt/002-Sigve2.png', 'Recording 002', metric='Min')
+    # pl.plot_snt_barchart([1629400, 425600, 369200, 6072600], '../../data/temp/snt/003-Thomas1.png', 'Recording 003', metric='Min')
+    # pl.plot_snt_barchart([1233515, 279000, 265200, 2311000], '../../data/temp/snt/004-Thomas2.png', 'Recording 004', metric='Min')
+    # pl.plot_snt_barchart([2520400, 544450, 996900, 10650250], '../../data/temp/snt/005-Thomas3.png', 'Recording 005', metric='Min')
+    # pl.plot_snt_barchart([375200, 0, 0, 131800], '../../data/temp/snt/006-Atle.png', 'Recording 006', metric='Min')
+    # pl.plot_snt_barchart([1631950, 0, 0, 108100], '../../data/temp/snt/007-Paul.png', 'Recording 007', metric='Min')
+    # pl.plot_snt_barchart([1321750, 0, 0, 1075300], '../../data/temp/snt/008-Vegard.png', 'Recording 008', metric='Min')
+    # pl.plot_snt_barchart([3561800, 0, 0, 182250], '../../data/temp/snt/009-Eivind.png', 'Recording 009', metric='Min')
 
     # pl.plot_lines('../../data/temp/merged/res006.csv')
     # pl.plot_temperature('../../data/temp/merged/res006.csv', 'Original')

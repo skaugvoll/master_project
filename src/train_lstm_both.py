@@ -28,7 +28,8 @@ train_list_with_subjects = [
     '../data/input/training_data/018',
     '../data/input/training_data/019',
     '../data/input/training_data/020',
-    '../data/input/training_data/021'
+    '../data/input/training_data/021',
+    '../data/input/training_data/022'
 ]
 
 

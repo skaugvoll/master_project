@@ -293,7 +293,7 @@ class DataHandler():
             else if columns is specifiec, the pd.read_csv will set header param to None, meaning use the first row as data row
             '''
             self.dataframe_iterator = csv_loader.csv_chunker(self.data_synched_csv_path, chunk_size, ts_index=0,
-                                                             columns=None, n_days=max_days)
+                                                             columns=columns, n_days=max_days)
 
         else:
             # TODO : read up on what the chunksize and parse_dates parameter does
