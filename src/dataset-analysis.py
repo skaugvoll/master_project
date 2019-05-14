@@ -11,7 +11,7 @@ pipObj = Pipeline()
 
 
 
-list_with_subjects = [
+# list_with_subjects = [
     # '../data/input/Sigve.7z',
     # '../data/input/Sigve2.7z',
     # '../data/input/Thomas.7z',
@@ -21,12 +21,15 @@ list_with_subjects = [
     # '../data/input/nonshower_paul.7z',
     # '../data/input/Vegard.7z',
     # '../data/input/Eivind.7z',
-
-]
+    # '../data/input/P1_atle.7z',
+    # '../data/input/P1_vegar.7z',
+    # '../data/input/P2_atle.7z',
+    # '../data/input/P2_vegar.7z',
 #
+# ]
+
 # data = pipObj.unzip_multiple_directories(list_with_subjects, zip_to="../data/temp/")
 # print(unzipped_paths)
-
 
 
 data = [
@@ -38,7 +41,11 @@ data = [
     # '../data/temp/Sigve2.7z/Sigve2'
     # '../data/temp/Thomas3.7z/Thomas3',
     # '../data/temp/Vegard.7z/Vegard',
-    '../data/temp/Eivind.7z/Eivind'
+    # '../data/temp/Eivind.7z/Eivind'
+    # '../data/temp/P1_atle.7z/P1_atle',
+    # '../data/temp/P1_vegar.7z/P1_vegar',
+    # '../data/temp/P2_atle.7z/P2_atle',
+    # '../data/temp/P2_vegar.7z/P2_vegar'
 ]
 
 dataframe = pipObj.create_large_dataframe_from_multiple_input_directories(
@@ -62,7 +69,7 @@ dataframe = pipObj.create_large_dataframe_from_multiple_input_directories(
     added_columns_name=['labels'],
     drop_non_labels=False,
     list=False,
-    files=True
+    files=False
 )
 
 
