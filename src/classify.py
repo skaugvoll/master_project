@@ -103,17 +103,17 @@ lstm_models_path = {
     "1": {
         "config": "../params/config.yml",
         "saved_model": "trained_models/test_model_two_sensors.h5",
-        "weights": "trained_models/both_sensors_13_5_ACC_0.914_weights.h5"
+        "weights": "trained_models/BOTH_SENSORS_BAD_ACC_0.840_weights.h5"
     },
     "2": {
-        "config": "../params/one_sensor_config.yml",
+        "config": "../params/thigh_sensor_config.yml",
         "saved_model": "trained_models/test_model_thigh_sensor.h5",
-        "weights": "trained_models/thigh_sensors_13_5_ACC_0.842_weights.h5"
+        "weights": "trained_models/THIGH_SENSOR_BAD_ACC_0.663_weights.h5"
     },
     "3": {
-        "config": "../params/one_sensor_config.yml",
+        "config": "../params/back_sensor_config.yml",
         "saved_model": "trained_models/test_model_back_sensor.h5",
-        "weights": "trained_models/back_sensors_13_5_ACC_0.857_weights.h5"
+        "weights": "trained_models/BACK_SENSOR_BAD_ACC_0.856_weights.h5"
     }
 }
 
