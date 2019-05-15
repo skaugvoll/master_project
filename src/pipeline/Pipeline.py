@@ -1337,6 +1337,21 @@ class Pipeline:
 
                 prev_save = path
 
+            for target in label_values:
+                tp, tn, fp, fn = 0, 0, 0, 0
+                for c1, c in zip(gt, preds):
+                    if c1 == target and c1 == target:
+                        tp += 1
+                    elif c1 != target and c != target:
+                        tn += 1
+                    elif c1 != target and c == target:
+                        fp += 1
+                    elif c1 == target and c != target:
+                        fn += 1
+                print('TP: {}, TN: {}, FP: {}, FN: {}'.format(tp, tn, fp, fn))
+                specificity = tn / (tn + fp)
+
+                report[target_names[target]]["specificity"] = specificity
 
 
             # Save the extra info to the report
@@ -1573,6 +1588,11 @@ class Pipeline:
         avg_f1_3 = 0
         avg_f1_4 = 0
 
+        avg_specificity_1 = 0
+        avg_specificity_2 = 0
+        avg_specificity_3 = 0
+        avg_specificity_4 = 0
+
         divisor = 0
 
         for k in run_history:
@@ -1598,26 +1618,35 @@ class Pipeline:
             avg_f1_3 += run_history.get(k, {}).get('Back', {}).get('f1-score', 0)
             avg_f1_4 += run_history.get(k, {}).get('None', {}).get('f1-score', 0)
 
+            avg_specificity_1 += run_history.get(k, {}).get('All', {}).get('specificity', 0)
+            avg_specificity_2 += run_history.get(k, {}).get('Thigh', {}).get('specificity', 0)
+            avg_specificity_3 += run_history.get(k, {}).get('Back', {}).get('specificity', 0)
+            avg_specificity_4 += run_history.get(k, {}).get('None', {}).get('specificity', 0)
+
+
         precision = [avg_precision_1, avg_precision_2, avg_precision_3, avg_precision_4]
         recall = [avg_recall_1, avg_recall_2, avg_recall_3, avg_recall_4]
         f1 = [avg_f1_1, avg_f1_2, avg_f1_3, avg_f1_4]
+        specificity = [avg_specificity_1, avg_specificity_2, avg_specificity_3, avg_specificity_4]
 
         precision = [x / divisor for x in precision]
         recall = [x / divisor for x in recall]
         f1 = [x / divisor for x in f1]
+        specificity = [x / divisor for x in specificity]
 
         print("_____________________________________________________________________")
-        print("{:^5}\t{:^10}\t{:^10}\t{:^10}".format("Label", "Presicion", "Recall", "F1-score"))
+        print("{:^5}\t{:^10}\t{:^10}\t{:^10}\t{:^10}".format("Label", "Presicion", "Specificity", "Recall", "F1-score"))
         for i in range(4):
-            print("{:^5}\t{:^10.3f}\t{:^10.3f}\t{:^10.3f}".format(i, precision[i], recall[i], f1[i]))
+            print("{:^5}\t{:^10.3f}\t{:^10.3f}\t{:^10.3f}\t{:^10.3f}".format(i, precision[i], specificity[i], recall[i], f1[i]))
         print("_____________________________________________________________________")
 
         if add_to_history:
             run_history['AVG_PRECISION'] = precision
+            run_history['AVG_SPECIFICITY'] = specificity
             run_history['AVG_RECALL'] = recall
             run_history['AVG_F1'] = f1
 
-        return precision, recall, f1
+        return precision, specificity, recall, f1
 
 
     def save_run_history_to_file(self, run_history, outputfile):
