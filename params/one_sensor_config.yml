@@ -48,7 +48,7 @@ MODEL:
       inputs: 3
       layers:
         - { units: 32, residual: False, dropout: False }
-        - { units: 32, residual: False, dropout: True }
+
     # Classes used
     classes: *CLASSES
 

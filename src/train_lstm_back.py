@@ -57,9 +57,9 @@ _, run_history = pipObj.train_lstm_model(
     training_dataframe=dataframes,
     back_cols=['bx','by','bz'],
     thigh_cols=None,
-    config_path='../params/one_sensor_config.yml',
+    config_path='../params/back_sensor_config.yml',
     label_col='label',
-    save_to_path="trained_models/back_sensors_" + str(now.day) + "_" + str(now.month),
+    save_to_path="trained_models/BACK_SENSOR_BAD",
     save_weights=True,
     shuffle=False
 )
@@ -70,5 +70,5 @@ print("---------------------------------------------")
 # 2 rows 1 column
 
 # num rows * num cols >= len(train_list_with_subject) 5 * 3 = 15 >= 15
-num_rows, num_cols = 4, 4
-pipObj.plot_run_history(run_history, num_rows, num_cols, train_list_with_subjects, img_title="LOO_BACK_RUN_HISTORY.png")
+# num_rows, num_cols = 4, 4
+# pipObj.plot_run_history(run_history, num_rows, num_cols, train_list_with_subjects, img_title="LOO_BACK_RUN_HISTORY.png")

@@ -49,13 +49,11 @@ MODEL:
       layers:
         - { units: 64, residual: False, dropout: False }
 
-
     # Independent stream for thigh sensor data, before being joined
     thigh_layers:
       inputs: 3
       layers:
         - { units: 64, residual: False, dropout: False }
-
 
     # Classes used
     classes: *CLASSES
