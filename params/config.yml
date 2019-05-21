@@ -47,16 +47,14 @@ MODEL:
     back_layers:
       inputs: 3
       layers:
-        - { units: 64, residual: False, dropout: False }
-
-
+        - { units: 32, residual: False, dropout: True }
+        - { units: 19, residual: False, dropout: False }
     # Independent stream for thigh sensor data, before being joined
     thigh_layers:
       inputs: 3
       layers:
-        - { units: 64, residual: False, dropout: False }
-
-
+        - { units: 32, residual: False, dropout: True }
+        - { units: 19, residual: False, dropout: False }
     # Classes used
     classes: *CLASSES
 

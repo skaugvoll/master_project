@@ -1,0 +1,92 @@
+# Where model output should be stored
+MODEL_DIR: &MODEL_DIR '' # TODO: OVERRIDE WHEN PARSING
+# Input, relevant for training
+INPUT_DIR: &INPUT_DIR '' # TODO: OVERRIDE WHEN PARSING (if training at least)
+
+# Where trained weights should be stored
+WEIGHTS_PATH: &WEIGHTS_PATH !join_paths [ *MODEL_DIR, weights.h5 ]
+# Where the training dataset can be found
+DATASET_PATH: &DATASET_PATH !join_paths [ *INPUT_DIR, '4000181-34566_2017-09-19_B_TEMP_SYNCHED_BT.csv' ]
+
+# Which classes we use, and their replacements
+CLASSES: &CLASSES
+  - { value: 1,  name: 'walking',                plot: 'forestgreen:green:walking'    }
+  - { value: 2,  name: 'running',                plot: 'red:red:running'              }
+  - { value: 3,  name: 'shuffling',              plot: 6                              } # Merge with standing
+  - { value: 4,  name: 'stairs (ascending)',     plot: 1                              } # Merge with walking
+  - { value: 5,  name: 'stairs (descending)',    plot: 1                              } # Etc
+  - { value: 6,  name: 'standing',               plot: 'lightyellow:yellow:standing'  }
+  - { value: 7,  name: 'sitting',                plot: 'lightcyan:light blue:sitting' }
+  - { value: 8,  name: 'lying',                  plot: 'skyblue:blue:lying'           }
+  - { value: 9,  name: 'transition',             plot: 'purple:purple:transition'     }
+  - { value: 10, name: 'bending',                plot: 6                              }
+  - { value: 11, name: 'picking',                plot: 9                              }
+  - { value: 12, name: 'undefined',              plot: 9                              }
+  - { value: 13, name: 'cycling (sit)',          plot: 'darkorange:orange:cycling'    }
+  - { value: 14, name: 'cycling (stand)',        plot: 13                             }
+  - { value: 15, name: 'heel drop',              plot: 6                              }
+  - { value: 16, name: 'vigorous activity',      plot: 9                              }
+  - { value: 17, name: 'non-vigorous activity',  plot: 9                              }
+  - { value: 18, name: 'transport',              plot: 9                              }
+  - { value: 19, name: 'commute',                plot: 6                              }
+# Threshold use to determine whether the model is sufficiently confident in a decision
+UNCERTAIN_THRESH: &CONF_THRESH 0.4
+# Which color to use on values below the confidence threshold
+UNCERTAIN_COLOR: black
+
+# Arguments defining model architecture
+MODEL:
+  name: ONE_SENSOR_LSTM
+  args:
+    gpu: True
+    stateful: True
+    bidirectional: True
+    output_dropout: 0.6
+    batch_norm: True
+    # Independent stream for back sensor data, before being joined
+    layers:
+      inputs: 3
+      layers:
+        - { units: 32, residual: False, dropout: True }
+        - { units: 19, residual: False, dropout: False }
+
+    # Classes used
+    classes: *CLASSES
+
+# Arguments to use when doing training
+TRAINING:
+  args:
+    epochs: 40
+    batch_size: 512
+    sequence_length: 250
+    callbacks:
+      - name: ModelCheckpoint
+        args:
+          filepath: *WEIGHTS_PATH
+          monitor: val_loss
+          verbose: 1
+          save_best_only: True
+          save_weights_only: True
+          mode: min
+      - name: LOAD_BEST_WEIGHTS_REDUCE_LR
+        args: 
+          patience: 4
+          weights_path: *WEIGHTS_PATH
+          verbose: 1  
+      - name: EarlyStopping
+        args:
+          verbose: 1
+          patience: 10
+
+# Arguments to use when doing inference
+INFERENCE:
+  args:
+    weights_path: *WEIGHTS_PATH
+  extra_model_args:
+    # Enable stateful, which require batch size and sequence length
+    # to be specified at creation time
+    stateful: True
+    batch_size: 512
+    sequence_length: 250 
+
+  

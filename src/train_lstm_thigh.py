@@ -57,7 +57,7 @@ _, run_history = pipObj.train_lstm_model(
     training_dataframe=dataframes,
     back_cols=None,
     thigh_cols=['tx','ty','tz'],
-    config_path='../params/one_sensor_config.yml',
+    config_path='../params/thigh_sensor_config.yml',
     label_col='label',
     save_to_path="trained_models/thigh_sensors_" + str(now.day) + "_" + str(now.month),
     save_weights=True,
@@ -71,4 +71,9 @@ print("---------------------------------------------")
 
 # num rows * num cols >= len(train_list_with_subject) 5 * 3 = 15 >= 15
 num_rows, num_cols = 4, 4
-pipObj.plot_run_history(run_history, num_rows, num_cols, train_list_with_subjects, img_title="LOO_THIGH_RUN_HISTORY.png")
+pipObj.plot_run_history(run_history, num_rows, num_cols, train_list_with_subjects, img_title="LOO_THIGH_NADAM_HISTORY.png")
+
+pipObj.calculate_avg_prec_recall_f1(run_history, add_to_history=True)
+
+# write RUN_HISTORY to JSON FILE
+pipObj.save_run_history_to_file(run_history, "LOO_THIGH_NADAM_HISTORY.json")

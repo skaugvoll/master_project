@@ -14,22 +14,22 @@ now = datetime.datetime.now()
 pipObj = Pipeline()
 
 train_list_with_subjects = [
-    '../data/input/training_data/006',
-    '../data/input/training_data/008',
-    '../data/input/training_data/009',
-    '../data/input/training_data/010',
-    '../data/input/training_data/011',
-    '../data/input/training_data/012',
-    '../data/input/training_data/013',
-    '../data/input/training_data/014',
-    '../data/input/training_data/015',
-    '../data/input/training_data/016',
-    '../data/input/training_data/017',
-    '../data/input/training_data/018',
-    '../data/input/training_data/019',
-    '../data/input/training_data/020',
-    '../data/input/training_data/021',
-    '../data/input/training_data/022'
+    '../data/input/training_data/006',  #001
+    '../data/input/training_data/008',  #002
+    '../data/input/training_data/009',  #003
+    '../data/input/training_data/010',  #004
+    '../data/input/training_data/011',  #005
+    '../data/input/training_data/012',  #006
+    '../data/input/training_data/013',  #007
+    '../data/input/training_data/014',  #008
+    '../data/input/training_data/015',  #009
+    '../data/input/training_data/016',  #010
+    '../data/input/training_data/017',  #011
+    '../data/input/training_data/018',  #012
+    '../data/input/training_data/019',  #013
+    '../data/input/training_data/020',  #014
+    '../data/input/training_data/021',  #015
+    '../data/input/training_data/022'   #016
 ]
 
 
@@ -70,5 +70,10 @@ print("---------------------------------------------")
 # 2 rows 1 column
 
 # num rows * num cols >= len(train_list_with_subject) 5 * 3 = 15 >= 15
-num_rows, num_cols = 5, 3
-pipObj.plot_run_history(run_history, num_rows, num_cols, train_list_with_subjects, img_title="LOO_BOTH_RUN_HISTORY.png")
+num_rows, num_cols = 4, 4
+pipObj.plot_run_history(run_history, num_rows, num_cols, train_list_with_subjects, img_title="LOO_BOTH_ADAMAX_HISTORY.png")
+
+pipObj.calculate_avg_prec_recall_f1(run_history, add_to_history=True)
+
+# write RUN_HISTORY to JSON FILE
+pipObj.save_run_history_to_file(run_history, "LOO_BOTH_ADAMAX_HISTORY.json")

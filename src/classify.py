@@ -36,23 +36,25 @@ cpus = os.cpu_count()
 
 
 
-# define training data
-# list_with_subjects_to_classify = [
-#     '../data/temp/4003601.7z/4003601/'
-# ]
-#
-#
-# # Unzipp all the data
-# unzipped_paths = pipObj.unzip_multiple_directories(list_with_subjects_to_classify, zip_to="../data/temp/")
-# # print(unzipped_paths)
-
-data = [
-    '../data/temp/4003601.7z/4003601/'
-    # '../data/temp/Thomas3.7z/Thomas3/'
+#define training data
+list_with_subjects_to_classify = [
+    # '../data/input/4000181.7z',
+    '../data/input/shower_atle.7z'
 ]
 
+
+# Unzipp all the data
+unzipped_paths = pipObj.unzip_multiple_directories(list_with_subjects_to_classify, zip_to="../data/temp/")
+# print(unzipped_paths)
+
+# unzipped_paths = [
+# #     # '../data/temp/4000181.7z/4000181/'
+# #     # '../data/temp/Thomas3.7z/Thomas3/'
+#     '../data/temp/shower_atle.7z/shower_atle/'
+# ]
+
 dataframe = pipObj.create_large_dataframe_from_multiple_input_directories(
-    data,
+    unzipped_paths,
     merge_column='time',
     master_columns=['time', 'bx', 'by', 'bz', 'tx', 'ty', 'tz'],
     slave_columns=['time', 'bx1', 'by1', 'bz1', 'btemp'],
@@ -70,7 +72,7 @@ dataframe = pipObj.create_large_dataframe_from_multiple_input_directories(
                 ],
     save=False,
     added_columns_name=[],
-    files=True,
+    files=False,
     list=False
 )
 
@@ -101,17 +103,17 @@ lstm_models_path = {
     "1": {
         "config": "../params/config.yml",
         "saved_model": "trained_models/test_model_two_sensors.h5",
-        "weights": "trained_models/both_sensors_13_5_ACC_0.914_weights.h5"
+        "weights": "trained_models/BOTH_SENSORS_BAD_ACC_0.840_weights.h5"
     },
     "2": {
-        "config": "../params/one_sensor_config.yml",
+        "config": "../params/thigh_sensor_config.yml",
         "saved_model": "trained_models/test_model_thigh_sensor.h5",
-        "weights": "trained_models/thigh_sensors_13_5_ACC_0.842_weights.h5"
+        "weights": "trained_models/THIGH_SENSOR_BAD_ACC_0.663_weights.h5"
     },
     "3": {
-        "config": "../params/one_sensor_config.yml",
+        "config": "../params/back_sensor_config.yml",
         "saved_model": "trained_models/test_model_back_sensor.h5",
-        "weights": "trained_models/back_sensors_13_5_ACC_0.857_weights.h5"
+        "weights": "trained_models/BACK_SENSOR_BAD_ACC_0.856_weights.h5"
     }
 }
 
@@ -143,30 +145,25 @@ _, _, _, result_df = pipObj.parallel_pipeline_classification_run(
     train_overlap=0.8,
     seq_lenght=250,
     num_proc_mod=cpus,
-    lstm_model_mapping={"both": '1', "thigh": '2', "back": '3'},
+    lstm_model_mapping={"both": '1', "thigh": '2', "back": '3', 'none': '4'},
     minimize_result=False
 )
 
-##CSV
-start_time = time.time()
-result_df.to_csv("./trained_models/4003601.csv")
-print("--- CSV savetime: {} seconds ---".format(time.time() - start_time))
+# print(result_df.head(5))
+# input("...")
+# print(result_df.describe())
+# input("...")
+# print(result_df.dtypes)
+# input("...")
 
-##PICKLE
-start_time = time.time()
-result_df.to_pickle("./trained_models/4003601.pkl")
-print("--- Pickle savetime: {} seconds ---".format(time.time() - start_time))
 
-##HDF
-start_time = time.time()
-result_df.to_hdf('./trained_models/4003601.h5', key='df', mode='w')
-print("--- HDF savetime: {} seconds ---".format(time.time() - start_time))
+print("-_______________-------------_________")
 
-##FEATHER
-result_df = result_df.reset_index()
-start_time = time.time()
-result_df.to_feather('./trained_models/4003601.feather')
-print("--- Feather savetime: {} seconds ---".format(time.time() - start_time))
 
-print(result_df)
+plotting_df = result_df.loc[:, ["timestart", "target"]]
+# print(plotting_df)
+# input("...")
 
+print("----------------x___________x-------------")
+
+pipObj.plotter.plot_weekly_view(plotting_df, "atle2")

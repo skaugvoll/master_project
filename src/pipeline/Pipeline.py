@@ -363,6 +363,14 @@ class Pipeline:
             filter(lambda x: x[1] == lstm_model_mapping['back'], output_classification_windows)
         )
 
+        no_sensors_windows_queue = list(
+            filter(lambda x: x[1] == lstm_model_mapping['none'], output_classification_windows)
+        )
+
+
+        # print("NO SENSORS QUEUE:\n", no_sensors_windows_queue)
+        # input("...")
+
         del output_classification_windows # save memory! GC can clean this now
 
         back_colums = DataHandler.getAttributeOrReturnDefault(dataframe_columns, 'back_features')
@@ -403,7 +411,7 @@ class Pipeline:
         #build dataframe [timestart, timeend, confidence, target]
         import pandas as pd
         result_df = pd.DataFrame(columns=['timestart', 'timeend', 'confidence', 'target'])
-        result_df['timestart'] = pd.to_datetime(result_df['timestart']).sort_values() # sort the dataframe on starttime
+        result_df['timestart'] = pd.to_datetime(result_df['timestart'])
         result_df['timeend'] = pd.to_datetime(result_df['timeend'])
         result_df['confidence'] = pd.to_numeric(result_df['confidence'])
         result_df['target'] = pd.to_numeric(result_df['target'])
@@ -418,6 +426,34 @@ class Pipeline:
             classifications = np.vstack((classifications, thigh_class))
         if back_class.shape[0] > 0 and back_class.shape[1] == 3:
             classifications = np.vstack((classifications, back_class))
+
+        #
+        # print(classifications)
+        # input("...")
+        #
+        # print(classifications[0])
+        # input("...")
+
+        modified_queue = []
+        for tup in no_sensors_windows_queue:
+            # print("TUP: ", tup)
+            # input("...")
+            idx = tup[0]
+            madeUpTargetToIndicateNoActivity = -1
+            madeUpConf = 1
+            modified_queue.append((int(idx), np.array([madeUpConf]), np.array([madeUpTargetToIndicateNoActivity])))
+
+        modified_queue = np.array(modified_queue)
+        # print(modified_queue, type(modified_queue), modified_queue.shape, "faak off")
+        # input("...")
+
+        if modified_queue.shape[0] > 0 and modified_queue.shape[1] == 3:
+            classifications = np.vstack((classifications, modified_queue))
+
+        # print("Classifications: ")
+        # print(classifications)
+        # input("...")
+
 
         if not minimize_result:  # do not minimize result
             i = 1
@@ -510,7 +546,7 @@ class Pipeline:
                 counter += 1
             print("DONE")
 
-        result_df['timestart'].sort_values(inplace=True)
+        result_df.sort_values("timestart", inplace=True)
         return bth_class, thigh_class, back_class, result_df
 
         # classifiers = {}
