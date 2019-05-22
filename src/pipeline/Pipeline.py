@@ -330,7 +330,7 @@ class Pipeline:
                 explenation="Model classification :: ")
             pass
 
-        print("DONE")
+        # print("DONE")
         # print(">>>>>>>>>>>>>>>>> POT OF GOLD <<<<<<<<<<<<<<<<<")
 
         # join the processes aka block the threads, do not let them take on any more jobs
@@ -475,10 +475,17 @@ class Pipeline:
                     totalOperations=len(classifications),
                     sizeProgressBarInChars=20,
                     explenation='Creating result dataframe')
+                i += 1
         else:  # minizime result
             windowMemory = WindowMemory()
             counter = 0
             counter_target = len(classifications)
+
+            # classifications.sort(axis=0)
+            classifications = list(classifications)
+            classifications.sort(key=lambda x: x[0])
+            classifications = np.array(classifications)
+
             for idx, conf, target in classifications:
 
                 timestart = timestap_windows[idx][0][0]
@@ -487,9 +494,10 @@ class Pipeline:
                 target = target[0]
 
                 # TODO: do some logic that finds timestart and timeend for sequences of same target, take avg, conf and then thats the row we want to add to dataframe, not all windows!
-                if windowMemory.get_last_target() is None: # if the first window to classify
+                if counter == 0: # if the first window to classify
                     # this can be done outside the loop, to not check each time, use classifiaction.pop() on var init
                     # last_target = target
+
                     windowMemory.update_last_target(target)
                     # last_start = timestart
                     windowMemory.update_last_start(timestart)
@@ -498,8 +506,42 @@ class Pipeline:
                     # avg_conf += conf
                     windowMemory.update_avg_conf_nominator(conf)
 
-                elif not windowMemory.check_targets(target): # not same target as last window, thus write last window to mem.
+                if counter == counter_target-1: # if last window to classify
+
+                    if not windowMemory.check_targets(target):
+
+                        row = {
+                            'timestart': windowMemory.get_last_start(),
+                            'timeend': windowMemory.get_last_end(),
+                            'confidence': windowMemory.get_avg_conf(),
+                            'target': windowMemory.get_last_target()
+                        }
+                        result_df.loc[len(result_df)] = row
+
+                        row = {
+                            'timestart': timestart,
+                            'timeend': timeend,
+                            'confidence': conf,
+                            'target': target
+                        }
+                        result_df.loc[len(result_df)] = row
+
+                    else:
+
+                        windowMemory.update_last_end(timeend)
+                        windowMemory.update_avg_conf_nominator(conf)
+                        windowMemory.update_avg_conf_divisor()
+                        row = {
+                            'timestart': windowMemory.get_last_start(),
+                            'timeend': windowMemory.get_last_end(),
+                            'confidence': windowMemory.get_avg_conf(),
+                            'target': windowMemory.get_last_target()
+                        }
+                        result_df.loc[len(result_df)] = row
+
+                if not windowMemory.check_targets(target): # not same target as last window, thus write last window to mem.
                     # add to result_df
+
                     row = {
                         'timestart': windowMemory.get_last_start(),
                         'timeend': windowMemory.get_last_end(),
@@ -517,14 +559,6 @@ class Pipeline:
                     windowMemory.update_last_end(timeend)
                     windowMemory.reset_divisor()
 
-                elif counter == counter_target-1: # if last window to classify
-                    row = {
-                        'timestart': windowMemory.get_last_start(),
-                        'timeend': windowMemory.get_last_end(),
-                        'confidence': windowMemory.get_avg_conf(),
-                        'target': windowMemory.get_last_target()
-                    }
-                    result_df.loc[len(result_df)] = row
 
                 else: # same target as last window and just in the middle of classification
                     # upate memory_variables
@@ -879,7 +913,7 @@ class Pipeline:
             out_path = os.path.join(out_path_dir, out_path_filename)
             merged_df.to_csv(out_path, index=False)
 
-        print("DONE")
+        # print("DONE")
         return merged_df
 
     ####################################################################################################################
