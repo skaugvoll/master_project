@@ -1,7 +1,7 @@
 version: '3'
 services:
     app:
-        build: .
+        build: skaugvoll/har_master_app
         # mount the local src code into the cntr, to get src changes
         volumes:
-            - H:\programming\har_master\:/app
+            - `pwd`:/app

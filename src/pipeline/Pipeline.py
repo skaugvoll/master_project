@@ -476,6 +476,7 @@ class Pipeline:
                     sizeProgressBarInChars=20,
                     explenation='Creating result dataframe')
                 i += 1
+
         else:  # minizime result
             windowMemory = WindowMemory()
             counter = 0
