@@ -103,17 +103,17 @@ lstm_models_path = {
     "1": {
         "config": "../params/config.yml",
         "saved_model": "trained_models/test_model_two_sensors.h5",
-        "weights": "trained_models/BOTH_SENSORS_BAD_ACC_0.840_weights.h5"
+        "weights": "trained_models/both_sensors_adadelta32T19F_19_5_ACC_0.939_weights.h5"
     },
     "2": {
         "config": "../params/thigh_sensor_config.yml",
         "saved_model": "trained_models/test_model_thigh_sensor.h5",
-        "weights": "trained_models/THIGH_SENSOR_BAD_ACC_0.663_weights.h5"
+        "weights": "trained_models/thigh_sensors_adadelta32T19F_19_5_ACC_0.938_weights.h5"
     },
     "3": {
         "config": "../params/back_sensor_config.yml",
         "saved_model": "trained_models/test_model_back_sensor.h5",
-        "weights": "trained_models/BACK_SENSOR_BAD_ACC_0.856_weights.h5"
+        "weights": "trained_models/back_sensors_adadelta32T19F_19_5_ACC_0.875_weights.h5"
     }
 }
 
@@ -166,4 +166,4 @@ plotting_df = result_df.loc[:, ["timestart", "target"]]
 
 print("----------------x___________x-------------")
 
-pipObj.plotter.plot_weekly_view(plotting_df, "atle2")
+pipObj.plotter.plot_weekly_view(plotting_df, "4000181_malvik.png")
