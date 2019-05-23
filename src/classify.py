@@ -9,6 +9,7 @@ from src.pipeline.DataHandler import DataHandler
 from src import models
 import pickle, math
 import pandas as pd
+import time
 
 
 
@@ -38,20 +39,17 @@ cpus = os.cpu_count()
 
 #define training data
 list_with_subjects_to_classify = [
-    # '../data/input/4000181.7z',
-    '../data/input/shower_atle.7z'
+    '../data/input/4003601.7z',
 ]
 
 
 # Unzipp all the data
-unzipped_paths = pipObj.unzip_multiple_directories(list_with_subjects_to_classify, zip_to="../data/temp/")
-# print(unzipped_paths)
+# unzipped_paths = pipObj.unzip_multiple_directories(list_with_subjects_to_classify, zip_to="../data/temp/")
 
-# unzipped_paths = [
-# #     # '../data/temp/4000181.7z/4000181/'
-# #     # '../data/temp/Thomas3.7z/Thomas3/'
-#     '../data/temp/shower_atle.7z/shower_atle/'
-# ]
+unzipped_paths = [
+    '../data/temp/4003601.7z/4003601/'
+    # '../data/temp/shower_atle.7z/shower_atle/'
+]
 
 dataframe = pipObj.create_large_dataframe_from_multiple_input_directories(
     unzipped_paths,
@@ -72,7 +70,7 @@ dataframe = pipObj.create_large_dataframe_from_multiple_input_directories(
                 ],
     save=False,
     added_columns_name=[],
-    files=False,
+    files=True,
     list=False
 )
 
@@ -84,7 +82,7 @@ dataframe = pipObj.create_large_dataframe_from_multiple_input_directories(
 
 
 # Define the Meta classifier path
-RFC_PATH = './trained_models/LOO_RFC_11_5_ACC_0.991.h5'
+RFC_PATH = './trained_models/LOO_RFC_10_5_ACC_0.998.h5'
 # Do some magic numbering for the Meta classifier, since temperature is recorded at a different speed
 sampling_frequency = 50
 window_length = 250
@@ -134,7 +132,7 @@ dataframe_columns = {
 #                                        #
 ######                              ######
 
-
+minime = True
 _, _, _, result_df = pipObj.parallel_pipeline_classification_run(
     dataframe=dataframe,
     dataframe_columns=dataframe_columns,
@@ -146,7 +144,7 @@ _, _, _, result_df = pipObj.parallel_pipeline_classification_run(
     seq_lenght=250,
     num_proc_mod=cpus,
     lstm_model_mapping={"both": '1', "thigh": '2', "back": '3', 'none': '4'},
-    minimize_result=False
+    minimize_result=minime
 )
 
 # print(result_df.head(5))
@@ -166,4 +164,42 @@ plotting_df = result_df.loc[:, ["timestart", "target"]]
 
 print("----------------x___________x-------------")
 
-pipObj.plotter.plot_weekly_view(plotting_df, "4000181_malvik.png")
+pipObj.plotter.plot_weekly_view(plotting_df, "atle2")
+
+#name = '4003601_c'
+
+##CSV
+#start_time = time.time()
+#result_df.to_csv("../data/output/{}.csv".format(name))
+
+#csvT = "--- CSV savetime: {} seconds ---".format(time.time() - start_time)
+#print(csvT)
+
+ ##PICKLE
+#start_time = time.time()
+#result_df.to_pickle("../data/output/{}.pkl".format(name))
+#pickleT = "--- Pickle savetime: {} seconds ---".format(time.time() - start_time)
+#print(pickleT)
+
+ ##HDF
+#start_time = time.time()
+#result_df.to_hdf('../data/output/{}.h5'.format(name), key='df', mode='w')
+#HDFT = "--- HDF savetime: {} seconds ---".format(time.time() - start_time)
+#print(HDFT)
+
+ ##FEATHER
+#result_df = result_df.reset_index()
+#start_time = time.time()
+#result_df.to_feather('../data/output/{}.feather'.format(name))
+#featherT = "--- Feather savetime: {} seconds ---".format(time.time() - start_time)
+#print(featherT)
+
+
+#with open('../data/output/' + name + 'time.txt', 'w') as f:
+#    f.write(name + ' Compressed: ' + str(minime) + '\n')
+#    f.write(csvT + '\n')
+#    f.write(pickleT + '\n')
+#    f.write(HDFT + '\n')
+#    f.write(featherT + '\n')
+
+#print(result_df)
