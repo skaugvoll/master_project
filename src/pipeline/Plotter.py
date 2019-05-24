@@ -460,7 +460,7 @@ class Plotter():
         a = ['', '2:24am', '4:48am', '7:12am', '9:36am', '12pm', '2:24pm', '4:48pm', '7:12pm', '9:36pm']
         ax.set_xticklabels(a)
         cb0.set_label('Date: ' + days.iloc[
-            0].__str__() + ' (orange: cycling, red: running, green: walking, yellow: standing, light blue:sitting, blue: lying, purple: no sensors, pink: transition ) ')
+            0].__str__() + ' (orange: cycling, red: running, green: walking, yellow: standing, light blue:sitting, blue: lying, purple: no sensors, pink: transition, white: no data) ')
 
         # now later you get a new subplot; change the geometry of the existing
         for c in range(no_of_days - 1):
