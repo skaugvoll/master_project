@@ -1265,6 +1265,13 @@ class Pipeline:
 
         self.RFC = models.get("RFC", {})
 
+        both_sensors_classifications_preds = []
+        thigh_sensors_classifications_preds = []
+        back_sensors_classifications_preds = []
+        none_sensors_classifications_preds = []
+
+
+
         for train_index, test_index in loo.split(X):
             print("TRAIN:", train_index, "TEST:", test_index)
 
@@ -1328,12 +1335,17 @@ class Pipeline:
                 use_acc_data=rfc_use_acc_data
             )
 
-            precision, recall, fscore, support = precision_recall_fscore_support(gt, preds)
-            print("P \n", precision)
-            print("R \n", recall)
-            print("F \n", fscore)
-            print("S \n", support)
-            print()
+            #
+
+            # sjekk om hvilke labels som skal vaere der,  plasserer resultat i korresponderende sensor config res liste
+            # naar alle dataset er ferdig, saa kan vi regne ut performance mesures for hver av de sensor configene og hvis tallet er 0, endrer vi det til 1.
+            # ogsaa summerer vi bare alle average for hver sensor config, det burde blir den faktiske.
+            # precision, recall, fscore, support = precision_recall_fscore_support(gt, preds)
+            # print("P \n", precision)
+            # print("R \n", recall)
+            # print("F \n", fscore)
+            # print("S \n", support)
+            # print()
 
 
             # only use labels present in the data
@@ -1344,6 +1356,10 @@ class Pipeline:
 
             for i in label_values:
                 labels.append(target_names[i])
+
+            print("THE WARNING SHOULD HAPPEN RIGHT ABOUT HERE")
+            precision, recall, fscore, support = precision_recall_fscore_support(gt, preds)
+            print("DID IT APPEAR????????")
 
             report = classification_report(gt, preds, target_names=labels, output_dict=True)
             acc = accuracy_score(gt, preds)

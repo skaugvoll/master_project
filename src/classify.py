@@ -164,42 +164,42 @@ plotting_df = result_df.loc[:, ["timestart", "target"]]
 
 print("----------------x___________x-------------")
 
-pipObj.plotter.plot_weekly_view(plotting_df, "atle2")
+pipObj.plotter.plot_weekly_view(plotting_df, "testC4003601")
 
-#name = '4003601_c'
+name = 'testC4003601'
 
-##CSV
-#start_time = time.time()
-#result_df.to_csv("../data/output/{}.csv".format(name))
+#CSV
+# start_time = time.time()
+# result_df.to_csv("../data/output/{}.csv".format(name))
+#
+# csvT = "--- CSV savetime: {} seconds ---".format(time.time() - start_time)
+# print(csvT)
 
-#csvT = "--- CSV savetime: {} seconds ---".format(time.time() - start_time)
-#print(csvT)
+ #PICKLE
+start_time = time.time()
+result_df.to_pickle("../data/output/{}.pkl".format(name))
+pickleT = "--- Pickle savetime: {} seconds --- SIZE: {}KB".format(time.time() - start_time, os.path.getsize("../data/output/{}.pkl".format(name)) / 1024)
+print(pickleT)
 
- ##PICKLE
-#start_time = time.time()
-#result_df.to_pickle("../data/output/{}.pkl".format(name))
-#pickleT = "--- Pickle savetime: {} seconds ---".format(time.time() - start_time)
-#print(pickleT)
+#  #HDF
+# start_time = time.time()
+# result_df.to_hdf('../data/output/{}.h5'.format(name), key='df', mode='w')
+# HDFT = "--- HDF savetime: {} seconds ---".format(time.time() - start_time)
+# print(HDFT)
 
- ##HDF
-#start_time = time.time()
-#result_df.to_hdf('../data/output/{}.h5'.format(name), key='df', mode='w')
-#HDFT = "--- HDF savetime: {} seconds ---".format(time.time() - start_time)
-#print(HDFT)
-
- ##FEATHER
-#result_df = result_df.reset_index()
-#start_time = time.time()
-#result_df.to_feather('../data/output/{}.feather'.format(name))
-#featherT = "--- Feather savetime: {} seconds ---".format(time.time() - start_time)
-#print(featherT)
+ #FEATHER
+# result_df = result_df.reset_index()
+start_time = time.time()
+result_df.to_feather('../data/output/{}.feather'.format(name))
+featherT = "--- Feather savetime: {} seconds --- SIZE: {}KB".format(time.time() - start_time, os.path.getsize("../data/output/{}.feather".format(name)) / 1024)
+print(featherT)
 
 
-#with open('../data/output/' + name + 'time.txt', 'w') as f:
-#    f.write(name + ' Compressed: ' + str(minime) + '\n')
-#    f.write(csvT + '\n')
-#    f.write(pickleT + '\n')
-#    f.write(HDFT + '\n')
-#    f.write(featherT + '\n')
+with open('../data/output/' + name + 'time.txt', 'w') as f:
+   f.write(name + ' Compressed: ' + str(minime) + '\n')
+   # f.write(csvT + '\n')
+   f.write(pickleT + '\n')
+   # f.write(HDFT + '\n')
+   f.write(featherT + '\n')
 
-#print(result_df)
+print(result_df)

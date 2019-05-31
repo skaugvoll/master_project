@@ -1,0 +1,3 @@
+testC4003601 Compressed: True
+--- Pickle savetime: 0.004321575164794922 seconds --- SIZE: 941.01953125KB
+--- Feather savetime: 0.05447649955749512 seconds --- SIZE: 752.453125KB
