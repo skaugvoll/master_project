@@ -371,7 +371,7 @@ class Pipeline:
         # print("NO SENSORS QUEUE:\n", no_sensors_windows_queue)
         # input("...")
 
-        del output_classification_windows # save memory! GC can clean this now
+        del output_classification_windows  # save memory! GC can clean this now
 
         back_colums = DataHandler.getAttributeOrReturnDefault(dataframe_columns, 'back_features')
         thigh_colums = DataHandler.getAttributeOrReturnDefault(dataframe_columns, 'thigh_features')
@@ -391,7 +391,6 @@ class Pipeline:
         # BACK
         back_class = self.predict_on_one_window(DataHandler.getAttributeOrReturnDefault(lstm_model_mapping, 'back'), lstm_models_paths, back_sensors_windows_queue, xBack, xThigh, seq_lenght)
 
-
         # Get timestamps (TODO: extract to own function)
         indexes = np.array(self.dataframe.index.tolist())
 
@@ -408,31 +407,25 @@ class Pipeline:
         timestap_windows = np.array(timestap_windows)
 
         # Todo extract to static method in DataHandler
-        #build dataframe [timestart, timeend, confidence, target]
-        import pandas as pd
-        result_df = pd.DataFrame(columns=['timestart', 'timeend', 'confidence', 'target'])
+        result_df = pd.DataFrame(columns=['timestart', 'timeend', 'confidence', 'target', 'sensorConfiguration'])
         result_df['timestart'] = pd.to_datetime(result_df['timestart'])
         result_df['timeend'] = pd.to_datetime(result_df['timeend'])
         result_df['confidence'] = pd.to_numeric(result_df['confidence'])
         result_df['target'] = pd.to_numeric(result_df['target'])
+        result_df['sensorConfiguration'] = pd.to_numeric(result_df['sensorConfiguration'])
 
         # combine all windows for saving
         # classifications = np.concatenate((bth_class, thigh_class, back_class))
 
-        classifications = np.array([]).reshape(-1, 3)
-        if bth_class.shape[0] > 0 and bth_class.shape[1] == 3:
-            classifications = np.vstack((classifications, bth_class))
-        if thigh_class.shape[0] > 0 and thigh_class.shape[1] == 3:
-            classifications = np.vstack((classifications, thigh_class))
-        if back_class.shape[0] > 0 and back_class.shape[1] == 3:
-            classifications = np.vstack((classifications, back_class))
+        num_result_columns = 4
 
-        #
-        # print(classifications)
-        # input("...")
-        #
-        # print(classifications[0])
-        # input("...")
+        classifications = np.array([]).reshape(-1, num_result_columns)
+        if bth_class.shape[0] > 0 and bth_class.shape[1] == num_result_columns:
+            classifications = np.vstack((classifications, bth_class))
+        if thigh_class.shape[0] > 0 and thigh_class.shape[1] == num_result_columns:
+            classifications = np.vstack((classifications, thigh_class))
+        if back_class.shape[0] > 0 and back_class.shape[1] == num_result_columns:
+            classifications = np.vstack((classifications, back_class))
 
         modified_queue = []
         for tup in no_sensors_windows_queue:
@@ -441,23 +434,31 @@ class Pipeline:
             idx = tup[0]
             madeUpTargetToIndicateNoActivity = -1
             madeUpConf = 1
-            modified_queue.append((int(idx), np.array([madeUpConf]), np.array([madeUpTargetToIndicateNoActivity])))
+            sensorConfigurationNumber = 4
+            modified_queue.append(
+                (
+                    int(idx),
+                    np.array([madeUpConf]),
+                    np.array([madeUpTargetToIndicateNoActivity]),
+                    int(sensorConfigurationNumber)
+                 )
+            )
 
         modified_queue = np.array(modified_queue)
         # print(modified_queue, type(modified_queue), modified_queue.shape, "faak off")
         # input("...")
 
-        if modified_queue.shape[0] > 0 and modified_queue.shape[1] == 3:
+        if modified_queue.shape[0] > 0 and modified_queue.shape[1] == num_result_columns:
             classifications = np.vstack((classifications, modified_queue))
 
         # print("Classifications: ")
         # print(classifications)
+        # print(classifications.shape)
         # input("...")
-
 
         if not minimize_result:  # do not minimize result
             i = 1
-            for idx, conf, target in classifications:
+            for idx, conf, target, sensorConfiguration in classifications:
                 timestart = timestap_windows[idx][0][0]
                 timeend = timestap_windows[idx][0][-1]
                 conf = conf[0]
@@ -467,7 +468,8 @@ class Pipeline:
                     'timestart': timestart,
                     'timeend': timeend,
                     'confidence': conf,
-                    'target': target
+                    'target': target,
+                    'sensorConfiguration': sensorConfiguration
                 }
                 result_df.loc[len(result_df)] = row
                 progressbar.printProgressBar(
@@ -487,7 +489,7 @@ class Pipeline:
             classifications.sort(key=lambda x: x[0])
             classifications = np.array(classifications)
 
-            for idx, conf, target in classifications:
+            for idx, conf, target, sensorConfiguration in classifications:
 
                 timestart = timestap_windows[idx][0][0]
                 timeend = timestap_windows[idx][0][-1]
@@ -507,6 +509,8 @@ class Pipeline:
                     # avg_conf += conf
                     windowMemory.update_avg_conf_nominator(conf)
 
+                    windowMemory.update_sensor_configuration(sensorConfiguration)
+
                 if counter == counter_target-1: # if last window to classify
 
                     if not windowMemory.check_targets(target):
@@ -515,7 +519,8 @@ class Pipeline:
                             'timestart': windowMemory.get_last_start(),
                             'timeend': windowMemory.get_last_end(),
                             'confidence': windowMemory.get_avg_conf(),
-                            'target': windowMemory.get_last_target()
+                            'target': windowMemory.get_last_target(),
+                            'sensorConfiguration': windowMemory.get_sensor_configuration()
                         }
                         result_df.loc[len(result_df)] = row
 
@@ -523,7 +528,8 @@ class Pipeline:
                             'timestart': timestart,
                             'timeend': timeend,
                             'confidence': conf,
-                            'target': target
+                            'target': target,
+                            'sensorConfiguration': sensorConfiguration
                         }
                         result_df.loc[len(result_df)] = row
 
@@ -536,7 +542,8 @@ class Pipeline:
                             'timestart': windowMemory.get_last_start(),
                             'timeend': windowMemory.get_last_end(),
                             'confidence': windowMemory.get_avg_conf(),
-                            'target': windowMemory.get_last_target()
+                            'target': windowMemory.get_last_target(),
+                            'sensorConfiguration': windowMemory.get_sensor_configuration()
                         }
                         result_df.loc[len(result_df)] = row
 
@@ -547,7 +554,8 @@ class Pipeline:
                         'timestart': windowMemory.get_last_start(),
                         'timeend': windowMemory.get_last_end(),
                         'confidence': windowMemory.get_avg_conf(),
-                        'target': windowMemory.get_last_target()
+                        'target': windowMemory.get_last_target(),
+                        'sensorConfiguration': windowMemory.get_sensor_configuration()
                     }
 
                     result_df.loc[len(result_df)] = row
@@ -559,6 +567,7 @@ class Pipeline:
                     windowMemory.update_last_start(timestart)
                     windowMemory.update_last_end(timeend)
                     windowMemory.reset_divisor()
+                    windowMemory.update_sensor_configuration(sensorConfiguration)
 
 
                 else: # same target as last window and just in the middle of classification
@@ -650,19 +659,19 @@ class Pipeline:
                 x1 = xBack[wndo_idx].reshape(1, seq_lenght, xBack.shape[2])
                 x2 = xThigh[wndo_idx].reshape(1, seq_lenght, xThigh.shape[2])
                 target, prob = model.predict_on_one_window(window=[x1, x2])
-                classifications.append((wndo_idx, prob, target))
+                classifications.append((wndo_idx, prob, target, int(mod)))
 
             elif mod == '2':
                 task = "Thigh"
                 x = xThigh[wndo_idx].reshape(1, seq_lenght, xThigh.shape[2])
                 target, prob = model.predict_on_one_window(window=x)
-                classifications.append((wndo_idx, prob, target))
+                classifications.append((wndo_idx, prob, target, int(mod)))
 
             elif mod == '3':
                 task = "Back"
                 x = xBack[wndo_idx].reshape(1, seq_lenght, xBack.shape[2])
                 target, prob = model.predict_on_one_window(window=x)
-                classifications.append((wndo_idx, prob, target))
+                classifications.append((wndo_idx, prob, target, int(mod)))
 
             # print("<<<<>>>>><<<>>>: \n", ":: " + model_num +" ::", target, prob)
             progressbar.printProgressBar(start, end, 20, explenation=task + " activity classification prog. :: ")

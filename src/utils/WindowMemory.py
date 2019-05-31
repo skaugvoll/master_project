@@ -9,7 +9,7 @@ class WindowMemory():
         self.last_end = None
         self.avg_conf = 0.0
         self.divisor = 1
-
+        self.sensorConfiguration = None
 
     def update_num_windows(self):
         self.num_windows += 1
@@ -29,6 +29,9 @@ class WindowMemory():
     def update_avg_conf_divisor(self):
         self.divisor += 1
 
+    def update_sensor_configuration(self, sensorConfiguration):
+        self.sensorConfiguration = sensorConfiguration
+
     def reset_num_windows(self):
         self.num_windows = 0
 
@@ -44,6 +47,9 @@ class WindowMemory():
     def reset_divisor(self):
         self.divisor = 1
 
+    def reset_sensor_configuration(self):
+        self.sensorConfiguration = None
+
     def get_num_windows(self):
         return self.num_windows
 
@@ -58,6 +64,9 @@ class WindowMemory():
 
     def get_avg_conf(self):
         return np.divide(self.avg_conf, self.divisor)
+
+    def get_sensor_configuration(self):
+        return self.sensorConfiguration
 
     def check_targets(self, target):
         return self.last_target == target
