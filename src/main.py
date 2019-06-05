@@ -11,8 +11,8 @@ from src import models
 
 
 input_dir_rel_path = "/app/data/input"
-data_name = "Sigve.7z"
-label_file = "Sigve intervals.json"
+data_name = "xxx_x.7z"
+label_file = "xxx_x intervals.json"
 
 pipeline = Pipeline()
 
@@ -47,8 +47,8 @@ pipeline = Pipeline()
 
 dh = DataHandler()
 sub_name = data_name.split(".")[0]
-input_dir = "../data/temp/Thomas.7z/Thomas/"
-filename = "25228_B_25228_T_timesync_output_TEMP_BT.csv"
+input_dir = "../data/temp/xxx_x.7z/xxx_x/"
+filename = "xxx_xB_xxx_x_T_timesync_output_TEMP_BT.csv"
 
 dh.load_dataframe_from_csv(
     input_directory_path=input_dir,
@@ -62,7 +62,7 @@ dh.set_column_as_index("time")
 
 # # add labels
 dh.add_new_column("label")
-intervals = dh.read_labels_from_json(filepath="../data/temp/Thomas.7z/Thomas/Thomas intervals.json")
+intervals = dh.read_labels_from_json(filepath="../data/temp/xxx_x.7z/xxx_x/xxx_x intervals.json")
 dh.add_labels_file_based_on_intervals(intervals=intervals)
 df = dh.get_dataframe_iterator()
 print(df.head(10))
@@ -111,8 +111,8 @@ RFC.train_old(
 ####
 dh = DataHandler()
 sub_name = data_name.split(".")[0]
-input_dir = "../data/temp/Sigve.7z/Sigve/"
-filename = "25226_B_25226_T_timesync_output_TEMP_BT.csv"
+input_dir = "../data/temp/xxx_x.7z/xxx_x/"
+filename = "xxx_x_B_xxx_x_T_timesync_output_TEMP_BT.csv"
 
 dh.load_dataframe_from_csv(
     input_directory_path=input_dir,
@@ -126,7 +126,7 @@ dh.set_column_as_index("time")
 
 # # add labels
 dh.add_new_column("label")
-intervals = dh.read_labels_from_json(filepath="../data/temp/Sigve.7z/Sigve/Sigve intervals.json")
+intervals = dh.read_labels_from_json(filepath="../data/temp/xxx_x.7z/xxx_x/xxx_x intervals.json")
 dh.add_labels_file_based_on_intervals(intervals=intervals)
 df = dh.get_dataframe_iterator()
 print(df.head(10))

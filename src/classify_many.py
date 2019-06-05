@@ -19,9 +19,6 @@ cpus = os.cpu_count()
 
 #define training data
 list_with_subjects_to_classify = [
-    # '../data/input/4000181.7z',
-    # '../data/input/shower_atle.7z',
-    # '../data/input/nonshower_paul.7z'
     '../data/input/4000181.7z',
     '../data/input/4001058.7z',
     '../data/input/4002734.7z',

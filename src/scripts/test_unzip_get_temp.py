@@ -12,7 +12,7 @@ if __name__ == '__main__':
     print('CREATED datahandler')
 
     try:
-        os.system("rm -rf ../data/temp/P2_vegar.7z")
+        os.system("rm -rf ../data/temp/xxx_x.7z")
     except:
         print("Could not remove folder, perhaps path is wrong")
         sys.exit(0)
@@ -21,7 +21,7 @@ if __name__ == '__main__':
 
     # unzip cwas from 7z arhcive
     unzipped_path = dh.unzip_7z_archive(
-        filepath=os.path.join(os.getcwd(), '../data/input/P2_vegar.7z'),
+        filepath=os.path.join(os.getcwd(), '../data/input/xxx_x.7z'),
         unzip_to_path='../data/temp',
         cleanup=False
     )
@@ -54,7 +54,7 @@ if __name__ == '__main__':
 
     dh.convert_ADC_temp_to_C(
         dataframe=None,
-        dataframe_path='/app/data/temp/P2_vegar.7z/P2_vegar/P2_vegar_B_TEMP_SYNCHED_BT.csv',
+        dataframe_path='/app/data/temp/xxx_x.7z/xxx_x/xxx_x_B_TEMP_SYNCHED_BT.csv',
         normalize=False,
         save=True
     )
@@ -62,8 +62,8 @@ if __name__ == '__main__':
 ######################################## TESTING #############
 
     dh.merge_csvs_on_first_time_overlap(
-        '../data/temp/P2_vegar.7z/P2_vegar/P2_vegar_B.csv',
-        '../data/temp/P2_vegar.7z/P2_vegar/P2_vegar_T.csv',
+        '../data/temp/xxx_x.7z/xxx_x/xxx_x_B.csv',
+        '../data/temp/xxx_x.7z/xxx_x/xxx_x_T.csv',
         rearrange_columns_to=[
             'time',
             'bx',
@@ -79,7 +79,7 @@ if __name__ == '__main__':
     )
 
     dh.convert_column_from_str_to_datetime(
-        dataframe='/app/data/temp/P2_vegar.7z/P2_vegar/P2_vegar_B_TEMP_SYNCHED_BT.csv',
+        dataframe='/app/data/temp/xxx_x.7z/xxx_x/xxx_x_B_TEMP_SYNCHED_BT.csv',
     )
 
     dh.set_column_as_index("time")
@@ -87,7 +87,7 @@ if __name__ == '__main__':
 
     dh.convert_ADC_temp_to_C(
         dataframe=None,
-        dataframe_path='/app/data/temp/P2_vegar.7z/P2_vegar/P2_vegar_B_TEMP_SYNCHED_BT.csv',
+        dataframe_path='/app/data/temp/xxx_x.7z/xxx_x/xxx_x_B_TEMP_SYNCHED_BT.csv',
         normalize=False,
         save=True
     )

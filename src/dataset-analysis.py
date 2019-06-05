@@ -12,20 +12,8 @@ pipObj = Pipeline()
 
 
 # list_with_subjects = [
-    # '../data/input/Sigve.7z',
-    # '../data/input/Sigve2.7z',
-    # '../data/input/Thomas.7z',
-    # '../data/input/Thomas2.7z',
-    # '../data/input/Thomas3.7z',
-    # '../data/input/shower_atle.7z',
-    # '../data/input/nonshower_paul.7z',
-    # '../data/input/Vegard.7z',
-    # '../data/input/Eivind.7z',
-    # '../data/input/P1_atle.7z',
-    # '../data/input/P1_vegar.7z',
-    # '../data/input/P2_atle.7z',
-    # '../data/input/P2_vegar.7z',
-#
+    # '../data/input/xxx_x.7z',
+    # '../data/input/xxx_x.7z
 # ]
 
 # data = pipObj.unzip_multiple_directories(list_with_subjects, zip_to="../data/temp/")
@@ -33,19 +21,8 @@ pipObj = Pipeline()
 
 
 data = [
-    # '../data/temp/shower_atle.7z/shower_atle',
-    # '../data/temp/nonshower_paul.7z/nonshower_paul',
-    # '../data/temp/Thomas.7z/Thomas',
-    # '../data/temp/Thomas2.7z/Thomas2',
-    # '../data/temp/Sigve.7z/Sigve',
-    # '../data/temp/Sigve2.7z/Sigve2'
-    # '../data/temp/Thomas3.7z/Thomas3',
-    # '../data/temp/Vegard.7z/Vegard',
-    # '../data/temp/Eivind.7z/Eivind'
-    # '../data/temp/P1_atle.7z/P1_atle',
-    # '../data/temp/P1_vegar.7z/P1_vegar',
-    # '../data/temp/P2_atle.7z/P2_atle',
-    # '../data/temp/P2_vegar.7z/P2_vegar'
+    # '../data/temp/xxx_x.7z/xxx_x',
+    # '../data/temp/xxx_x.7z/xxx_x'
 ]
 
 dataframe = pipObj.create_large_dataframe_from_multiple_input_directories(

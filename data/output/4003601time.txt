@@ -1,5 +1,0 @@
-4003601 Compressed: False
---- CSV savetime: 0.8816313743591309 seconds ---
---- Pickle savetime: 0.006712913513183594 seconds ---
---- HDF savetime: 0.03549838066101074 seconds ---
---- Feather savetime: 0.03189516067504883 seconds ---

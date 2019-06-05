@@ -48,7 +48,6 @@ list_with_subjects_to_classify = [
 
 unzipped_paths = [
     '../data/temp/4003601.7z/4003601/'
-    # '../data/temp/shower_atle.7z/shower_atle/'
 ]
 
 dataframe = pipObj.create_large_dataframe_from_multiple_input_directories(

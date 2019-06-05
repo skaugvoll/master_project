@@ -10,11 +10,7 @@ pipObj = Pipeline()
 # Create a TRAINING dataframe
 
 train = [
-    '../data/temp/shower_atle.7z/shower_atle',
-    '../data/temp/nonshower_paul.7z/nonshower_paul',
-    # '../data/temp/Thomas.7z/Thomas',
-    '../data/temp/Thomas2.7z/Thomas2',
-    '../data/temp/Sigve.7z/Sigve'
+    '../data/temp/xxx_x.7z/xxx_x',
 ]
 
 trainDataframe = pipObj.create_large_dataframe_from_multiple_input_directories(
@@ -57,9 +53,7 @@ btemp, ttemp, _ = pipObj.get_features_and_labels_as_np_array(
 
 # Create a TEST dataframe
 test = [
-    '../data/temp/Thomas.7z/Thomas',
-    # '../data/temp/Sigve.7z/Sigve'
-    # '../data/temp/nonshower_paul.7z/nonshower_paul',
+    '../data/temp/xxx_x.7z/xxx_x',
 ]
 
 testDataframe = pipObj.create_large_dataframe_from_multiple_input_directories(
