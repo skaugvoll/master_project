@@ -13,7 +13,7 @@ from src.pipeline.Pipeline import Pipeline
 pipObj = Pipeline()
 
 train_list_with_subjects = [
-    '../data/temp/Sigve2.7z/Sigve2/',
+    '../data/temp/xxx_x.7z/xxx_x/',
 ]
 
 
